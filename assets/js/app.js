@@ -2294,4 +2294,15 @@ async function initializeCurrentPage(){
 }
 
 /* ===== INITIALIZATION ===== */
-document.addEventListener('DOMContentLoaded',function(){initializeCurrentPage().then(function(){initParticles();initScrollAnim();initChatSystem();});});
+function applyTranslations(){
+  document.documentElement.lang='ar';
+  document.documentElement.dir='rtl';
+  document.querySelectorAll('[data-t]').forEach(function(el){
+    var k=el.getAttribute('data-t');
+    if(T.ar[k])el.textContent=T.ar[k];
+  });
+}
+document.addEventListener('DOMContentLoaded',function(){
+  applyTranslations();
+  initializeCurrentPage().then(function(){initParticles();initScrollAnim();initChatSystem();});
+});
