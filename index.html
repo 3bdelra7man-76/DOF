@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<meta name="theme-color" content="#0C0C0C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📷</text></svg>">
+<title>DOF STUDIOS — Photography Platform Egypt</title>
+<meta name="description" content="Connect with professional Egyptian photographers, browse portfolios, and book sessions.">
+<meta name="keywords" content="photography, photographer, Egypt, Cairo, Alexandria, wedding, portrait, event photography">
+<meta property="og:title" content="DOF STUDIOS Egypt">
+<meta property="og:description" content="Connect with professional photographers in Egypt">
+<meta property="og:type" content="website">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/js/tailwind.config.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="landing">
+
+<!-- ===== TOAST CONTAINER ===== -->
+<div id="toast-container"></div>
+
+<!-- ===== AUTH MODAL (Login/Register with Role Selection) ===== -->
+<div id="auth-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="flex justify-between items-center mb-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-sm"></i></div>
+        <span class="font-bold tracking-wide" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span>
+      </div>
+      <button onclick="closeModal('auth-modal')" class="text-[var(--text2)] hover:text-[var(--text)] text-xl"><i class="fas fa-times"></i></button>
+    </div>
+    <!-- Tab Switcher -->
+    <div class="flex gap-4 mb-4 border-b border-[var(--border)] pb-3">
+      <button onclick="switchAuthTab('login')" class="auth-tab active text-sm font-semibold pb-1 border-b-2 border-[var(--accent)] text-[var(--accent)]" data-t="loginTab">Sign In</button>
+      <button onclick="switchAuthTab('register')" class="auth-tab text-sm font-semibold pb-1 border-b-2 border-transparent text-[var(--text2)]" data-t="registerTab">Register</button>
+    </div>
+    <!-- Login Form -->
+    <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4" novalidate>
+      <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="email">Email</label><input type="email" class="input" placeholder="name@example.com" required id="login-email"></div>
+      <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="password">Password</label>
+        <div class="relative"><input type="password" class="input" placeholder="********" required id="login-pass">
+        <button type="button" onclick="togglePassVis('login-pass',this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text2)]" tabindex="-1"><i class="fas fa-eye"></i></button></div></div>
+      <button type="submit" class="btn-primary w-full" data-t="signIn">Sign In</button>
+    </form>
+    <!-- Register Form with Role Selection -->
+    <form id="register-form" onsubmit="handleRegister(event)" class="space-y-4 hidden" novalidate>
+      <!-- Role Selector: Photographer or Client -->
+      <div class="role-selector">
+        <div class="role-option selected" onclick="selectRole('photographer',this)">
+          <i class="fas fa-camera gradient-text"></i>
+          <div class="text-sm font-semibold" data-t="photographer">Photographer</div>
+          <div class="text-xs text-[var(--text2)]" data-t="photoDesc">Showcase work & get bookings</div>
+        </div>
+        <div class="role-option" onclick="selectRole('client',this)">
+          <i class="fas fa-user" style="color:var(--text2)"></i>
+          <div class="text-sm font-semibold" data-t="client">Client</div>
+          <div class="text-xs text-[var(--text2)]" data-t="clientDesc">Find & book photographers</div>
+        </div>
+      </div>
+      <!-- Photographer-specific fields -->
+      <div id="photo-fields">
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="fullName">Full Name</label><input type="text" class="input" id="reg-name" required></div>
+          <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="specialty">Photography Type</label>
+            <select class="input" id="reg-spec" onchange="onShootTypeChange(this)">
+              <option value="">Select Photography Type...</option>
+              <option value="wedding">Wedding Photography</option>
+              <option value="portrait">Portrait Photography</option>
+              <option value="event">Event Photography</option>
+              <option value="fashion">Fashion Photography</option>
+              <option value="newborn">Newborn Photography</option>
+              <option value="product">Product Photography</option>
+              <option value="food">Food Photography</option>
+              <option value="realestate">Real Estate Photography</option>
+              <option value="sports">Sports Photography</option>
+              <option value="drone">Drone/Aerial Photography</option>
+              <option value="cinematic">Cinematic Video</option>
+              <option value="maternity">Maternity Photography</option>
+              <option value="boudoir">Boudoir Photography</option>
+              <option value="corporate">Corporate Photography</option>
+              <option value="street">Street Photography</option>
+            </select></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="region">Region</label>
+            <select class="input" id="reg-region"><option value="">Select...</option><option value="cairo">Cairo</option><option value="giza">Giza</option><option value="alexandria">Alexandria</option><option value="mansoura">Mansoura</option><option value="tanta">Tanta</option><option value="zagazig">Zagazig</option><option value="suez">Suez</option><option value="fayoum">Fayoum</option><option value="luxor">Luxor</option><option value="aswan">Aswan</option></select></div>
+          <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="customLink">Custom Link</label>
+            <div class="link-input-group"><span class="link-prefix">dof.eg/</span><input type="text" class="input" id="reg-link" oninput="validateLink(this)"></div></div>
+        </div>
+      </div>
+      <!-- Client-specific field -->
+      <div id="client-fields" class="hidden">
+        <div class="mb-3"><label class="block text-sm text-[var(--text2)] mb-1" data-t="fullName">Full Name</label><input type="text" class="input" id="reg-client-name" required></div>
+      </div>
+      <!-- Common fields -->
+      <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="email">Email</label><input type="email" class="input" id="reg-email" required></div>
+      <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="phone">Phone</label><input type="tel" class="input" id="reg-phone" required></div>
+      <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="password">Password</label>
+        <div class="relative"><input type="password" class="input" id="reg-pass" required minlength="8" oninput="checkPassStrength(this.value)">
+        <button type="button" onclick="togglePassVis('reg-pass',this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text2)]" tabindex="-1"><i class="fas fa-eye"></i></button></div>
+        <div class="password-strength hidden" id="pass-strength"></div>
+        <div class="text-xs text-[var(--text2)] mt-1" id="pass-hint" data-t="passwordHint">8+ chars with numbers & symbols</div></div>
+      <div class="flex items-start gap-2">
+        <input type="checkbox" required id="reg-terms" class="mt-1 accent-[var(--accent)]">
+        <label for="reg-terms" class="text-xs text-[var(--text2)]" data-t="termsAgree">I agree to the <a href="#" class="text-[var(--accent)]">Terms</a> & <a href="#" class="text-[var(--accent)]">Privacy Policy</a></label>
+      </div>
+      <button type="submit" class="btn-primary w-full" data-t="createAccount">Create Account</button>
+      <div class="flex items-center justify-center gap-2 text-xs text-[var(--text2)]"><i class="fas fa-lock"></i><span data-t="secureReg">256-bit encrypted</span></div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== APPOINTMENT MODAL ===== -->
+<div id="apt-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="text-xl font-bold" data-t="addAppointment">Add Appointment</h3>
+      <button onclick="closeModal('apt-modal')" class="text-[var(--text2)] hover:text-[var(--text)] text-xl"><i class="fas fa-times"></i></button>
+    </div>
+    <form onsubmit="handleAddApt(event)" class="space-y-4">
+      <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="clientName">Client Name</label><input type="text" class="input" required id="apt-client"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="date">Date</label><input type="date" class="input" required id="apt-date"></div>
+        <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="time">Time</label><select class="input" required id="apt-time"></select></div>
+      </div>
+      <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="service">Service</label><select class="input" required id="apt-service"></select></div>
+      <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="notes">Notes</label><textarea class="input" id="apt-notes"></textarea></div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeModal('apt-modal')" class="btn-secondary flex-1" data-t="cancel">Cancel</button>
+        <button type="submit" class="btn-primary flex-1" data-t="save">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== PACKAGE MANAGEMENT MODAL ===== -->
+<div id="package-modal" class="modal-overlay">
+  <div class="modal-box lg">
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="text-xl font-bold" id="package-modal-title" data-t="addPackage">Add Package</h3>
+      <button onclick="closeModal('package-modal')" class="text-[var(--text2)] hover:text-[var(--text)] text-xl"><i class="fas fa-times"></i></button>
+    </div>
+    <form onsubmit="handlePackageSubmit(event)" class="space-y-5" id="package-form" novalidate>
+      <input type="hidden" id="pkg-edit-id" value="">
+      
+      <!-- Package Names -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-[var(--text2)] mb-1">Package Name (EN) *</label>
+          <input type="text" class="input" id="pkg-name" required placeholder="e.g., Basic Wedding">
+          <div class="validation-msg" id="pkg-name-msg"></div>
+        </div>
+        <div>
+          <label class="block text-sm text-[var(--text2)] mb-1">Package Name (AR)</label>
+          <input type="text" class="input" id="pkg-nameAr" placeholder="مثال: زفاف أساسي">
+        </div>
+      </div>
+      
+      <!-- Description -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-[var(--text2)] mb-1">Description (EN)</label>
+          <textarea class="input" id="pkg-desc" rows="3" placeholder="Brief description of what's included..."></textarea>
+        </div>
+        <div>
+          <label class="block text-sm text-[var(--text2)] mb-1">Description (AR)</label>
+          <textarea class="input" id="pkg-descAr" rows="3" placeholder="وصف مختصر لما يتضمنه..."></textarea>
+        </div>
+      </div>
+      
+      <!-- Price & Duration -->
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm text-[var(--text2)] mb-1">Price (EGP) *</label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text2)]">EGP</span>
+            <input type="number" class="input" id="pkg-price" required min="0" step="1" placeholder="0" style="padding-left:45px;">
+          </div>
+          <div class="validation-msg" id="pkg-price-msg"></div>
+        </div>
+        <div>
+          <label class="block text-sm text-[var(--text2)] mb-1">Duration (EN) *</label>
+          <input type="text" class="input" id="pkg-duration" required placeholder="e.g., 4 hours">
+          <div class="validation-msg" id="pkg-duration-msg"></div>
+        </div>
+        <div>
+          <label class="block text-sm text-[var(--text2)] mb-1">Duration (AR)</label>
+          <input type="text" class="input" id="pkg-durationAr" placeholder="مثال: 4 ساعات">
+        </div>
+      </div>
+      
+      <!-- Features List -->
+      <div>
+        <label class="block text-sm text-[var(--text2)] mb-2">Features / Inclusions <span class="text-xs text-[var(--text2)]">(EN + AR)</span></label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+          <input type="text" class="input" id="pkg-new-feature-en" placeholder="Feature in English..." dir="ltr">
+          <input type="text" class="input" id="pkg-new-feature-ar" placeholder="الميزة بالعربية..." dir="rtl">
+        </div>
+        <div class="flex items-center gap-2 mb-3">
+          <button type="button" onclick="addPackageFeature()" class="btn-primary btn-sm"><i class="fas fa-plus mr-1"></i>Add</button>
+          <span class="text-xs text-[var(--text2)]">Type English and Arabic, then click Add</span>
+        </div>
+        <div id="pkg-features-list" class="flex flex-wrap gap-1"></div>
+      </div>
+      
+      <!-- Status & Featured -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-[var(--text2)] mb-2">Status</label>
+          <select class="input" id="pkg-status">
+            <option value="active">Active</option>
+            <option value="draft">Draft</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <label class="flex items-center gap-3 cursor-pointer pb-2.5">
+            <input type="checkbox" id="pkg-featured" class="w-4 h-4 accent-[var(--accent)]">
+            <span class="text-sm text-[var(--text2)]">Mark as Featured</span>
+          </label>
+        </div>
+      </div>
+      
+      <!-- File Upload -->
+      <div>
+        <label class="block text-sm text-[var(--text2)] mb-2">Attachments (Contracts, Sample Images)</label>
+        <div class="file-upload-area" id="pkg-file-drop" onclick="document.getElementById('pkg-files').click()">
+          <i class="fas fa-cloud-upload-alt text-3xl text-[var(--text2)] mb-2"></i>
+          <p class="text-sm text-[var(--text2)]">Click to upload or drag files here</p>
+          <p class="text-xs text-[var(--border)] mt-1">PDF, JPG, PNG (Max 10MB each)</p>
+        </div>
+        <input type="file" id="pkg-files" multiple accept=".pdf,.jpg,.jpeg,.png" class="hidden" onchange="handlePackageFiles(this)">
+        <div id="pkg-files-list"></div>
+      </div>
+      
+      <!-- Preview Section -->
+      <div id="pkg-preview-section" class="hidden">
+        <label class="block text-sm text-[var(--text2)] mb-2">Preview</label>
+        <div class="rounded-xl border border-[var(--border)] bg-[var(--bg2)] p-6" id="pkg-preview"></div>
+      </div>
+      
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeModal('package-modal')" class="btn-secondary flex-1" data-t="cancel">Cancel</button>
+        <button type="button" onclick="togglePackagePreview()" class="btn-secondary flex-1"><i class="fas fa-eye mr-1"></i>Preview</button>
+        <button type="submit" class="btn-primary flex-1" id="pkg-submit-btn" data-t="save">Save Package</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== DELETE CONFIRMATION MODAL ===== -->
+<div id="delete-modal" class="modal-overlay">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="text-center">
+      <div class="w-16 h-16 rounded-full bg-[rgba(217,83,79,0.1)] flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-trash-alt text-2xl text-[var(--danger)]"></i>
+      </div>
+      <h3 class="text-xl font-bold mb-2">Delete Package?</h3>
+      <p class="text-sm text-[var(--text2)] mb-6">This action cannot be undone. The package will be permanently removed.</p>
+      <div class="flex gap-3">
+        <button onclick="closeModal('delete-modal')" class="btn-secondary flex-1">Cancel</button>
+        <button onclick="confirmDeletePackage()" class="btn-danger flex-1 py-2.5">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SUBSCRIPTION MODAL ===== -->
+<div id="sub-modal" class="modal-overlay">
+  <div class="modal-box text-center">
+    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mx-auto mb-5"><i class="fas fa-crown text-2xl text-white"></i></div>
+    <h3 class="text-2xl font-bold mb-2" data-t="upgradeTitle">Upgrade to Pro</h3>
+    <p class="text-[var(--text2)] mb-6 text-sm" data-t="upgradeDesc">Unlock unlimited bookings and premium features.</p>
+    <div class="card p-5 mb-6 text-left">
+      <div class="text-3xl font-bold gradient-text mb-1" id="sub-price-label">200 <span class="text-lg font-normal">EGP</span> <span class="text-base text-[var(--text2)] font-normal">/ month</span></div>
+      <ul class="text-sm text-[var(--text2)] space-y-2 mt-4">
+        <li><i class="fas fa-check text-[var(--success)] mr-2"></i>Unlimited packages</li>
+        <li><i class="fas fa-check text-[var(--success)] mr-2"></i>Advanced analytics</li>
+        <li><i class="fas fa-check text-[var(--success)] mr-2"></i>Priority support</li>
+        <li><i class="fas fa-check text-[var(--success)] mr-2"></i>Remove DOF branding</li>
+      </ul>
+      <div class="mt-4">
+        <label class="block text-xs text-[var(--text2)] mb-2" id="payment-method-label">Payment Method</label>
+        <select id="subscription-payment-method" class="input">
+          <option value="card">Credit / Debit Card</option>
+          <option value="instapay">InstaPay</option>
+          <option value="wallet">Mobile Wallet</option>
+          <option value="bank">Bank Transfer</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary w-full text-lg py-3" onclick="handleSubscribe()" data-t="subscribeNow">Subscribe Now</button>
+    <button onclick="closeModal('sub-modal')" class="text-[var(--text2)] text-sm mt-3 hover:text-[var(--text)] cursor-pointer block mx-auto" data-t="maybeLater">Maybe Later</button>
+  </div>
+</div>
+
+<!-- ===== CHAT FLOATING BUTTON ===== -->
+<button id="chat-fab" class="chat-fab hidden" onclick="toggleChatPanel()" title="Chat">
+  <i class="fas fa-comment-dots"></i>
+  <span id="chat-fab-badge" class="badge-dot hidden">0</span>
+</button>
+
+<!-- ===== CHAT PANEL ===== -->
+<div id="chat-panel" class="chat-panel">
+  <div class="chat-panel-header">
+    <div class="flex items-center gap-3">
+      <button onclick="toggleChatPanel()" class="text-[var(--text2)] hover:text-[var(--text)] text-lg"><i class="fas fa-chevron-down"></i></button>
+      <span class="font-bold text-sm" id="chat-panel-title">Messages</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="security-badge" style="font-size:9px;padding:3px 8px;"><i class="fas fa-lock"></i> E2EE</span>
+      <button onclick="closeChatPanel()" class="text-[var(--text2)] hover:text-[var(--text)]"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+  <div class="chat-privacy-banner"><i class="fas fa-shield-alt"></i><span data-t="chatEncrypted">End-to-end encrypted • Your messages are private</span></div>
+  <div id="chat-conv-list" class="chat-conv-list"></div>
+  <div id="chat-conv-view" class="hidden flex flex-col" style="flex:1;display:none;">
+    <div id="chat-conv-header" class="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between" style="flex-shrink:0;">
+      <div class="flex items-center gap-3">
+        <button onclick="showChatConvList()" class="text-[var(--text2)] hover:text-[var(--text)]"><i class="fas fa-arrow-left"></i></button>
+        <img id="chat-conv-avatar" class="w-8 h-8 rounded-lg object-cover" src="" alt="">
+        <div>
+          <div id="chat-conv-name" class="text-sm font-semibold"></div>
+          <div id="chat-conv-status" class="chat-header-status online"><i class="fas fa-circle" style="font-size:6px;"></i><span>Online</span></div>
+        </div>
+      </div>
+      <div class="chat-conv-actions">
+        <button class="report-btn" onclick="reportConversation()"><i class="fas fa-flag mr-1"></i>Report</button>
+        <button class="block-btn" onclick="blockConversation()"><i class="fas fa-ban mr-1"></i>Block</button>
+      </div>
+    </div>
+    <div id="chat-msg-area" class="chat-panel-body" style="flex:1;"></div>
+    <div id="chat-typing-indicator" class="chat-typing hidden">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <span id="chat-typing-text">typing...</span>
+    </div>
+    <div class="chat-panel-footer" style="flex-shrink:0;">
+      <input type="text" id="chat-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChatMessage()">
+      <button onclick="sendChatMessage()"><i class="fas fa-paper-plane"></i></button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CHAT REPORT MODAL ===== -->
+<div id="chat-report-modal" class="modal-overlay">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="text-center mb-4">
+      <div class="w-14 h-14 rounded-full bg-[rgba(240,173,78,0.12)] flex items-center justify-center mx-auto mb-3"><i class="fas fa-flag text-2xl text-[var(--warn)]"></i></div>
+      <h3 class="text-lg font-bold" id="chat-report-title">Report User</h3>
+    </div>
+    <div class="space-y-3 mb-5">
+      <label class="flex items-start gap-3 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] cursor-pointer">
+        <input type="radio" name="report-reason" value="spam" class="mt-1 accent-[var(--accent)]">
+        <div><div class="text-sm font-semibold">Spam</div><div class="text-xs text-[var(--text2)]">Unsolicited messages or promotion</div></div>
+      </label>
+      <label class="flex items-start gap-3 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] cursor-pointer">
+        <input type="radio" name="report-reason" value="harassment" class="mt-1 accent-[var(--accent)]">
+        <div><div class="text-sm font-semibold">Harassment</div><div class="text-xs text-[var(--text2)]">Inappropriate or abusive behavior</div></div>
+      </label>
+      <label class="flex items-start gap-3 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] cursor-pointer">
+        <input type="radio" name="report-reason" value="scam" class="mt-1 accent-[var(--accent)]">
+        <div><div class="text-sm font-semibold">Scam / Fraud</div><div class="text-xs text-[var(--text2)]">Suspicious or deceptive activity</div></div>
+      </label>
+      <label class="flex items-start gap-3 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] cursor-pointer">
+        <input type="radio" name="report-reason" value="other" class="mt-1 accent-[var(--accent)]">
+        <div><div class="text-sm font-semibold">Other</div><div class="text-xs text-[var(--text2)]">Specify reason</div></div>
+      </label>
+    </div>
+    <div class="flex gap-3">
+      <button onclick="closeModal('chat-report-modal')" class="btn-secondary flex-1">Cancel</button>
+      <button onclick="submitReport()" class="btn-primary flex-1">Submit Report</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CHAT BLOCK CONFIRM MODAL ===== -->
+<div id="chat-block-modal" class="modal-overlay">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="text-center">
+      <div class="w-14 h-14 rounded-full bg-[rgba(217,83,79,0.12)] flex items-center justify-center mx-auto mb-3"><i class="fas fa-ban text-2xl text-[var(--danger)]"></i></div>
+      <h3 class="text-lg font-bold mb-2" id="chat-block-title">Block User?</h3>
+      <p class="text-sm text-[var(--text2)] mb-6" id="chat-block-desc">They won't be able to send you messages. You can unblock them later.</p>
+      <div class="flex gap-3">
+        <button onclick="closeModal('chat-block-modal')" class="btn-secondary flex-1">Cancel</button>
+        <button onclick="confirmBlockConversation()" class="btn-danger flex-1 py-2.5">Block</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CHAT DELETE MESSAGE MODAL ===== -->
+<div id="chat-delete-msg-modal" class="modal-overlay">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="text-center">
+      <div class="w-14 h-14 rounded-full bg-[rgba(217,83,79,0.12)] flex items-center justify-center mx-auto mb-3"><i class="fas fa-trash-alt text-2xl text-[var(--danger)]"></i></div>
+      <h3 class="text-lg font-bold mb-2" id="chat-delete-msg-title">Delete Message?</h3>
+      <p class="text-sm text-[var(--text2)] mb-6" id="chat-delete-msg-desc">This will remove the message for everyone.</p>
+      <div class="flex gap-3">
+        <button onclick="closeModal('chat-delete-msg-modal')" class="btn-secondary flex-1">Cancel</button>
+        <button onclick="confirmDeleteChatMessage()" class="btn-danger flex-1 py-2.5">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- ===== LANDING PAGE ===== -->
+<!-- ============================================================ -->
+<div id="landing-page">
+  <nav class="fixed top-0 w-full z-50 backdrop-blur-xl bg-[rgba(12,12,12,0.8)] border-b border-[var(--border)] h-14 sm:h-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2"><div class="w-7 sm:w-8 h-7 sm:h-8 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-xs sm:text-sm"></i></div><span class="font-bold text-sm sm:text-lg tracking-wide" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span></a>
+      <div class="hidden md:flex items-center gap-6 text-sm text-[var(--text2)]">
+        <a href="#features-section" class="hover:text-[var(--accent)] transition" data-t="navFeatures">Features</a>
+        <a href="#" onclick="navigate('explore');return false" class="hover:text-[var(--accent)] transition" data-t="navPhotographers">Photographers</a>
+        <a href="#pricing-section" class="hover:text-[var(--accent)] transition" data-t="navPricing">Pricing</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="toggleLang()" class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center text-xs font-bold text-[var(--text2)] hover:text-[var(--accent)]" id="lang-btn">AR</button>
+        <button onclick="openModal('auth-modal')" class="btn-primary btn-sm" data-t="getStarted">Get Started</button>
+      </div>
+    </div>
+  </nav>
+
+  <section id="client-bookings-section" class="hidden pt-20 sm:pt-24 pb-2 relative z-20">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-bold" id="client-bookings-title">My Bookings</h3>
+          <button onclick="navigate('explore')" class="btn-secondary btn-sm" id="client-bookings-cta">Book New Session</button>
+        </div>
+        <div id="client-bookings-content"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hero Section -->
+  <section class="min-h-screen flex items-center pt-14 sm:pt-16 relative overflow-hidden">
+    <div class="hero-shape w-[500px] h-[500px] bg-[var(--accent)] top-[-100px] right-[-100px]"></div>
+    <div class="hero-shape w-[300px] h-[300px] bg-[var(--accent-d)] bottom-[50px] left-[-50px]"></div>
+    <div class="max-w-7xl mx-auto px-6 w-full relative z-10">
+      <div class="hero-grid grid grid-cols-2 gap-12 items-center" style="grid-template-columns:1.1fr 0.9fr;">
+        <div class="fade-up">
+          <div class="dof-badge mb-6"><i class="fas fa-gem"></i> DOF STUDIOS</div>
+          <h1 class="text-5xl md:text-6xl font-black leading-tight mb-6">
+            <span data-t="heroTitle1">Where Photography</span><br>
+            <span class="gradient-text" data-t="heroTitle2">Meets Opportunity</span>
+          </h1>
+          <p class="hero-desc text-[var(--text2)] text-lg mb-8 max-w-lg leading-relaxed" data-t="heroDesc">Connect with talented photographers, explore stunning portfolios, and book your perfect session — all in one place.</p>
+          <div class="flex gap-4 flex-wrap">
+            <button onclick="openModal('auth-modal')" class="btn-primary text-base px-8 py-3.5" data-t="joinNow">Join Now — Free</button>
+            <button onclick="navigate('explore')" class="btn-secondary text-base px-8 py-3.5" data-t="browsePhotographers">Browse Photographers</button>
+          </div>
+          <div class="flex items-center gap-6 mt-10 text-sm text-[var(--text2)]">
+            <span><i class="fas fa-check text-[var(--success)] mr-1.5"></i><span data-t="heroF1">2,000+ photographers</span></span>
+            <span><i class="fas fa-check text-[var(--success)] mr-1.5"></i><span data-t="heroF2">Secure payments</span></span>
+          </div>
+        </div>
+        <div class="hero-img-wrap relative fade-up" style="animation-delay:.2s">
+          <div class="w-full aspect-[4/5] rounded-2xl overflow-hidden border border-[var(--border)]">
+            <img src="https://picsum.photos/seed/studiophoto/600/750" alt="Studio" class="w-full h-full object-cover" loading="lazy">
+          </div>
+          <div class="absolute -bottom-6 -left-6 card p-4 float-anim">
+            <div class="flex items-center gap-3"><img src="https://picsum.photos/seed/avatar1/80/80" class="w-10 h-10 rounded-full" alt=""><div><div class="text-sm font-semibold">Lina Mansour</div><div class="text-xs text-[var(--text2)]">Wedding Photographer</div></div></div>
+          </div>
+          <div class="absolute -top-4 -right-4 card p-4 float-anim" style="animation-delay:1s">
+            <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-[rgba(92,184,92,0.15)] flex items-center justify-center"><i class="fas fa-arrow-up text-[var(--success)] text-sm"></i></div><div><div class="text-sm font-semibold">+30%</div><div class="text-xs text-[var(--text2)]" data-t="thisMonth">This month</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="glow-line max-w-4xl mx-auto my-8"></div>
+
+  <!-- Features Section -->
+  <section id="features-section" class="py-24 relative z-10">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-16 fade-up"><h2 class="text-4xl font-bold mb-4" data-t="featSectionTitle">For Photographers & Clients</h2><p class="text-[var(--text2)] max-w-xl mx-auto" data-t="featSectionDesc">A complete ecosystem for photography business management and client discovery.</p></div>
+      <div class="feat-grid grid grid-cols-3 gap-6">
+        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-search text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat1Title">Discover Photographers</h4><p class="text-sm text-[var(--text2)]" data-t="feat1Desc">Browse profiles, view portfolios, and find the perfect photographer.</p></div>
+        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-calendar-check text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat2Title">Easy Booking</h4><p class="text-sm text-[var(--text2)]" data-t="feat2Desc">Book sessions directly through photographer profiles.</p></div>
+        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-shield-alt text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat3Title">Secure & Trusted</h4><p class="text-sm text-[var(--text2)]" data-t="feat3Desc">Verified profiles, secure payments, protected data.</p></div>
+        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-images text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat4Title">Portfolio Showcase</h4><p class="text-sm text-[var(--text2)]" data-t="feat4Desc">Display your best work in a stunning gallery.</p></div>
+        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-tags text-white"></i></div><h4 class="text-lg font-bold mb-2">Package Management</h4><p class="text-sm text-[var(--text2)]">Create and manage custom packages with pricing.</p></div>
+        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-globe text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat5Title">Bilingual Platform</h4><p class="text-sm text-[var(--text2)]" data-t="feat5Desc">Full Arabic and English support with RTL layouts.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="py-24 bg-[var(--bg2)] relative z-10">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-16 fade-up"><h2 class="text-4xl font-bold mb-4" data-t="howTitle">How It Works</h2></div>
+      <div class="how-grid grid grid-cols-3 gap-8 max-w-4xl mx-auto">
+        <div class="text-center fade-up"><div class="w-16 h-16 rounded-2xl bg-[var(--card)] border border-[var(--border)] flex items-center justify-center mx-auto mb-5 text-2xl font-bold gradient-text">1</div><h4 class="font-bold mb-2" data-t="step1Title">Create Account</h4><p class="text-sm text-[var(--text2)]" data-t="step1Desc">Sign up as photographer or client.</p></div>
+        <div class="text-center fade-up"><div class="w-16 h-16 rounded-2xl bg-[var(--card)] border border-[var(--border)] flex items-center justify-center mx-auto mb-5 text-2xl font-bold gradient-text">2</div><h4 class="font-bold mb-2" data-t="step2Title">Explore & Connect</h4><p class="text-sm text-[var(--text2)]" data-t="step2Desc">Browse photographers or build your portfolio.</p></div>
+        <div class="text-center fade-up"><div class="w-16 h-16 rounded-2xl bg-[var(--card)] border border-[var(--border)] flex items-center justify-center mx-auto mb-5 text-2xl font-bold gradient-text">3</div><h4 class="font-bold mb-2" data-t="step3Title">Book & Create</h4><p class="text-sm text-[var(--text2)]" data-t="step3Desc">Book sessions or receive bookings.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section id="pricing-section" class="py-24 relative z-10">
+    <div class="max-w-5xl mx-auto px-6">
+      <div class="text-center mb-16 fade-up"><h2 class="text-4xl font-bold mb-4" data-t="priceTitle">Simple Pricing</h2></div>
+      <div class="price-grid grid grid-cols-2 gap-6">
+        <div class="card p-8 fade-up"><div class="text-sm text-[var(--text2)] font-semibold mb-2" data-t="planFree">Free</div><div class="text-4xl font-bold mb-1">0 EGP</div><div class="text-sm text-[var(--text2)] mb-6" data-t="planForever">1 Week</div><ul class="space-y-3 text-sm text-[var(--text2)] mb-8"><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Basic profile</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>5 portfolio photos</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>3 packages</li></ul><button onclick="openModal('auth-modal')" class="btn-secondary w-full" data-t="startFree">Start Free</button></div>
+        <div class="card p-8 border-[var(--accent)] relative fade-up"><div class="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-[var(--accent-d)] to-[var(--accent-l)] text-xs font-bold text-white" data-t="planPopular">Popular</div><div class="text-sm text-[var(--accent)] font-semibold mb-2" data-t="planPro">Professional</div><div class="text-4xl font-bold mb-1" id="pricing-plan-price">200 <span class="text-lg font-normal">EGP</span><span class="text-base text-[var(--text2)] font-normal"> / month</span></div><ul class="space-y-3 text-sm text-[var(--text2)] mb-8"><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Unlimited packages</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Analytics dashboard</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Priority support</li></ul><button onclick="openModal('auth-modal')" class="btn-primary w-full" data-t="choosePlan">Choose Plan</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-[var(--border)] py-12 bg-[var(--bg2)]">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="foot-grid grid grid-cols-4 gap-8 mb-10">
+        <div><div class="flex items-center gap-2 mb-4"><div class="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-xs"></i></div><span class="font-bold" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span></div><p class="text-sm text-[var(--text2)]" data-t="footerAbout">The complete platform for photographers and clients.</p></div>
+        <div><div class="text-sm font-semibold mb-3" data-t="footerPlatform">Platform</div><ul class="space-y-2 text-sm text-[var(--text2)]"><li><a href="#" onclick="navigate('explore');return false" class="hover:text-[var(--accent)]" data-t="footerPhotographers">Photographers</a></li><li><a href="#pricing-section" class="hover:text-[var(--accent)]" data-t="footerPricing">Pricing</a></li></ul></div>
+        <div><div class="text-sm font-semibold mb-3" data-t="footerSupport">Support</div><ul class="space-y-2 text-sm text-[var(--text2)]"><li><a href="#" class="hover:text-[var(--accent)]" data-t="footerHelp">Help Center</a></li><li><a href="#" class="hover:text-[var(--accent)]" data-t="footerContact">Contact</a></li></ul></div>
+        <div><div class="text-sm font-semibold mb-3" data-t="footerConnect">Connect</div><div class="flex gap-3"><a href="#" class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-facebook-f"></i></a><a href="#" class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-instagram"></i></a></div></div>
+      </div>
+      <div class="glow-line mb-6"></div>
+      <div class="flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-[var(--text2)]">
+        <span>&copy; 2026 DOF STUDIOS. All rights reserved.</span>
+        <div class="flex gap-4"><a href="#" class="hover:text-[var(--accent)]">Privacy</a><a href="#" class="hover:text-[var(--accent)]">Terms</a></div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- ===== COMPLETE JAVASCRIPT ===== -->
+<!-- ============================================================ -->
+<script src="assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "dof-studios",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:api": "node --check api/[...path].js && node --check backend/lib/*.js",
+    "dev": "node server.js",
+    "dev:vercel": "vercel dev"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4"
+  },
+  "devDependencies": {
+    "vercel": "^53.4.0"
+  }
+}
