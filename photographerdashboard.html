@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
@@ -18,7 +18,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="assets/js/tailwind.config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="stylesheet" href="assets/css/styles.css">
 </head>
@@ -145,113 +145,95 @@
 <div id="package-modal" class="modal-overlay">
   <div class="modal-box lg">
     <div class="flex justify-between items-center mb-6">
-      <h3 class="text-xl font-bold" id="package-modal-title" data-t="addPackage">Add Package</h3>
+      <h3 class="text-xl font-bold" id="package-modal-title">إضافة باقة</h3>
       <button onclick="closeModal('package-modal')" class="text-[var(--text2)] hover:text-[var(--text)] text-xl"><i class="fas fa-times"></i></button>
     </div>
     <form onsubmit="handlePackageSubmit(event)" class="space-y-5" id="package-form" novalidate>
       <input type="hidden" id="pkg-edit-id" value="">
-      
-      <!-- Package Names -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm text-[var(--text2)] mb-1">Package Name (EN) *</label>
-          <input type="text" class="input" id="pkg-name" required placeholder="e.g., Basic Wedding">
-          <div class="validation-msg" id="pkg-name-msg"></div>
-        </div>
-        <div>
-          <label class="block text-sm text-[var(--text2)] mb-1">Package Name (AR)</label>
-          <input type="text" class="input" id="pkg-nameAr" placeholder="مثال: زفاف أساسي">
-        </div>
+
+      <!-- Package Name -->
+      <div>
+        <label class="block text-sm text-[var(--text2)] mb-1">اسم الباقة *</label>
+        <input type="text" class="input" id="pkg-name" required placeholder="مثال: باقة الأفراح الأساسية" dir="rtl">
+        <div class="validation-msg" id="pkg-name-msg"></div>
       </div>
-      
+
       <!-- Description -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm text-[var(--text2)] mb-1">Description (EN)</label>
-          <textarea class="input" id="pkg-desc" rows="3" placeholder="Brief description of what's included..."></textarea>
-        </div>
-        <div>
-          <label class="block text-sm text-[var(--text2)] mb-1">Description (AR)</label>
-          <textarea class="input" id="pkg-descAr" rows="3" placeholder="وصف مختصر لما يتضمنه..."></textarea>
-        </div>
+      <div>
+        <label class="block text-sm text-[var(--text2)] mb-1">الوصف</label>
+        <textarea class="input" id="pkg-desc" rows="3" placeholder="وصف مختصر لما تتضمنه الباقة..." dir="rtl"></textarea>
       </div>
-      
+
       <!-- Price & Duration -->
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm text-[var(--text2)] mb-1">Price (EGP) *</label>
+          <label class="block text-sm text-[var(--text2)] mb-1">السعر (جنيه) *</label>
           <div class="relative">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text2)]">EGP</span>
-            <input type="number" class="input" id="pkg-price" required min="0" step="1" placeholder="0" style="padding-left:45px;">
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text2)] text-xs">EGP</span>
+            <input type="number" class="input" id="pkg-price" required min="0" step="1" placeholder="0" style="padding-right:45px;">
           </div>
           <div class="validation-msg" id="pkg-price-msg"></div>
         </div>
         <div>
-          <label class="block text-sm text-[var(--text2)] mb-1">Duration (EN) *</label>
-          <input type="text" class="input" id="pkg-duration" required placeholder="e.g., 4 hours">
+          <label class="block text-sm text-[var(--text2)] mb-1">المدة *</label>
+          <input type="text" class="input" id="pkg-duration" required placeholder="مثال: 4 ساعات" dir="rtl">
           <div class="validation-msg" id="pkg-duration-msg"></div>
         </div>
-        <div>
-          <label class="block text-sm text-[var(--text2)] mb-1">Duration (AR)</label>
-          <input type="text" class="input" id="pkg-durationAr" placeholder="مثال: 4 ساعات">
-        </div>
       </div>
-      
-      <!-- Features List -->
+
+      <!-- Features -->
       <div>
-        <label class="block text-sm text-[var(--text2)] mb-2">Features / Inclusions <span class="text-xs text-[var(--text2)]">(EN + AR)</span></label>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
-          <input type="text" class="input" id="pkg-new-feature-en" placeholder="Feature in English..." dir="ltr">
-          <input type="text" class="input" id="pkg-new-feature-ar" placeholder="الميزة بالعربية..." dir="rtl">
-        </div>
-        <div class="flex items-center gap-2 mb-3">
-          <button type="button" onclick="addPackageFeature()" class="btn-primary btn-sm"><i class="fas fa-plus mr-1"></i>Add</button>
-          <span class="text-xs text-[var(--text2)]">Type English and Arabic, then click Add</span>
+        <label class="block text-sm text-[var(--text2)] mb-2">المميزات والمحتويات</label>
+        <div class="flex gap-2 mb-3">
+          <input type="text" class="input flex-1" id="pkg-new-feature-ar" placeholder="أضف ميزة واضغط Enter..." dir="rtl"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();addPackageFeature();}">
+          <button type="button" onclick="addPackageFeature()" class="btn-primary btn-sm px-4"><i class="fas fa-plus"></i></button>
         </div>
         <div id="pkg-features-list" class="flex flex-wrap gap-1"></div>
       </div>
-      
+
       <!-- Status & Featured -->
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm text-[var(--text2)] mb-2">Status</label>
+          <label class="block text-sm text-[var(--text2)] mb-2">الحالة</label>
           <select class="input" id="pkg-status">
-            <option value="active">Active</option>
-            <option value="draft">Draft</option>
+            <option value="active">نشط</option>
+            <option value="draft">مسودة</option>
           </select>
         </div>
         <div class="flex items-end">
           <label class="flex items-center gap-3 cursor-pointer pb-2.5">
             <input type="checkbox" id="pkg-featured" class="w-4 h-4 accent-[var(--accent)]">
-            <span class="text-sm text-[var(--text2)]">Mark as Featured</span>
+            <span class="text-sm text-[var(--text2)]">تمييز الباقة</span>
           </label>
         </div>
       </div>
-      
-      <!-- File Upload -->
-      <div>
-        <label class="block text-sm text-[var(--text2)] mb-2">Attachments (Contracts, Sample Images)</label>
-        <div class="file-upload-area" id="pkg-file-drop" onclick="document.getElementById('pkg-files').click()">
-          <i class="fas fa-cloud-upload-alt text-3xl text-[var(--text2)] mb-2"></i>
-          <p class="text-sm text-[var(--text2)]">Click to upload or drag files here</p>
-          <p class="text-xs text-[var(--border)] mt-1">PDF, JPG, PNG (Max 10MB each)</p>
-        </div>
-        <input type="file" id="pkg-files" multiple accept=".pdf,.jpg,.jpeg,.png" class="hidden" onchange="handlePackageFiles(this)">
-        <div id="pkg-files-list"></div>
-      </div>
-      
-      <!-- Preview Section -->
-      <div id="pkg-preview-section" class="hidden">
-        <label class="block text-sm text-[var(--text2)] mb-2">Preview</label>
-        <div class="rounded-xl border border-[var(--border)] bg-[var(--bg2)] p-6" id="pkg-preview"></div>
-      </div>
-      
+
       <div class="flex gap-3 pt-2">
-        <button type="button" onclick="closeModal('package-modal')" class="btn-secondary flex-1" data-t="cancel">Cancel</button>
-        <button type="button" onclick="togglePackagePreview()" class="btn-secondary flex-1"><i class="fas fa-eye mr-1"></i>Preview</button>
-        <button type="submit" class="btn-primary flex-1" id="pkg-submit-btn" data-t="save">Save Package</button>
+        <button type="button" onclick="closeModal('package-modal')" class="btn-secondary flex-1">إلغاء</button>
+        <button type="submit" class="btn-primary flex-1" id="pkg-submit-btn">حفظ الباقة</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ===== COLLECTION MODAL ===== -->
+<div id="collection-modal" class="modal-overlay">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="flex justify-between items-center mb-5">
+      <h3 class="text-xl font-bold" id="collection-modal-title">مجموعة جديدة</h3>
+      <button onclick="closeModal('collection-modal')" class="text-[var(--text2)] hover:text-[var(--text)] text-xl"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm text-[var(--text2)] mb-1">اسم المجموعة *</label>
+        <input type="text" class="input" id="col-name" placeholder="مثال: أفراح 2024" dir="rtl">
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button onclick="closeModal('collection-modal')" class="btn-secondary flex-1">إلغاء</button>
+        <button onclick="saveCollection()" class="btn-primary flex-1" id="col-save-btn">إنشاء</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -262,11 +244,11 @@
       <div class="w-16 h-16 rounded-full bg-[rgba(217,83,79,0.1)] flex items-center justify-center mx-auto mb-4">
         <i class="fas fa-trash-alt text-2xl text-[var(--danger)]"></i>
       </div>
-      <h3 class="text-xl font-bold mb-2">Delete Package?</h3>
-      <p class="text-sm text-[var(--text2)] mb-6">This action cannot be undone. The package will be permanently removed.</p>
+      <h3 class="text-xl font-bold mb-2">حذف الباقة؟</h3>
+      <p class="text-sm text-[var(--text2)] mb-6">لا يمكن التراجع عن هذا الإجراء. سيتم حذف الباقة نهائياً.</p>
       <div class="flex gap-3">
-        <button onclick="closeModal('delete-modal')" class="btn-secondary flex-1">Cancel</button>
-        <button onclick="confirmDeletePackage()" class="btn-danger flex-1 py-2.5">Delete</button>
+        <button onclick="closeModal('delete-modal')" class="btn-secondary flex-1">إلغاء</button>
+        <button onclick="confirmDeletePackage()" class="btn-danger flex-1 py-2.5">حذف</button>
       </div>
     </div>
   </div>
@@ -417,7 +399,7 @@
   <div class="fixed top-0 w-full z-50 bg-[var(--bg2)] border-b border-[var(--border)] h-14 flex items-center justify-between px-4 lg:hidden">
     <button onclick="toggleSidebar()" class="text-[var(--text2)] text-xl"><i class="fas fa-bars"></i></button>
     <div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-xs"></i></div><span class="font-bold text-sm" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span></div>
-    <button onclick="toggleLang()" class="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center text-xs font-bold text-[var(--text2)]" id="lang-btn-dash">AR</button>
+    <div class="w-8 h-8"></div>
   </div>
   <!-- Sidebar Navigation -->
   <aside class="sidebar" id="sidebar">
@@ -428,10 +410,10 @@
     <nav class="flex-1 py-4 space-y-1">
       <div class="sidebar-link active" data-tab="overview" onclick="switchTab('overview')"><i class="fas fa-th-large"></i><span data-t="navOverview">Overview</span></div>
       <div class="sidebar-link" data-tab="portfolio" onclick="switchTab('portfolio')"><i class="fas fa-images"></i><span data-t="navPortfolio">Portfolio</span></div>
-      <div class="sidebar-link" data-tab="packages" onclick="switchTab('packages')"><i class="fas fa-tags"></i><span id="sidebar-packages-label">Packages</span></div>
+      <div class="sidebar-link" data-tab="packages" onclick="switchTab('packages')"><i class="fas fa-tags"></i><span id="sidebar-packages-label">الباقات</span></div>
       <div class="sidebar-link" data-tab="calendar" onclick="switchTab('calendar')"><i class="fas fa-calendar-alt"></i><span data-t="navCalendar">Calendar</span></div>
       <div class="sidebar-link" data-tab="bookings" onclick="switchTab('bookings')"><i class="fas fa-bookmark"></i><span data-t="navBookings">Bookings</span></div>
-      <div class="sidebar-link" data-tab="chat" onclick="switchTab('chat')"><i class="fas fa-comment-dots"></i><span id="sidebar-chat-label">Messages</span><span id="sidebar-chat-badge" class="hidden ml-auto bg-[var(--danger)] text-white text-xs rounded-full px-2 py-0.5">0</span></div>
+      <div class="sidebar-link" data-tab="chat" onclick="switchTab('chat')"><i class="fas fa-comment-dots"></i><span id="sidebar-chat-label">الرسائل</span><span id="sidebar-chat-badge" class="hidden ml-auto bg-[var(--danger)] text-white text-xs rounded-full px-2 py-0.5">0</span></div>
       <div class="sidebar-link" data-tab="settings" onclick="switchTab('settings')"><i class="fas fa-cog"></i><span data-t="navSettings">Settings</span></div>
     </nav>
     <div class="p-4 border-t border-[var(--border)]">
