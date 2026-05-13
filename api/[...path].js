@@ -12,13 +12,19 @@ const PACKAGE_BUCKET = 'package-attachments';
 const MONTHLY_SUBSCRIPTION_EGP = 200;
 
 function routePath(req) {
-  // Prefer Vercel's injected query.path, fall back to parsing req.url directly
+  // Try Vercel's injected query.path first (array or string)
   const raw = req.query?.path;
-  if (raw && (Array.isArray(raw) ? raw.length : raw)) {
-    return Array.isArray(raw) ? raw : [raw].filter(Boolean);
+  if (Array.isArray(raw) && raw.length) return raw;
+  if (typeof raw === 'string' && raw) return raw.split('/').filter(Boolean);
+
+  // Fall back to parsing req.url — handles any Vercel runtime version
+  try {
+    const url = new URL(req.url, `https://${req.headers.host || 'localhost'}`);
+    const stripped = url.pathname.replace(/^\/api\/?/, '');
+    return stripped.split('/').filter(Boolean);
+  } catch {
+    return [];
   }
-  const url = new URL(req.url, `https://${req.headers.host || 'localhost'}`);
-  return url.pathname.replace(/^\/api\/?/, '').split('/').filter(Boolean);
 }
 
 function param(req, name) {
