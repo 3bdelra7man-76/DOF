@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
@@ -18,7 +18,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="assets/js/tailwind.config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="stylesheet" href="assets/css/styles.css">
 </head>
@@ -415,10 +415,13 @@
 <!-- ============================================================ -->
 <div id="explore-page" class="hidden">
   <nav class="fixed top-0 w-full z-50 backdrop-blur-xl bg-[rgba(12,12,12,0.8)] border-b border-[var(--border)] h-14 flex items-center justify-between px-6">
-    <a href="#" onclick="navigate('landing');return false" class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-xs"></i></div><span class="font-bold text-sm" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span></a>
     <div class="flex items-center gap-3">
-      <button onclick="toggleLang()" class="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center text-xs font-bold text-[var(--text2)]" id="lang-btn-exp">AR</button>
-      <button onclick="openModal('auth-modal')" class="btn-primary btn-sm" data-t="joinNow">Join Now</button>
+      <button onclick="navigate('landing')" class="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--text)] hover:border-[var(--accent)] transition"><i class="fas fa-chevron-right text-sm"></i></button>
+      <a href="#" onclick="navigate('landing');return false" class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-xs"></i></div><span class="font-bold text-sm" style="font-family:'Cairo',sans-serif;">DOF STUDIOS</span></a>
+    </div>
+    <div class="flex items-center gap-3">
+      <button onclick="openModal('auth-modal')" id="nav-get-started-exp" class="btn-primary btn-sm">ابدأ الآن</button>
+      <button onclick="handleLogout()" id="nav-logout-exp" class="hidden btn-secondary btn-sm flex items-center gap-2"><i class="fas fa-sign-out-alt"></i><span id="nav-user-name-exp"></span></button>
     </div>
   </nav>
   <div class="pt-14 min-h-screen" id="explore-content"></div>

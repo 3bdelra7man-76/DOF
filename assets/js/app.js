@@ -542,7 +542,7 @@ function toggleLang(){
 }
 
 /* ===== NAVIGATION ===== */
-var PAGE_URLS={landing:'homepage.html',explore:'explore.html',dashboard:'photographerdashboard.html',public:'publicprofile.html'};
+var PAGE_URLS={landing:'index.html',explore:'explore.html',dashboard:'photographerdashboard.html',public:'publicprofile.html'};
 function getPageView(){
   return (document.body&&document.body.dataset&&document.body.dataset.page)||'landing';
 }
@@ -557,16 +557,36 @@ function goToPage(v){
 }
 function updateNavBar(){
   var u=S.user;
+  var isClient=u&&u.role==='client';
+
+  /* Landing nav */
   var btnStart=document.getElementById('nav-get-started');
   var btnOut=document.getElementById('nav-logout');
   var userName=document.getElementById('nav-user-name');
   var pricingLink=document.getElementById('nav-pricing-link');
   var pricingSection=document.getElementById('pricing-section');
-  var isClient=u&&u.role==='client';
   if(btnStart)btnStart.classList.toggle('hidden',!!u);
   if(btnOut){btnOut.classList.toggle('hidden',!u);if(userName&&u)userName.textContent=u.name||'';}
   if(pricingLink)pricingLink.classList.toggle('hidden',isClient);
   if(pricingSection)pricingSection.classList.toggle('hidden',isClient);
+
+  /* Hero join btn — hide when logged in */
+  var heroJoin=document.getElementById('hero-join-btn');
+  if(heroJoin)heroJoin.classList.toggle('hidden',!!u);
+
+  /* Explore nav */
+  var btnStartExp=document.getElementById('nav-get-started-exp');
+  var btnOutExp=document.getElementById('nav-logout-exp');
+  var userNameExp=document.getElementById('nav-user-name-exp');
+  if(btnStartExp)btnStartExp.classList.toggle('hidden',!!u);
+  if(btnOutExp){btnOutExp.classList.toggle('hidden',!u);if(userNameExp&&u)userNameExp.textContent=u.name||'';}
+
+  /* Public profile nav */
+  var btnStartPub=document.getElementById('nav-get-started-pub');
+  var btnOutPub=document.getElementById('nav-logout-pub');
+  var userNamePub=document.getElementById('nav-user-name-pub');
+  if(btnStartPub)btnStartPub.classList.toggle('hidden',!!u);
+  if(btnOutPub){btnOutPub.classList.toggle('hidden',!u);if(userNamePub&&u)userNamePub.textContent=u.name||'';}
 }
 function navigate(v){
   checkSubscriptionStatus();
@@ -1436,15 +1456,15 @@ function renderPublicProfile(){
   var html='<div class="pt-14">'+reviewBanner+'<div class="pub-cover" style="background-image:url(\''+u.cover+'\')"></div>'+
   '<div class="max-w-5xl mx-auto px-6 -mt-24 relative z-10">'+
   '<div class="profile-header-inner flex items-end gap-6 mb-6"><img src="'+u.avatar+'" class="pub-avatar w-32 h-32 rounded-2xl object-cover border-4 border-[var(--bg)] shadow-xl" alt=""><div class="pb-2"><h1 class="text-3xl font-bold">'+nm+'</h1><p class="text-[var(--accent)] font-semibold">'+sp+'</p><div class="flex items-center gap-4 mt-2 text-sm text-[var(--text2)]"><span><i class="fas fa-map-marker-alt mr-1"></i>'+rg+'</span><span class="stars">'+starsHTML(u.rating||0)+'</span></div></div>'+
-  '<div class="profile-actions ml-auto flex items-center gap-2 mb-2"><button class="btn-secondary btn-sm" onclick="event.stopPropagation();startChatWithPhotographer('+u.id+')"><i class="fas fa-comment-dots mr-1"></i>'+(S.lang==='ar'?'رسالة':'Message')+'</button><div class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</div></div></div>'+
+  '<div class="profile-actions ml-auto flex items-center gap-2 mb-2"><button class="btn-secondary btn-sm" style="border-radius:10px;" onclick="event.stopPropagation();startChatWithPhotographer('+u.id+')"><i class="fas fa-comment-dots mr-1"></i>'+(S.lang==='ar'?'رسالة':'Message')+'</button><div class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</div></div></div>'+
   (bi?'<p class="bio-text text-[var(--text2)] mb-6 max-w-2xl leading-relaxed">'+bi+'</p>':'')+
   (u.social?'<div class="social-icons-wrapper flex flex-wrap gap-3 mb-10">'+(u.social.facebook?'<a href="'+u.social.facebook+'" target="_blank" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-facebook"></i></a>':'')+(u.social.instagram?'<a href="'+u.social.instagram+'" target="_blank" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-instagram"></i></a>':'')+'</div>':'')+
   
   /* Portfolio Gallery */
-  '<div class="pub-section mb-12"><h2 class="text-2xl font-bold mb-6">'+t('yourPortfolio')+'</h2><div class="port-grid">'+(S.portfolio||[]).map(function(p){return'<div class="port-item"><img src="'+p.url+'" alt="'+p.title+'" loading="lazy"><div class="overlay"><span class="text-sm font-semibold">'+p.title+'</span></div></div>';}).join('')+'</div></div>'+
-  
+  '<div class="pub-section mb-12 pt-8 border-t border-[var(--border)]"><h2 class="text-2xl font-bold mb-6">'+t('yourPortfolio')+'</h2><div class="port-grid">'+(S.portfolio||[]).map(function(p){return'<div class="port-item"><img src="'+p.url+'" alt="'+p.title+'" loading="lazy"><div class="overlay"><span class="text-sm font-semibold">'+p.title+'</span></div></div>';}).join('')+'</div></div>'+
+
   /* Services / Packages Section - Enhanced Display */
-  '<div class="pub-section mb-12"><div class="flex items-center justify-between mb-6"><h2 class="text-2xl font-bold">'+(S.lang==='ar'?'الباقات':'Packages')+'</h2>'+
+  '<div class="pub-section mb-12 pt-8 border-t border-[var(--border)]"><div class="flex items-center justify-between mb-6"><h2 class="text-2xl font-bold">'+(S.lang==='ar'?'الباقات':'Packages')+'</h2>'+
   (sortedPkgs.length>0?'<span class="text-sm text-[var(--text2)]">'+sortedPkgs.length+' '+(S.lang==='ar'?'باقات متاحة':'packages available')+'</span>':'')+'</div>'+
   
   (sortedPkgs.length===0?'<div class="empty-state"><i class="fas fa-box-open"></i><h3 class="text-lg font-semibold mb-2">'+(S.lang==='ar'?'لا توجد باقات متاحة حالياً':'No packages available right now')+'</h3></div>':
@@ -1474,7 +1494,7 @@ function renderPublicProfile(){
   '<div id="pub-package-detail" class="pub-section hidden mb-12"><div class="card p-8" id="pub-package-detail-content"></div></div>'+
   
   /* Booking Form */
-  '<div class="pub-section mb-20" id="booking-form-section"><h2 class="text-2xl font-bold mb-6">'+t('bookNow')+'</h2><div class="card p-8">'+
+  '<div class="pub-section mb-20 pt-8 border-t border-[var(--border)]" id="booking-form-section"><h2 class="text-2xl font-bold mb-6">'+t('bookNow')+'</h2><div class="card p-8">'+
   '<form onsubmit="handlePublicBooking(event)" class="space-y-5">'+
   '<div><label class="block text-sm text-[var(--text2)] mb-2">'+t('shootType')+'</label>'+
   '<div class="tab-filter flex-wrap" id="shoot-type-selector">'+
