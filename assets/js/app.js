@@ -1374,13 +1374,13 @@ async function renderExplorePage(){
   var html='<div class="pt-14 pb-20"><div class="max-w-7xl mx-auto px-6">'+
   '<div class="explore-header text-center mb-10"><h1 class="text-4xl font-bold mb-3">'+t('exploreTitle')+'</h1><p class="text-[var(--text2)] max-w-xl mx-auto">'+t('exploreDesc')+'</p></div>'+
   '<div class="search-bar max-w-2xl mx-auto mb-5"><i class="fas fa-search"></i><input type="text" class="input" placeholder="'+t('searchPlaceholder')+'" value="'+f.search+'" oninput="debouncedExploreSearch(this.value)"></div>'+
-  '<div class="explore-filters flex flex-wrap gap-4 justify-center mb-8">'+
+  '<div class="explore-filters flex flex-wrap gap-4 items-end justify-center mb-8">'+
   '<div class="flex items-center gap-2">'+
   '<button onclick="detectUserLocation()" class="btn-secondary btn-sm'+(S.isDetectingLocation?' opacity-50':'')+'" '+(S.isDetectingLocation?'disabled':'')+'>'+
-  '<i class="fas fa-location-dot mr-1"></i>'+(S.isDetectingLocation?t('searchingLocation'):t('useMyLocation'))+'</button>'+
-  (S.selectedRegion?'<span class="badge badge-active"><i class="fas fa-map-marker-alt mr-1"></i>'+(S.lang==='ar'?S.egyptRegions.find(function(r){return r.id===S.selectedRegion;}).nameAr:S.egyptRegions.find(function(r){return r.id===S.selectedRegion;}).nameEn)+'</span>':'')+'</div>'+
-  '<div><label class="block text-xs text-[var(--text2)] mb-1">'+t('filterByRegion')+'</label><select class="input" style="width:180px" onchange="updateExploreFilter(\'region\',this.value)">'+
-  '<option value="">'+t('allRegions')+'</option>'+regions.map(function(r){return'<option value="'+r.id+'" '+(f.region===r.id?'selected':'')+'>'+(S.lang==='ar'?r.nameAr:r.nameEn)+'</option>';}).join('')+'</select></div></div>'+
+  '<i class="fas fa-location-dot ml-1"></i>'+(S.isDetectingLocation?'جاري التحديد...':'استخدم موقعي')+'</button>'+
+  (S.selectedRegion?'<span class="badge badge-active"><i class="fas fa-map-marker-alt ml-1"></i>'+(S.egyptRegions.find(function(r){return r.id===S.selectedRegion;})||{}).nameAr+'</span>':'')+'</div>'+
+  '<div><label class="block text-xs text-[var(--text2)] mb-1">المنطقة</label><select class="input" style="width:180px" onchange="updateExploreFilter(\'region\',this.value)">'+
+  '<option value="">الكل</option>'+regions.map(function(r){return'<option value="'+r.id+'" '+(f.region===r.id?'selected':'')+'>'+r.nameAr+'</option>';}).join('')+'</select></div></div>'+
   '<div class="photo-grid">'+filtered.map(function(p){
     /* Get active packages and find lowest price */
     var activePkgs=(p.packages||[]).filter(function(pkg){return pkg.status==='active';});
@@ -1501,8 +1501,10 @@ function renderPublicProfile(){
   S.photographyTypes.map(function(st){return'<button type="button" class="'+(S.selectedShootType===st.id?'active':'')+'" onclick="selectShootType(\''+st.id+'\',this)"><i class="fas '+st.icon+' mr-2"></i>'+(S.lang==='ar'?st.ar:st.en)+'</button>';}).join('')+'</div></div>'+
   '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourName')+'</label><input class="input" required id="pub-name"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourEmail')+'</label><input type="email" class="input" id="pub-email"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourPhone')+'</label><input class="input" required id="pub-phone"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('selectService')+'</label><select class="input" required id="pub-service" onchange="onPubServiceChange()"><option value="">'+t('selectService')+'</option>'+(S.packages||[]).filter(function(p){return p.status==='active';}).map(function(p){return'<option value="'+p.id+'" data-price="'+p.price+'" data-name="'+gf(p,'name')+'" data-duration="'+gf(p,'duration')+'">'+gf(p,'name')+' — '+formatMoney(p.price)+'</option>';}).join('')+'</select></div></div>'+
   '<div id="pub-service-preview" class="hidden rounded-xl border border-[var(--accent)] bg-[rgba(196,145,92,0.08)] p-5"><div class="pub-service-preview-inner flex items-center justify-between"><div class="flex items-center gap-4"><img src="'+(u.avatar)+'" class="w-14 h-14 rounded-xl object-cover border border-[var(--border)]" alt=""><div><div id="pub-service-name" class="font-bold text-lg text-[var(--accent)]"></div><div id="pub-service-duration" class="text-sm text-[var(--text2)]"></div><div id="pub-service-features-preview" class="text-xs text-[var(--text2)] mt-1"></div></div></div><div class="text-right"><div id="pub-service-price" class="text-3xl font-bold gradient-text"></div><div class="text-xs text-[var(--text2)] mt-1">Total</div></div></div></div>'+
-  '<div><label class="block text-sm text-[var(--text2)] mb-2">'+t('selectDate')+'</label><input type="date" class="input" required id="pub-date" min="'+new Date().toISOString().split('T')[0]+'" onchange="onPubDateChange()"></div>'+
-  '<div id="pub-time-area" class="hidden"><label class="block text-sm text-[var(--text2)] mb-2">'+t('selectTime')+'</label><div class="grid grid-cols-4 sm:grid-cols-6 gap-2" id="pub-time-slots"></div></div>'+
+  '<div class="rounded-xl border border-[var(--border)] bg-[var(--bg2)] p-5 space-y-4">'+
+  '<div><label class="block text-sm font-semibold mb-2"><i class="fas fa-calendar-alt ml-2 text-[var(--accent)]"></i>'+t('selectDate')+'</label><input type="date" class="input" required id="pub-date" min="'+new Date().toISOString().split('T')[0]+'" onchange="onPubDateChange()"></div>'+
+  '<div id="pub-time-area" class="hidden"><label class="block text-sm font-semibold mb-3"><i class="fas fa-clock ml-2 text-[var(--accent)]"></i>'+t('selectTime')+'</label><div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="pub-time-slots"></div></div>'+
+  '</div>'+
   '<div class="flex items-center gap-3 text-xs text-[var(--text2)]"><span class="security-badge"><i class="fas fa-shield-alt"></i> SSL Encrypted</span><span class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</span></div>'+
   '<button type="submit" class="btn-primary text-lg px-8 py-3.5 w-full">'+t('submitBooking')+'</button></form>'+
   '<div id="pub-booking-confirmation" class="hidden mt-4 rounded-xl border border-[var(--success)] bg-[rgba(16,185,129,0.10)] p-4"></div>'+
