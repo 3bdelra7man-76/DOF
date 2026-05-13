@@ -668,6 +668,20 @@ async function handle(req, res) {
   const [first, second, third, fourth] = parts;
 
   if (req.method === 'GET' && first === 'health') return ok(res, { ok: true, app: 'dof-studios-api' });
+
+  if (req.method === 'GET' && first === 'debug') {
+    const sb = supabaseService();
+    const results = {};
+    try {
+      const { data, error } = await sb.from('profiles').select('id').limit(1);
+      results.db = { ok: !error, error: error ? { msg: error.message, code: error.code } : null };
+    } catch (e) { results.db = { ok: false, error: e.message }; }
+    try {
+      const { data, error } = await sb.auth.admin.listUsers({ page: 1, perPage: 1 });
+      results.auth = { ok: !error, error: error ? { msg: error.message, status: error.status } : null };
+    } catch (e) { results.auth = { ok: false, error: e.message }; }
+    return ok(res, { url: process.env.SUPABASE_URL, results });
+  }
   if (req.method === 'POST' && first === 'auth' && second === 'register') return register(req, res);
   if (req.method === 'POST' && first === 'auth' && second === 'login') return login(req, res);
   if (req.method === 'GET' && first === 'me') return getMe(req, res);
