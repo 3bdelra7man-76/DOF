@@ -5,7 +5,7 @@ ar:{loginTab:'تسجيل الدخول',registerTab:'إنشاء حساب',email:'
 };
 
 /* ===== APPLICATION STATE ===== */
-var S={lang:'en',view:'landing',tab:'overview',
+var S={lang:'ar',view:'landing',tab:'overview',
   calMonth:new Date().getMonth(),calYear:new Date().getFullYear(),
   selectedDate:null,selectedTime:null,bookingFilter:'all',
   user:null,regRole:'photographer',nextId:100,
@@ -267,6 +267,7 @@ async function hydrateAuthenticatedState(){
     setApiToken('');
     saveApiProfile(null);
   }
+  updateNavBar();
 }
 function saveFrontendSession(){
   try{
@@ -464,7 +465,7 @@ async function handleLogin(e){
     showToast(err.message||'Login failed','error');
     return;
   }
-  setupChatFAB();updateChatBadge();
+  setupChatFAB();updateChatBadge();updateNavBar();
 }
 async function handleRegister(e){
   e.preventDefault();
@@ -478,7 +479,7 @@ async function handleRegister(e){
       if(!name||!email||!phone||!pass){showToast('Fill required fields','error');return;}
       await apiRequest('/api/auth/register',{method:'POST',body:{
         role:'photographer',displayName:name,email:email,password:pass,phone:phone,
-        specialty:spec||'Photography',region:region||'cairo',customLink:link||email.split('@')[0]
+        specialty:spec||'Photography',region:region||'cairo',customLink:email.split('@')[0]
       }});
     } else {
       name=document.getElementById('reg-client-name').value;
@@ -498,15 +499,15 @@ async function handleRegister(e){
     showToast(err.message||'Registration failed','error');
     return;
   }
-  showToast('Account created!','success');
-  setupChatFAB();updateChatBadge();
+  showToast('تم إنشاء الحساب!','success');
+  setupChatFAB();updateChatBadge();updateNavBar();
 }
-function handleLogout(){S.user=null;S.portfolio=[];S.portfolioPublished=[];S.portfolioDirty=false;S.isPortfolioPreview=false;navigate('landing');showToast('Logged out','info');
+function handleLogout(){S.user=null;S.portfolio=[];S.portfolioPublished=[];S.portfolioDirty=false;S.isPortfolioPreview=false;
   try{sessionStorage.removeItem('dof_frontend_session_v1');}catch(e){}
   setApiToken('');saveApiProfile(null);
   var fab=document.getElementById('chat-fab');if(fab)fab.classList.add('hidden');
   if(document.getElementById('chat-panel'))document.getElementById('chat-panel').classList.remove('open');
-  updateChatBadge();
+  updateChatBadge();updateNavBar();navigate('landing');showToast('تم تسجيل الخروج','info');
 }
 
 /* ===== LANGUAGE TOGGLE ===== */
@@ -554,6 +555,19 @@ function goToPage(v){
   saveFrontendSession();
   if(location.pathname.split('/').pop()!==url){window.location.href=url;}
 }
+function updateNavBar(){
+  var u=S.user;
+  var btnStart=document.getElementById('nav-get-started');
+  var btnOut=document.getElementById('nav-logout');
+  var userName=document.getElementById('nav-user-name');
+  var pricingLink=document.getElementById('nav-pricing-link');
+  var pricingSection=document.getElementById('pricing-section');
+  var isClient=u&&u.role==='client';
+  if(btnStart)btnStart.classList.toggle('hidden',!!u);
+  if(btnOut){btnOut.classList.toggle('hidden',!u);if(userName&&u)userName.textContent=u.name||'';}
+  if(pricingLink)pricingLink.classList.toggle('hidden',isClient);
+  if(pricingSection)pricingSection.classList.toggle('hidden',isClient);
+}
 function navigate(v){
   checkSubscriptionStatus();
   if(!hasPageContainer(v)){goToPage(v);return;}
@@ -569,7 +583,7 @@ function navigate(v){
   if(v==='explore')renderExplorePage();
   else if(v==='dashboard'){renderTab();updateSidebarUser();}
   else if(v==='public')renderPublicProfile();
-  else if(v==='landing'){renderClientBookingsPanel();}
+  updateNavBar();
   setupChatFAB();updateChatBadge();
   window.scrollTo(0,0);
   var sidebar=document.getElementById('sidebar');

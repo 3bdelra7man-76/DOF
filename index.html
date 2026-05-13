@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
@@ -89,11 +89,21 @@
               <option value="street">Street Photography</option>
             </select></div>
         </div>
-        <div class="grid grid-cols-2 gap-3 mb-3">
-          <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="region">Region</label>
-            <select class="input" id="reg-region"><option value="">Select...</option><option value="cairo">Cairo</option><option value="giza">Giza</option><option value="alexandria">Alexandria</option><option value="mansoura">Mansoura</option><option value="tanta">Tanta</option><option value="zagazig">Zagazig</option><option value="suez">Suez</option><option value="fayoum">Fayoum</option><option value="luxor">Luxor</option><option value="aswan">Aswan</option></select></div>
-          <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="customLink">Custom Link</label>
-            <div class="link-input-group"><span class="link-prefix">dof.eg/</span><input type="text" class="input" id="reg-link" oninput="validateLink(this)"></div></div>
+        <div class="mb-3">
+          <label class="block text-sm text-[var(--text2)] mb-1" data-t="region">المنطقة</label>
+          <select class="input w-full" id="reg-region">
+            <option value="">اختر...</option>
+            <option value="cairo">القاهرة</option>
+            <option value="giza">الجيزة</option>
+            <option value="alexandria">الإسكندرية</option>
+            <option value="mansoura">المنصورة</option>
+            <option value="tanta">طنطا</option>
+            <option value="zagazig">الزقازيق</option>
+            <option value="suez">السويس</option>
+            <option value="fayoum">الفيوم</option>
+            <option value="luxor">الأقصر</option>
+            <option value="aswan">أسوان</option>
+          </select>
         </div>
       </div>
       <!-- Client-specific field -->
@@ -420,26 +430,15 @@
       <div class="hidden md:flex items-center gap-6 text-sm text-[var(--text2)]">
         <a href="#features-section" class="hover:text-[var(--accent)] transition" data-t="navFeatures">Features</a>
         <a href="#" onclick="navigate('explore');return false" class="hover:text-[var(--accent)] transition" data-t="navPhotographers">Photographers</a>
-        <a href="#pricing-section" class="hover:text-[var(--accent)] transition" data-t="navPricing">Pricing</a>
+        <a href="#pricing-section" id="nav-pricing-link" class="hover:text-[var(--accent)] transition" data-t="navPricing">الأسعار</a>
       </div>
       <div class="flex items-center gap-3">
-        <button onclick="toggleLang()" class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center text-xs font-bold text-[var(--text2)] hover:text-[var(--accent)]" id="lang-btn">AR</button>
-        <button onclick="openModal('auth-modal')" class="btn-primary btn-sm" data-t="getStarted">Get Started</button>
+        <button onclick="openModal('auth-modal')" id="nav-get-started" class="btn-primary btn-sm" data-t="getStarted">ابدأ الآن</button>
+        <button onclick="handleLogout()" id="nav-logout" class="hidden btn-secondary btn-sm flex items-center gap-2"><i class="fas fa-sign-out-alt"></i><span id="nav-user-name"></span></button>
       </div>
     </div>
   </nav>
 
-  <section id="client-bookings-section" class="hidden pt-20 sm:pt-24 pb-2 relative z-20">
-    <div class="max-w-7xl mx-auto px-6">
-      <div class="card p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-xl font-bold" id="client-bookings-title">My Bookings</h3>
-          <button onclick="navigate('explore')" class="btn-secondary btn-sm" id="client-bookings-cta">Book New Session</button>
-        </div>
-        <div id="client-bookings-content"></div>
-      </div>
-    </div>
-  </section>
 
   <!-- Hero Section -->
   <section class="min-h-screen flex items-center pt-14 sm:pt-16 relative overflow-hidden">
