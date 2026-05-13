@@ -128,7 +128,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1;}
 .time-slot.selected{background:linear-gradient(135deg,var(--accent-d),var(--accent));color:#fff;border-color:var(--accent);box-shadow:0 4px 12px rgba(196,145,92,0.25);}
 
 /* ===== PUBLIC PROFILE COVER ===== */
-.pub-cover{height:320px;background-size:cover;background-position:center;position:relative;}
+.pub-cover{height:320px;background-size:cover;background-position:center;position:relative;background-color:var(--bg2);}
 .pub-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(transparent 30%,var(--bg));}
 
 /* ===== TAB FILTER ===== */

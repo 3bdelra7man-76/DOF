@@ -15,7 +15,7 @@ var S={lang:'ar',view:'landing',tab:'overview',
   packageSort:'newest',packageFilter:'all',
   tempPackageFeatures:[],tempPackageFiles:[],deletePackageId:null,
   portfolioPublished:[],portfolioDirty:false,isPortfolioPreview:false,
-  collections:[],openCollectionId:null,editCollectionId:null,
+  collections:[],openCollectionId:null,editCollectionId:null,pendingColId:null,
   selectedShootType:null,
   selectedRegion:null,detectedLocation:null,isDetectingLocation:false,
   customerVault:[],
@@ -155,7 +155,7 @@ function normalizeProfile(profile){
     id:profile.id,email:profile.email,role:profile.role,
     name:profile.display_name||profile.name||'',
     nameAr:profile.display_name||profile.nameAr||profile.name||'',
-    phone:profile.phone||'',avatar:profile.avatar_url||profile.avatar||'https://picsum.photos/seed/avatar1/80/80',
+    phone:profile.phone||'',avatar:profile.avatar_url||profile.avatar||'',
     specialty:pp?(pp.specialty||'Photography'):(profile.specialty||'Photography'),
     specialtyAr:pp?(pp.specialty||'تصوير'):(profile.specialtyAr||'تصوير'),
     region:pp?(pp.region||'cairo'):(profile.region||'cairo'),
@@ -163,7 +163,7 @@ function normalizeProfile(profile){
     customLink:pp?(pp.custom_link||''):(profile.customLink||''),
     bio:pp?(pp.bio||''):(profile.bio||''),
     bioAr:pp?(pp.bio||''):(profile.bioAr||''),
-    cover:pp?(pp.cover_url||'https://picsum.photos/seed/cover1/800/400'):(profile.cover||'https://picsum.photos/seed/cover1/800/400'),
+    cover:pp?(pp.cover_url||''):(profile.cover||''),
     social:pp?(pp.social_links||{}):(profile.social||{}),
     rating:profile.rating||0,bookings:profile.booking_count||0,
     subscriptionDueAt:pp?pp.subscription_due_at:null,
@@ -176,8 +176,8 @@ function normalizeDirectoryPhotographer(row){
     id:row.id,name:row.display_name,nameAr:row.display_name,
     specialty:row.specialty||'Photography',specialtyAr:row.specialty||'تصوير',
     region:row.region||'',regionAr:row.region||'',customLink:row.custom_link,
-    avatar:row.avatar_url||'https://picsum.photos/seed/photog'+row.id+'/200/200',
-    cover:row.cover_url||'https://picsum.photos/seed/cover'+row.id+'/800/400',
+    avatar:row.avatar_url||'',
+    cover:row.cover_url||'',
     bio:row.bio||'',bioAr:row.bio||'',social:row.social_links||{},
     rating:row.rating||0,bookings:row.booking_count||0,packages:[],portfolio:[]
   };
@@ -657,7 +657,7 @@ function updateSidebarUser(){
   var avatar=document.getElementById('sidebar-avatar');
   var name=document.getElementById('sidebar-name');
   var spec=document.getElementById('sidebar-spec');
-  if(avatar)avatar.src=S.user.avatar;
+  if(avatar){avatar.src=S.user.avatar||'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 80 80\'%3E%3Crect width=\'80\' height=\'80\' rx=\'40\' fill=\'%231a1a1a\'/%3E%3Ccircle cx=\'40\' cy=\'30\' r=\'16\' fill=\'%23444\'/%3E%3Cellipse cx=\'40\' cy=\'72\' rx=\'26\' ry=\'22\' fill=\'%23444\'/%3E%3C/svg%3E';}
   if(name)name.textContent=(gf(S.user,'name')||'').split(' ')[0];
   if(spec)spec.textContent=gf(S.user,'specialty');
   var pct=Math.round((S.trialDaysLeft/7)*100);
@@ -720,9 +720,12 @@ function renderPortfolio(){
   (S.collections.length===0?
   '<div class="empty-state"><i class="fas fa-images"></i><h3 class="text-lg font-semibold mb-2">لا توجد مجموعات بعد</h3><p class="text-sm">أنشئ مجموعتك الأولى لتنظيم صورك</p></div>':
   '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">'+S.collections.map(function(col){
-    var cover=col.cover||(col.photos&&col.photos[0]?col.photos[0].url:'https://picsum.photos/seed/col'+col.id+'/400/300');
+    var cover=col.cover||(col.photos&&col.photos[0]?col.photos[0].url:'');
     return'<div class="card overflow-hidden cursor-pointer group" onclick="openCollection(\''+col.id+'\')">'+
-    '<div class="relative" style="padding-top:66.6%"><img src="'+cover+'" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" alt="'+col.name+'">'+
+    '<div class="relative" style="padding-top:66.6%">'+
+    (cover
+      ?'<img src="'+cover+'" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" alt="'+col.name+'">'
+      :'<div class="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[var(--bg2)] to-[var(--bg)]"><i class="fas fa-images text-4xl mb-2" style="color:var(--border)"></i><span class="text-xs" style="color:var(--border)">لا توجد صور بعد</span></div>')+
     '<div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>'+
     '<div class="absolute bottom-0 right-0 left-0 p-3 flex items-end justify-between">'+
     '<div><div class="text-white font-bold text-sm">'+col.name+'</div>'+
@@ -799,17 +802,36 @@ function deleteCollection(id){
   renderTab();showToast('تم حذف المجموعة','info');
 }
 
-async function addPhotoToCollection(colId){
-  var url=prompt('ضع رابط الصورة','https://picsum.photos/seed/new'+Date.now()+'/600/400');
-  if(!url)return;
-  var title=prompt('عنوان الصورة','صورة جديدة')||'صورة جديدة';
+function addPhotoToCollection(colId){
   var col=S.collections.find(function(c){return String(c.id)===String(colId);});
   if(!col)return;
-  if(!col.photos)col.photos=[];
-  if(col.photos.length>=10){showToast('الحد الأقصى 10 صور للمجموعة','error');return;}
-  col.photos.push({id:++S.nextId,url:url,title:title});
-  if(!col.cover)col.cover=url;
-  renderTab();showToast('تمت إضافة الصورة','success');
+  if((col.photos||[]).length>=10){showToast('الحد الأقصى 10 صور للمجموعة','error');return;}
+  S.pendingColId=colId;
+  var input=document.getElementById('col-photo-input');
+  if(input)input.click();
+}
+function handleColPhotoUpload(input){
+  var file=input&&input.files&&input.files[0];
+  if(!file){return;}
+  if(!/^image\//.test(file.type)){showToast('يرجى اختيار صورة','error');input.value='';return;}
+  if(file.size>10*1024*1024){showToast('الحجم الأقصى 10 ميجابايت','error');input.value='';return;}
+  var colId=S.pendingColId;
+  var col=S.collections.find(function(c){return String(c.id)===String(colId);});
+  if(!col){input.value='';return;}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var dataUrl=e.target.result;
+    var title=file.name.replace(/\.[^.]+$/,'')||'صورة جديدة';
+    if(!col.photos)col.photos=[];
+    col.photos.push({id:++S.nextId,url:dataUrl,title:title});
+    if(!col.cover)col.cover=dataUrl;
+    input.value='';
+    S.pendingColId=null;
+    renderTab();
+    showToast('تمت إضافة الصورة','success');
+  };
+  reader.onerror=function(){showToast('فشل قراءة الصورة','error');input.value='';};
+  reader.readAsDataURL(file);
 }
 
 function removePhotoFromCollection(colId,photoId){
@@ -1299,13 +1321,16 @@ function renderSettings(){
   '<div class="card p-6"><h3 class="font-bold mb-5">'+t('profileSettings')+'</h3>'+
   '<form onsubmit="updateProfile(event)" class="space-y-4">'+
   '<div class="space-y-4 mb-4">'+
-  '<div class="flex items-center gap-4"><img src="'+u.avatar+'" class="w-16 h-16 rounded-full border-2 border-[var(--border)] object-cover" alt=""><div class="flex-1"><div class="text-sm font-semibold mb-1">'+(S.lang==='ar'?'صورة البروفايل':'Profile Photo')+'</div><button type="button" onclick="openMediaPicker(\'avatar\')" class="btn-secondary btn-sm">'+(S.lang==='ar'?'تغيير صورة البروفايل':'Change Profile Photo')+'</button><input id="s-avatar-input" type="file" accept="image/*" onchange="handleMediaFile(\'avatar\',this)" class="hidden"></div></div>'+
-  '<div><div class="text-sm font-semibold mb-2">'+(S.lang==='ar'?'صورة البانر':'Banner Image')+'</div><div class="rounded-xl overflow-hidden border border-[var(--border)] mb-2"><img src="'+u.cover+'" class="w-full h-28 object-cover" alt=""></div><button type="button" onclick="openMediaPicker(\'cover\')" class="btn-secondary btn-sm">'+(S.lang==='ar'?'تغيير صورة البانر':'Change Banner Image')+'</button><input id="s-cover-input" type="file" accept="image/*" onchange="handleMediaFile(\'cover\',this)" class="hidden"></div>'+
+  '<div class="flex items-center gap-4">'+
+  (u.avatar?'<img src="'+u.avatar+'" class="w-16 h-16 rounded-full border-2 border-[var(--border)] object-cover" alt="">':'<div class="w-16 h-16 rounded-full border-2 border-dashed border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center cursor-pointer shrink-0" onclick="openMediaPicker(\'avatar\')"><i class="fas fa-camera text-xl text-[var(--text2)]"></i></div>')+
+  '<div class="flex-1"><div class="text-sm font-semibold mb-1">صورة البروفايل</div><button type="button" onclick="openMediaPicker(\'avatar\')" class="btn-secondary btn-sm">تغيير صورة البروفايل</button><input id="s-avatar-input" type="file" accept="image/*" onchange="handleMediaFile(\'avatar\',this)" class="hidden"></div></div>'+
+  '<div><div class="text-sm font-semibold mb-2">صورة البانر</div><div class="rounded-xl overflow-hidden border border-[var(--border)] mb-2">'+
+  (u.cover?'<img src="'+u.cover+'" class="w-full h-28 object-cover" alt="">':'<div class="w-full h-28 bg-[var(--bg2)] border border-dashed border-[var(--border)] rounded-xl flex items-center justify-center cursor-pointer" onclick="openMediaPicker(\'cover\')"><i class="fas fa-image text-3xl text-[var(--border)]"></i></div>')+
+  '</div><button type="button" onclick="openMediaPicker(\'cover\')" class="btn-secondary btn-sm">تغيير صورة البانر</button><input id="s-cover-input" type="file" accept="image/*" onchange="handleMediaFile(\'cover\',this)" class="hidden"></div>'+
   '</div>'+
-  '<div class="grid grid-cols-2 gap-3"><div><label class="block text-sm text-[var(--text2)] mb-1">Name (EN)</label><input class="input" id="s-name" value="'+u.name+'"></div><div><label class="block text-sm text-[var(--text2)] mb-1">Name (AR)</label><input class="input" id="s-nameAr" value="'+(u.nameAr||u.name)+'"></div></div>'+
-  '<div class="grid grid-cols-2 gap-3"><div><label class="block text-sm text-[var(--text2)] mb-1">Specialty (EN)</label><input class="input" id="s-spec" value="'+u.specialty+'"></div><div><label class="block text-sm text-[var(--text2)] mb-1">Specialty (AR)</label><input class="input" id="s-specAr" value="'+(u.specialtyAr||u.specialty)+'"></div></div>'+
-  '<div><label class="block text-sm text-[var(--text2)] mb-1">Bio (EN)</label><textarea class="input" id="s-bio">'+u.bio+'</textarea></div>'+
-  '<div><label class="block text-sm text-[var(--text2)] mb-1">Bio (AR)</label><textarea class="input" id="s-bioAr">'+(u.bioAr||'')+'</textarea></div>'+
+  '<div><label class="block text-sm text-[var(--text2)] mb-1">الاسم الكامل</label><input class="input" id="s-nameAr" value="'+(u.nameAr||u.name||'')+'"></div>'+
+  '<div><label class="block text-sm text-[var(--text2)] mb-1">التخصص</label><input class="input" id="s-specAr" value="'+(u.specialtyAr||u.specialty||'')+'"></div>'+
+  '<div><label class="block text-sm text-[var(--text2)] mb-1">نبذة عنك</label><textarea class="input" id="s-bioAr">'+(u.bioAr||u.bio||'')+'</textarea></div>'+
   '<button type="submit" class="btn-primary w-full">'+t('updateProfile')+'</button></form></div>'+
   '<div class="space-y-6">'+
   '<div class="card p-6"><h3 class="font-bold mb-4">'+t('socialLinks')+'</h3><div class="space-y-3">'+
@@ -1323,12 +1348,15 @@ function renderSettings(){
 }
 function updateProfile(e){
   e.preventDefault();var u=S.user;
-  u.name=document.getElementById('s-name').value;u.nameAr=document.getElementById('s-nameAr').value||u.name;
-  u.specialty=document.getElementById('s-spec').value;u.specialtyAr=document.getElementById('s-specAr').value||u.specialty;
-  u.bio=document.getElementById('s-bio').value;u.bioAr=document.getElementById('s-bioAr').value||'';
+  var nameVal=document.getElementById('s-nameAr').value;
+  var specVal=document.getElementById('s-specAr').value;
+  var bioVal=document.getElementById('s-bioAr').value;
+  u.name=nameVal;u.nameAr=nameVal;
+  u.specialty=specVal;u.specialtyAr=specVal;
+  u.bio=bioVal;u.bioAr=bioVal;
   var dirPhoto=S.photographers.find(function(p){return p.id===u.id;});
-  if(dirPhoto){Object.assign(dirPhoto,{name:u.name,nameAr:u.nameAr,specialty:u.specialty,specialtyAr:u.specialtyAr,bio:u.bio,bioAr:u.bioAr});}
-  updateSidebarUser();showToast('Profile updated','success');
+  if(dirPhoto){Object.assign(dirPhoto,{name:nameVal,nameAr:nameVal,specialty:specVal,specialtyAr:specVal,bio:bioVal,bioAr:bioVal});}
+  updateSidebarUser();showToast('تم تحديث الملف الشخصي','success');
 }
 function updateSocial(){
   if(!S.user.social)S.user.social={};
@@ -1464,7 +1492,9 @@ async function renderExplorePage(){
     /* Get active packages and find lowest price */
     var activePkgs=(p.packages||[]).filter(function(pkg){return pkg.status==='active';});
     var lowestPrice=activePkgs.length>0?Math.min.apply(null,activePkgs.map(function(pkg){return pkg.price;})):null;
-    return'<div class="photo-card"><div class="photo-card-header"><img src="'+p.cover+'" alt="'+gf(p,'name')+'" loading="lazy"><img src="'+p.avatar+'" class="photo-card-avatar" alt=""></div>'+
+    var coverEl=p.cover?'<img src="'+p.cover+'" alt="'+gf(p,'name')+'" loading="lazy">':'<div style="position:absolute;inset:0;background:linear-gradient(135deg,var(--bg2),var(--bg));display:flex;align-items:center;justify-content:center;"><i class="fas fa-camera" style="font-size:2.5rem;color:var(--border);"></i></div>';
+    var avatarEl=p.avatar?'<img src="'+p.avatar+'" class="photo-card-avatar" alt="">':'<div class="photo-card-avatar" style="background:var(--bg2);display:flex;align-items:center;justify-content:center;"><i class="fas fa-user" style="color:var(--border);font-size:1.2rem;"></i></div>';
+    return'<div class="photo-card"><div class="photo-card-header" style="position:relative;">'+coverEl+avatarEl+'</div>'+
     '<div class="photo-card-body"><div class="photo-card-name">'+gf(p,'name')+'</div><div class="photo-card-spec">'+gf(p,'specialty')+'</div>'+
     '<div class="photo-card-region"><i class="fas fa-map-marker-alt"></i> '+gf(p,'region')+'</div>'+
     '<div class="photo-card-stats"><div class="photo-card-stat"><div class="photo-card-stat-value">'+p.bookings+'</div><div class="photo-card-stat-label">'+(S.lang==='ar'?'حجوزات':' bookings')+'</div></div><div class="photo-card-stat"><div class="photo-card-stat-value"><span class="stars">'+starsHTML(p.rating)+'</span></div><div class="photo-card-stat-label">'+p.rating+'</div></div></div>'+
@@ -1532,9 +1562,12 @@ function renderPublicProfile(){
   '<div class="text-sm"><strong>'+(S.lang==='ar'?'وضع المعاينة':'Review Mode')+'</strong> — '+(S.lang==='ar'?'هذا شكل البرتفوليو النهائي قبل النشر.':'This is the final portfolio look before publishing.')+'</div>'+
   '<div class="flex gap-2"><button onclick="publishPortfolioChanges()" class="btn-primary btn-sm">'+(S.lang==='ar'?'نشر الآن':'Publish Now')+'</button>'+
   '<button onclick="S.isPortfolioPreview=false;navigate(\'dashboard\');switchTab(\'portfolio\');" class="btn-secondary btn-sm">'+(S.lang==='ar'?'عودة للتعديل':'Back to Edit')+'</button></div></div></div>':'';
+  var avatarEl=u.avatar
+    ?'<img src="'+u.avatar+'" class="pub-avatar w-32 h-32 rounded-2xl object-cover border-4 border-[var(--bg)] shadow-xl" alt="">'
+    :'<div class="pub-avatar w-32 h-32 rounded-2xl border-4 border-[var(--bg)] shadow-xl bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-4xl" style="color:var(--border)"></i></div>';
   var html='<div class="pt-14">'+reviewBanner+'<div class="pub-cover" style="background-image:url(\''+u.cover+'\')"></div>'+
   '<div class="max-w-5xl mx-auto px-6 -mt-24 relative z-10">'+
-  '<div class="profile-header-inner flex items-end gap-6 mb-6"><img src="'+u.avatar+'" class="pub-avatar w-32 h-32 rounded-2xl object-cover border-4 border-[var(--bg)] shadow-xl" alt=""><div class="pb-2"><h1 class="text-3xl font-bold">'+nm+'</h1><p class="text-[var(--accent)] font-semibold">'+sp+'</p><div class="flex items-center gap-4 mt-2 text-sm text-[var(--text2)]"><span><i class="fas fa-map-marker-alt mr-1"></i>'+rg+'</span><span class="stars">'+starsHTML(u.rating||0)+'</span></div></div>'+
+  '<div class="profile-header-inner flex items-end gap-6 mb-6">'+avatarEl+'<div class="pb-2"><h1 class="text-3xl font-bold">'+nm+'</h1><p class="text-[var(--accent)] font-semibold">'+sp+'</p><div class="flex items-center gap-4 mt-2 text-sm text-[var(--text2)]"><span><i class="fas fa-map-marker-alt mr-1"></i>'+rg+'</span><span class="stars">'+starsHTML(u.rating||0)+'</span></div></div>'+
   '<div class="profile-actions ml-auto flex items-center gap-2 mb-2"><button class="btn-secondary btn-sm" style="border-radius:10px;" onclick="event.stopPropagation();startChatWithPhotographer('+u.id+')"><i class="fas fa-comment-dots mr-1"></i>'+(S.lang==='ar'?'رسالة':'Message')+'</button><div class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</div></div></div>'+
   (bi?'<p class="bio-text text-[var(--text2)] mb-6 max-w-2xl leading-relaxed">'+bi+'</p>':'')+
   (u.social?'<div class="social-icons-wrapper flex flex-wrap gap-3 mb-10">'+(u.social.facebook?'<a href="'+u.social.facebook+'" target="_blank" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-facebook"></i></a>':'')+(u.social.instagram?'<a href="'+u.social.instagram+'" target="_blank" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-instagram"></i></a>':'')+'</div>':'')+
@@ -1579,7 +1612,9 @@ function renderPublicProfile(){
   '<div class="tab-filter flex-wrap" id="shoot-type-selector">'+
   S.photographyTypes.map(function(st){return'<button type="button" class="'+(S.selectedShootType===st.id?'active':'')+'" onclick="selectShootType(\''+st.id+'\',this)"><i class="fas '+st.icon+' mr-2"></i>'+(S.lang==='ar'?st.ar:st.en)+'</button>';}).join('')+'</div></div>'+
   '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourName')+'</label><input class="input" required id="pub-name"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourEmail')+'</label><input type="email" class="input" id="pub-email"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourPhone')+'</label><input class="input" required id="pub-phone"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('selectService')+'</label><select class="input" required id="pub-service" onchange="onPubServiceChange()"><option value="">'+t('selectService')+'</option>'+(S.packages||[]).filter(function(p){return p.status==='active';}).map(function(p){return'<option value="'+p.id+'" data-price="'+p.price+'" data-name="'+gf(p,'name')+'" data-duration="'+gf(p,'duration')+'">'+gf(p,'name')+' — '+formatMoney(p.price)+'</option>';}).join('')+'</select></div></div>'+
-  '<div id="pub-service-preview" class="hidden rounded-xl border border-[var(--accent)] bg-[rgba(196,145,92,0.08)] p-5"><div class="pub-service-preview-inner flex items-center justify-between"><div class="flex items-center gap-4"><img src="'+(u.avatar)+'" class="w-14 h-14 rounded-xl object-cover border border-[var(--border)]" alt=""><div><div id="pub-service-name" class="font-bold text-lg text-[var(--accent)]"></div><div id="pub-service-duration" class="text-sm text-[var(--text2)]"></div><div id="pub-service-features-preview" class="text-xs text-[var(--text2)] mt-1"></div></div></div><div class="text-right"><div id="pub-service-price" class="text-3xl font-bold gradient-text"></div><div class="text-xs text-[var(--text2)] mt-1">Total</div></div></div></div>'+
+  '<div id="pub-service-preview" class="hidden rounded-xl border border-[var(--accent)] bg-[rgba(196,145,92,0.08)] p-5"><div class="pub-service-preview-inner flex items-center justify-between"><div class="flex items-center gap-4">'+
+  (u.avatar?'<img src="'+u.avatar+'" class="w-14 h-14 rounded-xl object-cover border border-[var(--border)]" alt="">':'<div class="w-14 h-14 rounded-xl border border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-xl" style="color:var(--border)"></i></div>')+
+  '<div><div id="pub-service-name" class="font-bold text-lg text-[var(--accent)]"></div><div id="pub-service-duration" class="text-sm text-[var(--text2)]"></div><div id="pub-service-features-preview" class="text-xs text-[var(--text2)] mt-1"></div></div><div class="text-right"><div id="pub-service-price" class="text-3xl font-bold gradient-text"></div><div class="text-xs text-[var(--text2)] mt-1">Total</div></div></div></div>'+
   '<div class="rounded-xl border border-[var(--border)] bg-[var(--bg2)] p-5 space-y-4">'+
   '<div><label class="block text-sm font-semibold mb-2"><i class="fas fa-calendar-alt ml-2 text-[var(--accent)]"></i>'+t('selectDate')+'</label><input type="date" class="input" required id="pub-date" min="'+new Date().toISOString().split('T')[0]+'" onchange="onPubDateChange()"></div>'+
   '<div id="pub-time-area" class="hidden"><label class="block text-sm font-semibold mb-3"><i class="fas fa-clock ml-2 text-[var(--accent)]"></i>'+t('selectTime')+'</label><div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="pub-time-slots"></div></div>'+

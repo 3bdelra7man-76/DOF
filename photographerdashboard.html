@@ -428,6 +428,9 @@
 <!-- Sidebar overlay for mobile -->
 <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-[99] hidden lg:hidden" onclick="toggleSidebar()"></div>
 
+<!-- Hidden file input for collection photo uploads -->
+<input type="file" id="col-photo-input" accept="image/*" class="hidden" onchange="handleColPhotoUpload(this)">
+
 
 <!-- ============================================================ -->
 <!-- ===== COMPLETE JAVASCRIPT ===== -->
