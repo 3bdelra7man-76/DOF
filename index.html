@@ -18,7 +18,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="assets/js/tailwind.config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="stylesheet" href="assets/css/styles.css">
 </head>
@@ -33,7 +33,7 @@
     <div class="flex justify-between items-center mb-4">
       <div class="flex items-center gap-2">
         <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-sm"></i></div>
-        <span class="font-bold tracking-wide" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span>
+        <span class="font-bold tracking-wide" style="font-family:'Cairo',sans-serif;">DOF STUDIOS</span>
       </div>
       <button onclick="closeModal('auth-modal')" class="text-[var(--text2)] hover:text-[var(--text)] text-xl"><i class="fas fa-times"></i></button>
     </div>
@@ -426,7 +426,7 @@
 <div id="landing-page">
   <nav class="fixed top-0 w-full z-50 backdrop-blur-xl bg-[rgba(12,12,12,0.8)] border-b border-[var(--border)] h-14 sm:h-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
-      <a href="#" class="flex items-center gap-2"><div class="w-7 sm:w-8 h-7 sm:h-8 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-xs sm:text-sm"></i></div><span class="font-bold text-sm sm:text-lg tracking-wide" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span></a>
+      <a href="#" class="flex items-center gap-2"><div class="w-7 sm:w-8 h-7 sm:h-8 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-xs sm:text-sm"></i></div><span class="font-bold text-sm sm:text-lg tracking-wide" style="font-family:'Cairo',sans-serif;">DOF STUDIOS</span></a>
       <div class="hidden md:flex items-center gap-6 text-sm text-[var(--text2)]">
         <a href="#features-section" class="hover:text-[var(--accent)] transition" data-t="navFeatures">Features</a>
         <a href="#" onclick="navigate('explore');return false" class="hover:text-[var(--accent)] transition" data-t="navPhotographers">Photographers</a>
@@ -488,20 +488,61 @@
         <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-calendar-check text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat2Title">Easy Booking</h4><p class="text-sm text-[var(--text2)]" data-t="feat2Desc">Book sessions directly through photographer profiles.</p></div>
         <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-shield-alt text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat3Title">Secure & Trusted</h4><p class="text-sm text-[var(--text2)]" data-t="feat3Desc">Verified profiles, secure payments, protected data.</p></div>
         <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-images text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat4Title">Portfolio Showcase</h4><p class="text-sm text-[var(--text2)]" data-t="feat4Desc">Display your best work in a stunning gallery.</p></div>
-        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-tags text-white"></i></div><h4 class="text-lg font-bold mb-2">Package Management</h4><p class="text-sm text-[var(--text2)]">Create and manage custom packages with pricing.</p></div>
-        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-globe text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat5Title">Bilingual Platform</h4><p class="text-sm text-[var(--text2)]" data-t="feat5Desc">Full Arabic and English support with RTL layouts.</p></div>
+        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-tags text-white"></i></div><h4 class="text-lg font-bold mb-2">إدارة الباقات</h4><p class="text-sm text-[var(--text2)]">أنشئ وادر باقاتك الخاصة بأسعار ومدد مخصصة.</p></div>
+        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-headset text-white"></i></div><h4 class="text-lg font-bold mb-2">دعم العملاء</h4><p class="text-sm text-[var(--text2)]">فريق دعم متاح لمساعدتك في كل خطوة.</p></div>
       </div>
     </div>
   </section>
 
   <!-- How It Works -->
   <section class="py-24 bg-[var(--bg2)] relative z-10">
-    <div class="max-w-7xl mx-auto px-6">
-      <div class="text-center mb-16 fade-up"><h2 class="text-4xl font-bold mb-4" data-t="howTitle">How It Works</h2></div>
-      <div class="how-grid grid grid-cols-3 gap-8 max-w-4xl mx-auto">
-        <div class="text-center fade-up"><div class="w-16 h-16 rounded-2xl bg-[var(--card)] border border-[var(--border)] flex items-center justify-center mx-auto mb-5 text-2xl font-bold gradient-text">1</div><h4 class="font-bold mb-2" data-t="step1Title">Create Account</h4><p class="text-sm text-[var(--text2)]" data-t="step1Desc">Sign up as photographer or client.</p></div>
-        <div class="text-center fade-up"><div class="w-16 h-16 rounded-2xl bg-[var(--card)] border border-[var(--border)] flex items-center justify-center mx-auto mb-5 text-2xl font-bold gradient-text">2</div><h4 class="font-bold mb-2" data-t="step2Title">Explore & Connect</h4><p class="text-sm text-[var(--text2)]" data-t="step2Desc">Browse photographers or build your portfolio.</p></div>
-        <div class="text-center fade-up"><div class="w-16 h-16 rounded-2xl bg-[var(--card)] border border-[var(--border)] flex items-center justify-center mx-auto mb-5 text-2xl font-bold gradient-text">3</div><h4 class="font-bold mb-2" data-t="step3Title">Book & Create</h4><p class="text-sm text-[var(--text2)]" data-t="step3Desc">Book sessions or receive bookings.</p></div>
+    <div class="max-w-5xl mx-auto px-6">
+      <div class="text-center mb-16 fade-up">
+        <h2 class="text-4xl font-bold mb-3">كيف يعمل؟</h2>
+        <p class="text-[var(--text2)]">ثلاث خطوات بسيطة للبدء</p>
+      </div>
+      <div class="relative">
+        <!-- Connector hairline (desktop only) -->
+        <div class="hidden md:block absolute top-8 right-[16.5%] left-[16.5%] h-px bg-gradient-to-l from-[var(--accent-l)] via-[var(--accent)] to-[var(--accent-d)] opacity-30"></div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-6">
+          <!-- Step 1 -->
+          <div class="text-center fade-up group">
+            <div class="relative mb-6">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex flex-col items-center justify-center mx-auto shadow-lg shadow-[var(--accent)]/20 transition-shadow group-hover:shadow-[var(--accent)]/40">
+                <i class="fas fa-user-plus text-white text-base mb-0.5"></i>
+                <span class="text-white font-bold" style="font-size:10px">01</span>
+              </div>
+            </div>
+            <h4 class="font-bold text-lg mb-2">أنشئ حسابك</h4>
+            <p class="text-sm text-[var(--text2)] leading-relaxed">سجّل كمصوّر أو كعميل في ثوانٍ<br>واختر الباقة المناسبة لك</p>
+          </div>
+
+          <!-- Step 2 (spotlight) -->
+          <div class="text-center fade-up group relative">
+            <div class="absolute inset-x-0 -inset-y-4 rounded-3xl bg-[var(--accent)]/5 -z-10 hidden md:block"></div>
+            <div class="relative mb-6">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex flex-col items-center justify-center mx-auto shadow-xl shadow-[var(--accent)]/35 ring-2 ring-[var(--accent)]/30 transition-shadow group-hover:shadow-[var(--accent)]/50">
+                <i class="fas fa-images text-white text-base mb-0.5"></i>
+                <span class="text-white font-bold" style="font-size:10px">02</span>
+              </div>
+            </div>
+            <h4 class="font-bold text-lg mb-2">اعرض أو استكشف</h4>
+            <p class="text-sm text-[var(--text2)] leading-relaxed">المصوّرون يبنون معرضهم وباقاتهم<br>والعملاء يتصفحون ويقارنون</p>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="text-center fade-up group">
+            <div class="relative mb-6">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex flex-col items-center justify-center mx-auto shadow-lg shadow-[var(--accent)]/20 transition-shadow group-hover:shadow-[var(--accent)]/40">
+                <i class="fas fa-calendar-check text-white text-base mb-0.5"></i>
+                <span class="text-white font-bold" style="font-size:10px">03</span>
+              </div>
+            </div>
+            <h4 class="font-bold text-lg mb-2">احجز وانطلق</h4>
+            <p class="text-sm text-[var(--text2)] leading-relaxed">احجز جلستك مباشرة مع المصوّر<br>وابدأ رحلتك الإبداعية</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -511,8 +552,8 @@
     <div class="max-w-5xl mx-auto px-6">
       <div class="text-center mb-16 fade-up"><h2 class="text-4xl font-bold mb-4" data-t="priceTitle">Simple Pricing</h2></div>
       <div class="price-grid grid grid-cols-2 gap-6">
-        <div class="card p-8 fade-up"><div class="text-sm text-[var(--text2)] font-semibold mb-2" data-t="planFree">Free</div><div class="text-4xl font-bold mb-1">0 EGP</div><div class="text-sm text-[var(--text2)] mb-6" data-t="planForever">1 Week</div><ul class="space-y-3 text-sm text-[var(--text2)] mb-8"><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Basic profile</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>5 portfolio photos</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>3 packages</li></ul><button onclick="openModal('auth-modal')" class="btn-secondary w-full" data-t="startFree">Start Free</button></div>
-        <div class="card p-8 border-[var(--accent)] relative fade-up"><div class="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-[var(--accent-d)] to-[var(--accent-l)] text-xs font-bold text-white" data-t="planPopular">Popular</div><div class="text-sm text-[var(--accent)] font-semibold mb-2" data-t="planPro">Professional</div><div class="text-4xl font-bold mb-1" id="pricing-plan-price">200 <span class="text-lg font-normal">EGP</span><span class="text-base text-[var(--text2)] font-normal"> / month</span></div><ul class="space-y-3 text-sm text-[var(--text2)] mb-8"><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Unlimited packages</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Analytics dashboard</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Priority support</li></ul><button onclick="openModal('auth-modal')" class="btn-primary w-full" data-t="choosePlan">Choose Plan</button></div>
+        <div class="card p-8 fade-up"><div class="text-sm text-[var(--text2)] font-semibold mb-2">مجاني</div><div class="text-4xl font-bold mb-1">0 <span class="text-xl">ج.م</span></div><div class="text-sm text-[var(--text2)] mb-6">أسبوع واحد</div><ul class="space-y-3 text-sm text-[var(--text2)] mb-8"><li><i class="fas fa-check text-[var(--success)] ml-2"></i>ملف شخصي أساسي</li><li><i class="fas fa-check text-[var(--success)] ml-2"></i>10 صور في المعرض</li><li><i class="fas fa-check text-[var(--success)] ml-2"></i>3 باقات</li></ul><button onclick="openModal('auth-modal')" class="btn-secondary w-full">ابدأ مجاناً</button></div>
+        <div class="card p-8 border-[var(--accent)] relative fade-up"><div class="absolute -top-3 right-1/2 translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-[var(--accent-d)] to-[var(--accent-l)] text-xs font-bold text-white">الأكثر شعبية</div><div class="text-sm text-[var(--accent)] font-semibold mb-2">احترافي</div><div class="text-4xl font-bold mb-1" id="pricing-plan-price">200 <span class="text-xl font-normal">ج.م</span><span class="text-base text-[var(--text2)] font-normal"> / شهريًا</span></div><ul class="space-y-3 text-sm text-[var(--text2)] mb-8"><li><i class="fas fa-check text-[var(--success)] ml-2"></i>باقات غير محدودة</li><li><i class="fas fa-check text-[var(--success)] ml-2"></i>لوحة تحليلات</li><li><i class="fas fa-check text-[var(--success)] ml-2"></i>دعم أولوية</li></ul><button onclick="openModal('auth-modal')" class="btn-primary w-full">اختر الخطة</button></div>
       </div>
     </div>
   </section>
@@ -521,15 +562,15 @@
   <footer class="border-t border-[var(--border)] py-12 bg-[var(--bg2)]">
     <div class="max-w-7xl mx-auto px-6">
       <div class="foot-grid grid grid-cols-4 gap-8 mb-10">
-        <div><div class="flex items-center gap-2 mb-4"><div class="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-xs"></i></div><span class="font-bold" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span></div><p class="text-sm text-[var(--text2)]" data-t="footerAbout">The complete platform for photographers and clients.</p></div>
-        <div><div class="text-sm font-semibold mb-3" data-t="footerPlatform">Platform</div><ul class="space-y-2 text-sm text-[var(--text2)]"><li><a href="#" onclick="navigate('explore');return false" class="hover:text-[var(--accent)]" data-t="footerPhotographers">Photographers</a></li><li><a href="#pricing-section" class="hover:text-[var(--accent)]" data-t="footerPricing">Pricing</a></li></ul></div>
-        <div><div class="text-sm font-semibold mb-3" data-t="footerSupport">Support</div><ul class="space-y-2 text-sm text-[var(--text2)]"><li><a href="#" class="hover:text-[var(--accent)]" data-t="footerHelp">Help Center</a></li><li><a href="#" class="hover:text-[var(--accent)]" data-t="footerContact">Contact</a></li></ul></div>
-        <div><div class="text-sm font-semibold mb-3" data-t="footerConnect">Connect</div><div class="flex gap-3"><a href="#" class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-facebook-f"></i></a><a href="#" class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-instagram"></i></a></div></div>
+        <div><div class="flex items-center gap-2 mb-4"><div class="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-xs"></i></div><span class="font-bold" style="font-family:'Cairo',sans-serif;">DOF STUDIOS</span></div><p class="text-sm text-[var(--text2)]">المنصة المتكاملة للمصوّرين والعملاء في مصر.</p></div>
+        <div><div class="text-sm font-semibold mb-3">المنصة</div><ul class="space-y-2 text-sm text-[var(--text2)]"><li><a href="#" onclick="navigate('explore');return false" class="hover:text-[var(--accent)]">المصوّرون</a></li><li><a href="#pricing-section" class="hover:text-[var(--accent)]">الأسعار</a></li></ul></div>
+        <div><div class="text-sm font-semibold mb-3">الدعم</div><ul class="space-y-2 text-sm text-[var(--text2)]"><li><a href="#" class="hover:text-[var(--accent)]">مركز المساعدة</a></li><li><a href="#" class="hover:text-[var(--accent)]">تواصل معنا</a></li></ul></div>
+        <div><div class="text-sm font-semibold mb-3">تابعنا</div><div class="flex gap-3"><a href="#" class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-facebook-f"></i></a><a href="#" class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-instagram"></i></a></div></div>
       </div>
       <div class="glow-line mb-6"></div>
       <div class="flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-[var(--text2)]">
-        <span>&copy; 2026 DOF STUDIOS. All rights reserved.</span>
-        <div class="flex gap-4"><a href="#" class="hover:text-[var(--accent)]">Privacy</a><a href="#" class="hover:text-[var(--accent)]">Terms</a></div>
+        <span>&copy; 2026 DOF STUDIOS. جميع الحقوق محفوظة.</span>
+        <div class="flex gap-4"><a href="#" class="hover:text-[var(--accent)]">الخصوصية</a><a href="#" class="hover:text-[var(--accent)]">الشروط</a></div>
       </div>
     </div>
   </footer>
