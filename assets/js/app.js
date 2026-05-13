@@ -473,7 +473,7 @@ async function handleRegister(e){
   try{
     if(S.regRole==='photographer'){
       name=document.getElementById('reg-name').value;spec=document.getElementById('reg-spec').value;
-      region=document.getElementById('reg-region').value;link=document.getElementById('reg-link').value;
+      region=document.getElementById('reg-region').value;
       email=document.getElementById('reg-email').value;phone=document.getElementById('reg-phone').value;
       pass=document.getElementById('reg-pass').value;
       if(!name||!email||!phone||!pass){showToast('Fill required fields','error');return;}
