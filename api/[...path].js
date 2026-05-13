@@ -669,19 +669,7 @@ async function handle(req, res) {
 
   if (req.method === 'GET' && first === 'health') return ok(res, { ok: true, app: 'dof-studios-api' });
 
-  if (req.method === 'GET' && first === 'debug') {
-    const results = {};
-    try {
-      const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/`, {
-        headers: { apikey: process.env.SUPABASE_ANON_KEY }
-      });
-      results.rawFetch = { status: r.status, ok: r.ok };
-    } catch (e) {
-      results.rawFetch = { ok: false, error: e.message, cause: e.cause?.message, causeCode: e.cause?.code };
-    }
-    return ok(res, { url: process.env.SUPABASE_URL, results });
-  }
-  if (req.method === 'POST' && first === 'auth' && second === 'register') return register(req, res);
+if (req.method === 'POST' && first === 'auth' && second === 'register') return register(req, res);
   if (req.method === 'POST' && first === 'auth' && second === 'login') return login(req, res);
   if (req.method === 'GET' && first === 'me') return getMe(req, res);
   if (req.method === 'PATCH' && first === 'me' && second === 'profile') return updateMe(req, res);
