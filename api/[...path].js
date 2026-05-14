@@ -477,6 +477,7 @@ async function createBooking(req, res) {
       client_email: cleanString(body.clientEmail),
       client_phone: cleanString(body.clientPhone),
       notes: cleanString(body.notes),
+      price_cents: pkg.price_cents,
       status: 'pending'
     })
     .select('*, packages(name, duration_minutes)')
