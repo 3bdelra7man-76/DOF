@@ -451,7 +451,7 @@ async function createBooking(req, res) {
   if (pkgError || !pkg) throw fail(404, 'Package not found');
 
   const endTime = addMinutes(body.startTime, pkg.duration_minutes);
-  const { data, error } = await sb.rpc('create_instant_booking', {
+  const { data: rpcData, error } = await sb.rpc('create_instant_booking', {
     p_client_id: tokenUser?.profile?.role === 'client' ? tokenUser.profile.id : null,
     p_photographer_id: body.photographerId,
     p_package_id: body.packageId,
@@ -464,6 +464,15 @@ async function createBooking(req, res) {
     p_notes: cleanString(body.notes)
   });
   if (error) throw fail(409, error.message);
+  const bookingId = typeof rpcData === 'string' ? rpcData : (rpcData?.id ?? (Array.isArray(rpcData) ? rpcData[0]?.id : null));
+  if (!bookingId) throw fail(500, 'Could not determine booking id from RPC response');
+  const { data, error: upErr } = await sb
+    .from('bookings')
+    .update({ status: 'pending' })
+    .eq('id', bookingId)
+    .select('*')
+    .single();
+  if (upErr) throw fail(422, upErr.message);
   created(res, { booking: data });
 }
 
@@ -488,6 +497,21 @@ async function cancelBooking(req, res, id) {
   else if (profile.role === 'client') query = query.eq('client_id', profile.id);
   else requireRole(profile, 'admin');
   const { data, error } = await query.select('*').single();
+  if (error) throw fail(422, error.message);
+  ok(res, { booking: data });
+}
+
+async function confirmBooking(req, res, id) {
+  const { profile } = await requireUser(req);
+  requireRole(profile, 'photographer');
+  const sb = supabaseService();
+  const { data, error } = await sb
+    .from('bookings')
+    .update({ status: 'confirmed' })
+    .eq('id', id)
+    .eq('photographer_id', profile.id)
+    .select('*')
+    .single();
   if (error) throw fail(422, error.message);
   ok(res, { booking: data });
 }
@@ -717,6 +741,7 @@ if (req.method === 'POST' && first === 'auth' && second === 'register') return r
   if (req.method === 'POST' && first === 'bookings') return createBooking(req, res);
   if (req.method === 'GET' && first === 'bookings') return listBookings(req, res);
   if (req.method === 'PATCH' && first === 'bookings' && second && third === 'cancel') return cancelBooking(req, res, second);
+  if (req.method === 'PATCH' && first === 'bookings' && second && third === 'confirm') return confirmBooking(req, res, second);
 
   if (req.method === 'GET' && first === 'conversations') return listConversations(req, res);
   if (req.method === 'POST' && first === 'conversations') return createConversation(req, res);

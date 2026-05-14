@@ -199,7 +199,7 @@ function normalizeBooking(b){
     id:b.id,clientName:b.client_name||'',clientEmail:b.client_email||'',clientPhone:b.client_phone||'',
     date:b.booking_date,time:(b.start_time||'').slice(0,5),endTime:(b.end_time||'').slice(0,5),
     serviceId:b.package_id,service:pkg.name||b.service||'',servicePrice:Math.round(Number(b.price_cents||0)/100),
-    serviceDuration:String(pkg.duration_minutes||'')+' minutes',status:b.status||'confirmed',
+    serviceDuration:String(pkg.duration_minutes||'')+' minutes',status:b.status||'pending',
     photographerName:b.photographerName||'',photographerAvatar:b.photographerAvatar||''
   };
 }
@@ -1356,10 +1356,17 @@ function renderBookings(){
   }).join('')+'</div>');
 }
 function filterBookings(f){S.bookingFilter=f;renderTab();}
-function updateBookingSt(id,status){
+async function updateBookingSt(id,status){
   var b=S.bookings.find(function(x){return String(x.id)===String(id);});
   if(!b)return;
-  b.status=status;
+  var action=status==='confirmed'?'confirm':'cancel';
+  try{
+    var res=await apiFetch('/bookings/'+id+'/'+action,{method:'PATCH'});
+    var updated=res.booking?normalizeBooking(res.booking):null;
+    if(updated){b.status=updated.status;}else{b.status=status;}
+  }catch(e){
+    showToast('فشل تحديث الحجز','error');return;
+  }
   if(status==='confirmed'){
     var exists=S.appointments.find(function(a){return String(a.id)===String(b.id);});
     if(!exists){S.appointments.push({id:b.id,date:b.date,time:b.time,client:b.clientName,service:b.service,status:'confirmed',notes:''});}
@@ -1810,8 +1817,8 @@ function renderPublicProfile(){
   '<div class="flex items-center gap-3 text-xs text-[var(--text2)]"><span class="security-badge"><i class="fas fa-shield-alt"></i> SSL Encrypted</span><span class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</span></div>'+
   '<button type="submit" class="btn-primary text-lg w-full py-4 mt-2"><i class="fas fa-calendar-check ml-2"></i>'+t('submitBooking')+'</button></form>'+
   '<div id="pub-booking-confirmation" class="hidden mt-4 rounded-xl border border-[var(--success)] bg-[rgba(16,185,129,0.10)] p-4"></div>'+
-  '</div></div></div>'+
-  
+  '</div></div></div></div>'+
+
   /* Footer */
   '<footer class="border-t border-[var(--border)] py-8 bg-[var(--bg2)]"><div class="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-[var(--text2)]"><div class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</div><span>&copy; 2025 DOF STUDIOS. All rights reserved.</span></div></footer></div>';
   var container=document.getElementById('public-content');
