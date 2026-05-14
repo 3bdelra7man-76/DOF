@@ -275,11 +275,9 @@ async function createCollection(req, res) {
   requireRole(profile, 'photographer');
   const body = await readJson(req);
   required(body, ['title']);
-  const sb = supabaseService();
-  const photographer = await getPhotographerProfile(sb, profile.id);
-  const { data, error } = await sb
+  const { data, error } = await supabaseService()
     .from('portfolio_collections')
-    .insert({ photographer_id: photographer.id, title: cleanString(body.title) })
+    .insert({ photographer_id: profile.id, title: cleanString(body.title) })
     .select('*')
     .single();
   if (error) throw fail(422, error.message);
@@ -289,9 +287,7 @@ async function createCollection(req, res) {
 async function deleteCollection(req, res, id) {
   const { profile } = await requireUser(req);
   requireRole(profile, 'photographer');
-  const sb = supabaseService();
-  const photographer = await getPhotographerProfile(sb, profile.id);
-  await sb.from('portfolio_collections').delete().eq('id', id).eq('photographer_id', photographer.id);
+  await supabaseService().from('portfolio_collections').delete().eq('id', id).eq('photographer_id', profile.id);
   noContent(res);
 }
 
