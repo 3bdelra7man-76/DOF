@@ -1352,7 +1352,7 @@ function renderBookings(){
   (filtered.length===0?'<div class="card p-12 text-center"><p class="text-[var(--text2)]">'+t('noBookings')+'</p></div>':
   '<div class="space-y-4">'+filtered.map(function(b){
     return'<div class="card p-5"><div class="flex justify-between items-start gap-3"><div class="flex items-center gap-3"><img src="'+(b.photographerAvatar||S.user.avatar||'https://picsum.photos/seed/booking/120/120')+'" class="w-12 h-12 rounded-xl object-cover border border-[var(--border)]" alt=""><div><div class="font-semibold">'+b.clientName+'</div><div class="text-sm text-[var(--text2)]">'+b.service+' — '+fmtD(b.date)+'</div><div class="text-xs text-[var(--accent)] mt-1">'+formatMoney(b.servicePrice)+'</div></div></div>'+statusBadge(b.status)+'</div>'+
-    (b.status==='pending'?'<div class="flex gap-2 mt-4"><button onclick="updateBookingSt('+b.id+',\'confirmed\')" class="btn-success">'+t('confirmBooking')+'</button><button onclick="updateBookingSt('+b.id+',\'cancelled\')" class="btn-danger">'+t('cancelBooking')+'</button></div>':'')+'</div>';
+    (b.status==='pending'?'<div class="flex gap-2 mt-4"><button onclick="updateBookingSt(\''+b.id+'\',\'confirmed\')" class="btn-success">'+t('confirmBooking')+'</button><button onclick="updateBookingSt(\''+b.id+'\',\'cancelled\')" class="btn-danger">'+t('cancelBooking')+'</button></div>':'')+'</div>';
   }).join('')+'</div>');
 }
 function filterBookings(f){S.bookingFilter=f;renderTab();}
