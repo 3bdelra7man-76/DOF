@@ -270,6 +270,31 @@ async function deletePortfolioPhoto(req, res, id) {
   noContent(res);
 }
 
+async function createCollection(req, res) {
+  const { profile } = await requireUser(req);
+  requireRole(profile, 'photographer');
+  const body = await readJson(req);
+  required(body, ['title']);
+  const sb = supabaseService();
+  const photographer = await getPhotographerProfile(sb, profile.id);
+  const { data, error } = await sb
+    .from('portfolio_collections')
+    .insert({ photographer_id: photographer.id, title: cleanString(body.title) })
+    .select('*')
+    .single();
+  if (error) throw fail(422, error.message);
+  created(res, { collection: data });
+}
+
+async function deleteCollection(req, res, id) {
+  const { profile } = await requireUser(req);
+  requireRole(profile, 'photographer');
+  const sb = supabaseService();
+  const photographer = await getPhotographerProfile(sb, profile.id);
+  await sb.from('portfolio_collections').delete().eq('id', id).eq('photographer_id', photographer.id);
+  noContent(res);
+}
+
 async function listPackages(req, res) {
   const { profile } = await requireUser(req);
   requireRole(profile, 'photographer');
@@ -679,6 +704,8 @@ if (req.method === 'POST' && first === 'auth' && second === 'register') return r
   if (req.method === 'GET' && first === 'photographers' && second) return getPublicPhotographer(req, res, second);
 
   if (req.method === 'POST' && first === 'uploads' && second === 'sign') return signUpload(req, res);
+  if (req.method === 'POST' && first === 'portfolio' && second === 'collections') return createCollection(req, res);
+  if (req.method === 'DELETE' && first === 'portfolio' && second === 'collections' && third) return deleteCollection(req, res, third);
   if (req.method === 'POST' && first === 'portfolio' && second === 'photos') return addPortfolioPhoto(req, res);
   if (req.method === 'DELETE' && first === 'portfolio' && second === 'photos' && third) return deletePortfolioPhoto(req, res, third);
 

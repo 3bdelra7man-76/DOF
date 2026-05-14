@@ -239,9 +239,15 @@ async function refreshMyBookings(){
 async function refreshMyPortfolio(){
   if(!apiToken()||!S.user||S.user.role!=='photographer'||!S.user.customLink)return;
   var data=await apiRequest('/api/photographers/'+encodeURIComponent(S.user.customLink));
-  S.portfolio=[];
+  S.portfolio=[];S.collections=[];
   (data.collections||[]).forEach(function(col){
-    (col.portfolio_photos||[]).forEach(function(photo){S.portfolio.push({id:photo.id,url:photo.url,title:photo.title||''});});
+    var mapped={id:col.id,name:col.title||col.name||'',cover:col.cover_url||'',photos:[]};
+    (col.portfolio_photos||[]).forEach(function(photo){
+      var p={id:photo.id,url:photo.url,title:photo.title||''};
+      S.portfolio.push(p);mapped.photos.push(p);
+    });
+    if(!mapped.cover&&mapped.photos.length>0)mapped.cover=mapped.photos[0].url;
+    S.collections.push(mapped);
   });
   S.portfolioPublished=deepCopy(S.portfolio);
 }
@@ -790,7 +796,7 @@ function openCollectionModal(editId){
   openModal('collection-modal');
 }
 
-function saveCollection(){
+async function saveCollection(){
   var nameEl=document.getElementById('col-name');
   var name=(nameEl?nameEl.value.trim():'');
   if(!name){showToast('اسم المجموعة مطلوب','error');return;}
@@ -799,7 +805,14 @@ function saveCollection(){
     if(col){col.name=name;}
   } else {
     if(!S.collections)S.collections=[];
-    S.collections.push({id:++S.nextId,name:name,cover:'',photos:[]});
+    var newCol={id:++S.nextId,name:name,cover:'',photos:[]};
+    if(apiToken()){
+      try{
+        var data=await apiRequest('/api/portfolio/collections',{method:'POST',body:{title:name}});
+        newCol.id=data.collection.id;
+      }catch(e){showToast('تم الحفظ محلياً—تعذر الحفظ في قاعدة البيانات','warning');}
+    }
+    S.collections.push(newCol);
   }
   closeModal('collection-modal');
   renderTab();
@@ -807,10 +820,11 @@ function saveCollection(){
   S.editCollectionId=null;
 }
 
-function deleteCollection(id){
+async function deleteCollection(id){
   if(!confirm('حذف هذه المجموعة؟'))return;
   S.collections=S.collections.filter(function(c){return String(c.id)!==String(id);});
   renderTab();showToast('تم حذف المجموعة','info');
+  if(apiToken()){apiRequest('/api/portfolio/collections/'+id,{method:'DELETE'}).catch(function(){});}
 }
 
 function addPhotoToCollection(colId){
@@ -829,20 +843,44 @@ function handleColPhotoUpload(input){
   var colId=S.pendingColId;
   var col=S.collections.find(function(c){return String(c.id)===String(colId);});
   if(!col){input.value='';return;}
+  input.value='';S.pendingColId=null;
   var reader=new FileReader();
   reader.onload=function(e){
     var dataUrl=e.target.result;
     var title=file.name.replace(/\.[^.]+$/,'')||'صورة جديدة';
     if(!col.photos)col.photos=[];
-    col.photos.push({id:++S.nextId,url:dataUrl,title:title});
+    var tempId=++S.nextId;
+    col.photos.push({id:tempId,url:dataUrl,title:title});
     if(!col.cover)col.cover=dataUrl;
-    input.value='';
-    S.pendingColId=null;
     renderTab();
-    showToast('تمت إضافة الصورة','success');
+    if(apiToken())uploadColPhoto(colId,tempId,file,title);
+    else showToast('تمت إضافة الصورة','success');
   };
-  reader.onerror=function(){showToast('فشل قراءة الصورة','error');input.value='';};
+  reader.onerror=function(){showToast('فشل قراءة الصورة','error');};
   reader.readAsDataURL(file);
+}
+async function uploadColPhoto(colId,tempId,file,title){
+  try{
+    var col=S.collections.find(function(c){return String(c.id)===String(colId);});
+    if(!col)return;
+    var dbColId=colId;
+    if(!isNaN(Number(colId))){
+      var colData=await apiRequest('/api/portfolio/collections',{method:'POST',body:{title:col.name||'مجموعة'}});
+      dbColId=colData.collection.id;
+      col.id=dbColId;
+    }
+    var sign=await apiRequest('/api/uploads/sign',{method:'POST',body:{kind:'portfolio',filename:file.name}});
+    var res=await fetch(sign.signedUrl,{method:'PUT',headers:{'Content-Type':file.type},body:file});
+    if(!res.ok)throw new Error('Upload failed');
+    var data=await apiRequest('/api/portfolio/photos',{method:'POST',body:{url:sign.publicUrl,storagePath:sign.path,collectionId:dbColId,title:title}});
+    var photo=col.photos.find(function(p){return String(p.id)===String(tempId);});
+    if(photo){photo.id=data.photo.id;photo.url=data.photo.url||sign.publicUrl;}
+    if(col.cover&&col.cover.startsWith('data:'))col.cover=photo?photo.url:sign.publicUrl;
+    renderTab();showToast('تمت إضافة الصورة','success');
+  }catch(err){
+    showToast('فشل رفع الصورة — تم الحفظ مؤقتاً','warning');
+    saveFrontendSession();
+  }
 }
 
 function removePhotoFromCollection(colId,photoId){
@@ -850,7 +888,9 @@ function removePhotoFromCollection(colId,photoId){
   if(!col)return;
   col.photos=col.photos.filter(function(p){return String(p.id)!==String(photoId);});
   if(col.photos.length>0&&!col.photos.find(function(p){return p.url===col.cover;})){col.cover=col.photos[0].url;}
+  else if(col.photos.length===0)col.cover='';
   renderTab();showToast('تم حذف الصورة','info');
+  if(apiToken()){apiRequest('/api/portfolio/photos/'+photoId,{method:'DELETE'}).catch(function(){});}
 }
 
 function setCollectionCover(colId,url){
@@ -1609,7 +1649,7 @@ async function viewPhotographerProfile(id){
     profile.role='photographer';
     S.viewedPhotographer=profile;
     S.viewedCollections=(data.collections||[]).map(function(col){
-      return{id:col.id,name:col.name||'',cover:col.cover_url||'',
+      return{id:col.id,name:col.title||col.name||'',cover:col.cover_url||'',
         photos:(col.portfolio_photos||[]).map(function(ph){return{id:ph.id,url:ph.url,title:ph.title||''};})};
     });
     S.viewedPortfolio=[];
@@ -1759,7 +1799,7 @@ function renderPublicProfile(){
   /* Booking Form */
   '<div class="pub-section mb-20 pt-8 border-t border-[var(--border)]" id="booking-form-section"><h2 class="text-2xl font-bold mb-6">'+t('bookNow')+'</h2><div class="card p-8">'+
   '<form onsubmit="handlePublicBooking(event)" class="space-y-5">'+
-  '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourName')+'</label><input class="input" required id="pub-name"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourEmail')+'</label><input type="email" class="input" id="pub-email"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourPhone')+'</label><input class="input" required id="pub-phone"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('selectService')+'</label><select class="input" required id="pub-service" onchange="onPubServiceChange()"><option value="">'+t('selectService')+'</option>'+(pubPackages||[]).filter(function(p){return p.status==='active';}).map(function(p){return'<option value="'+p.id+'" data-price="'+p.price+'" data-name="'+gf(p,'name')+'" data-duration="'+gf(p,'duration')+'">'+gf(p,'name')+' — '+formatMoney(p.price)+'</option>';}).join('')+'</select></div></div>'+
+  (function(){var c=(!isViewing&&S.user&&S.user.role==='client')?S.user:(S.user&&S.user.role==='client'?S.user:null);return'<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourName')+'</label><input class="input" required id="pub-name" value="'+(c?c.name||'':'')+'"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourEmail')+'</label><input type="email" class="input" id="pub-email" value="'+(c?c.email||'':'')+'"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourPhone')+'</label><input class="input" required id="pub-phone" value="'+(c?c.phone||'':'')+'"></div>';})()+'<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('selectService')+'</label><select class="input" required id="pub-service" onchange="onPubServiceChange()"><option value="">'+t('selectService')+'</option>'+(pubPackages||[]).filter(function(p){return p.status==='active';}).map(function(p){return'<option value="'+p.id+'" data-price="'+p.price+'" data-name="'+gf(p,'name')+'" data-duration="'+gf(p,'duration')+'">'+gf(p,'name')+' — '+formatMoney(p.price)+'</option>';}).join('')+'</select></div></div>'+
   '<div id="pub-service-preview" class="hidden rounded-xl border border-[var(--accent)] bg-[rgba(196,145,92,0.08)] p-5"><div class="pub-service-preview-inner flex items-center justify-between"><div class="flex items-center gap-4">'+
   (u.avatar?'<img src="'+u.avatar+'" class="w-14 h-14 rounded-xl object-cover border border-[var(--border)]" alt="">':'<div class="w-14 h-14 rounded-xl border border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-xl" style="color:var(--border)"></i></div>')+
   '<div><div id="pub-service-name" class="font-bold text-lg text-[var(--accent)]"></div><div id="pub-service-duration" class="text-sm text-[var(--text2)]"></div><div id="pub-service-features-preview" class="text-xs text-[var(--text2)] mt-1"></div></div><div class="text-right"><div id="pub-service-price" class="text-3xl font-bold gradient-text"></div><div class="text-xs text-[var(--text2)] mt-1">Total</div></div></div></div>'+
@@ -1785,11 +1825,12 @@ async function onPubDateChange(){
   if(!dv){area.classList.add('hidden');return;}
   area.classList.remove('hidden');
   var selectedPkg=getPackageById(document.getElementById('pub-service').value);
-  if(apiToken()||selectedPkg&&S.user&&S.user.id){
+  var phFor=S.viewedPhotographer||S.user;
+  if(selectedPkg&&phFor&&phFor.id){
     try{
       if(!selectedPkg){sd.innerHTML='<p class="text-sm text-[var(--text2)]">'+t('selectService')+'</p>';return;}
       sd.innerHTML='<p class="text-sm text-[var(--text2)] col-span-full">'+(S.lang==='ar'?'جاري تحميل المواعيد...':'Loading available times...')+'</p>';
-      var data=await apiRequest('/api/photographers/'+S.user.id+'/available-slots?date='+encodeURIComponent(dv)+'&packageId='+encodeURIComponent(selectedPkg.id));
+      var data=await apiRequest('/api/photographers/'+phFor.id+'/available-slots?date='+encodeURIComponent(dv)+'&packageId='+encodeURIComponent(selectedPkg.id));
       var slots=data.slots||[];
       if(slots.length===0){sd.innerHTML='<p class="text-sm text-[var(--text2)] col-span-full">'+t('noTimes')+'</p>';return;}
       sd.innerHTML=slots.map(function(slot){return'<div class="time-slot" onclick="selectPubTime(this,\''+slot.startTime+'\')">'+slot.startTime+' - '+slot.endTime+'</div>';}).join('');
@@ -2549,7 +2590,8 @@ function setupChatFAB(){
 }
 
 function loadDemoPhotographer(){
-  if(S.user&&S.user.role==='photographer')return;
+  if(S.viewedPhotographer)return;
+  if(S.user&&(S.user.role==='photographer'||S.user.role==='client'))return;
   var photo=S.photographers[0];
   if(!photo)return;
   S.user=deepCopy(photo);
