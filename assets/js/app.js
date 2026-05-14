@@ -16,6 +16,7 @@ var S={lang:'ar',view:'landing',tab:'overview',
   tempPackageFeatures:[],tempPackageFiles:[],deletePackageId:null,
   portfolioPublished:[],portfolioDirty:false,isPortfolioPreview:false,
   collections:[],openCollectionId:null,editCollectionId:null,pendingColId:null,
+  viewedPhotographer:null,viewedPortfolio:null,viewedPackages:null,
   selectedShootType:null,
   selectedRegion:null,detectedLocation:null,isDetectingLocation:false,
   customerVault:[],
@@ -503,7 +504,7 @@ async function handleRegister(e){
   showToast('تم إنشاء الحساب!','success');
   setupChatFAB();updateChatBadge();updateNavBar();
 }
-function handleLogout(){S.user=null;S.portfolio=[];S.portfolioPublished=[];S.portfolioDirty=false;S.isPortfolioPreview=false;S.collections=[];S.openCollectionId=null;
+function handleLogout(){S.user=null;S.portfolio=[];S.portfolioPublished=[];S.portfolioDirty=false;S.isPortfolioPreview=false;S.collections=[];S.openCollectionId=null;S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;
   try{sessionStorage.removeItem('dof_frontend_session_v1');}catch(e){}
   setApiToken('');saveApiProfile(null);
   var fab=document.getElementById('chat-fab');if(fab)fab.classList.add('hidden');
@@ -590,6 +591,7 @@ function updateNavBar(){
   if(btnOutPub){btnOutPub.classList.toggle('hidden',!u);if(userNamePub&&u)userNamePub.textContent=u.name||'';}
 }
 function navigate(v){
+  if(v!=='public'){S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;}
   checkSubscriptionStatus();
   if(!hasPageContainer(v)){goToPage(v);return;}
   S.view=v;
@@ -1580,23 +1582,29 @@ async function viewPhotographerProfile(id){
   try{
     var data=await apiRequest('/api/photographers/'+encodeURIComponent(p.customLink||p.custom_link||id));
     var profile=normalizeDirectoryPhotographer(data.photographer);
-    S.user=profile;S.user.role='photographer';
-    S.portfolio=[];
+    profile.role='photographer';
+    S.viewedPhotographer=profile;
+    S.viewedPortfolio=[];
     (data.collections||[]).forEach(function(col){
-      (col.portfolio_photos||[]).forEach(function(photo){S.portfolio.push({id:photo.id,url:photo.url,title:photo.title||''});});
+      (col.portfolio_photos||[]).forEach(function(photo){S.viewedPortfolio.push({id:photo.id,url:photo.url,title:photo.title||''});});
     });
-    S.packages=(data.packages||[]).map(normalizePackage);
+    S.viewedPackages=(data.packages||[]).map(normalizePackage);
   }catch(e){
-    S.user=JSON.parse(JSON.stringify(p));S.user.role='photographer';
-    S.portfolio=p.portfolio||[];S.packages=JSON.parse(JSON.stringify(p.packages||[]));
+    var fallback=JSON.parse(JSON.stringify(p));fallback.role='photographer';
+    S.viewedPhotographer=fallback;
+    S.viewedPortfolio=p.portfolio||[];
+    S.viewedPackages=JSON.parse(JSON.stringify(p.packages||[]));
   }
-  S.appointments=[];S.bookings=[];navigate('public');
+  navigate('public');
 }
 
 /* ===== PUBLIC PROFILE (with enhanced package display & booking) ===== */
 function renderPublicProfile(){
-  var u=S.user;if(!u)return'';
-  checkSubscriptionStatus();
+  var isViewing=!!S.viewedPhotographer;
+  var u=isViewing?S.viewedPhotographer:S.user;if(!u)return'';
+  var pubPackages=isViewing?S.viewedPackages:S.packages;
+  var pubPortfolio=isViewing?S.viewedPortfolio:S.portfolio;
+  if(!isViewing)checkSubscriptionStatus();
   if(S.portfolioSuspended){
     var suspendedHtml='<div class="pt-20"><div class="max-w-3xl mx-auto px-6"><div class="card p-8 text-center">'+
     '<div class="w-16 h-16 rounded-full bg-[rgba(217,83,79,0.12)] flex items-center justify-center mx-auto mb-4"><i class="fas fa-ban text-[var(--danger)] text-2xl"></i></div>'+
@@ -1609,7 +1617,7 @@ function renderPublicProfile(){
     return suspendedHtml;
   }
   var nm=gf(u,'name'),sp=gf(u,'specialty'),bi=gf(u,'bio'),rg=gf(u,'region');
-  var activePkgs=(S.packages||[]).filter(function(pkg){return pkg.status==='active';});
+  var activePkgs=(pubPackages||[]).filter(function(pkg){return pkg.status==='active';});
   var featuredPkgs=activePkgs.filter(function(pkg){return pkg.featured;});
   var regularPkgs=activePkgs.filter(function(pkg){return !pkg.featured;});
   
@@ -1634,7 +1642,7 @@ function renderPublicProfile(){
   (u.social?'<div class="social-icons-wrapper flex flex-wrap gap-3 mb-10">'+(u.social.facebook?'<a href="'+u.social.facebook+'" target="_blank" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-facebook"></i></a>':'')+(u.social.instagram?'<a href="'+u.social.instagram+'" target="_blank" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-instagram"></i></a>':'')+'</div>':'')+
   
   /* Portfolio Gallery */
-  '<div class="pub-section mb-12 pt-8 border-t border-[var(--border)]"><h2 class="text-2xl font-bold mb-6">'+t('yourPortfolio')+'</h2><div class="port-grid">'+(S.portfolio||[]).map(function(p){return'<div class="port-item"><img src="'+p.url+'" alt="'+p.title+'" loading="lazy"><div class="overlay"><span class="text-sm font-semibold">'+p.title+'</span></div></div>';}).join('')+'</div></div>'+
+  '<div class="pub-section mb-12 pt-8 border-t border-[var(--border)]"><h2 class="text-2xl font-bold mb-6">'+t('yourPortfolio')+'</h2><div class="port-grid">'+(pubPortfolio||[]).map(function(p){return'<div class="port-item"><img src="'+p.url+'" alt="'+p.title+'" loading="lazy"><div class="overlay"><span class="text-sm font-semibold">'+p.title+'</span></div></div>';}).join('')+'</div></div>'+
 
   /* Services / Packages Section - Enhanced Display */
   '<div class="pub-section mb-12 pt-8 border-t border-[var(--border)]"><div class="flex items-center justify-between mb-6"><h2 class="text-2xl font-bold">'+(S.lang==='ar'?'الباقات':'Packages')+'</h2>'+
@@ -1672,7 +1680,7 @@ function renderPublicProfile(){
   '<div><label class="block text-sm text-[var(--text2)] mb-2">'+t('shootType')+'</label>'+
   '<div class="tab-filter flex-wrap" id="shoot-type-selector">'+
   S.photographyTypes.map(function(st){return'<button type="button" class="'+(S.selectedShootType===st.id?'active':'')+'" onclick="selectShootType(\''+st.id+'\',this)"><i class="fas '+st.icon+' mr-2"></i>'+(S.lang==='ar'?st.ar:st.en)+'</button>';}).join('')+'</div></div>'+
-  '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourName')+'</label><input class="input" required id="pub-name"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourEmail')+'</label><input type="email" class="input" id="pub-email"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourPhone')+'</label><input class="input" required id="pub-phone"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('selectService')+'</label><select class="input" required id="pub-service" onchange="onPubServiceChange()"><option value="">'+t('selectService')+'</option>'+(S.packages||[]).filter(function(p){return p.status==='active';}).map(function(p){return'<option value="'+p.id+'" data-price="'+p.price+'" data-name="'+gf(p,'name')+'" data-duration="'+gf(p,'duration')+'">'+gf(p,'name')+' — '+formatMoney(p.price)+'</option>';}).join('')+'</select></div></div>'+
+  '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourName')+'</label><input class="input" required id="pub-name"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourEmail')+'</label><input type="email" class="input" id="pub-email"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourPhone')+'</label><input class="input" required id="pub-phone"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('selectService')+'</label><select class="input" required id="pub-service" onchange="onPubServiceChange()"><option value="">'+t('selectService')+'</option>'+(pubPackages||[]).filter(function(p){return p.status==='active';}).map(function(p){return'<option value="'+p.id+'" data-price="'+p.price+'" data-name="'+gf(p,'name')+'" data-duration="'+gf(p,'duration')+'">'+gf(p,'name')+' — '+formatMoney(p.price)+'</option>';}).join('')+'</select></div></div>'+
   '<div id="pub-service-preview" class="hidden rounded-xl border border-[var(--accent)] bg-[rgba(196,145,92,0.08)] p-5"><div class="pub-service-preview-inner flex items-center justify-between"><div class="flex items-center gap-4">'+
   (u.avatar?'<img src="'+u.avatar+'" class="w-14 h-14 rounded-xl object-cover border border-[var(--border)]" alt="">':'<div class="w-14 h-14 rounded-xl border border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-xl" style="color:var(--border)"></i></div>')+
   '<div><div id="pub-service-name" class="font-bold text-lg text-[var(--accent)]"></div><div id="pub-service-duration" class="text-sm text-[var(--text2)]"></div><div id="pub-service-features-preview" class="text-xs text-[var(--text2)] mt-1"></div></div><div class="text-right"><div id="pub-service-price" class="text-3xl font-bold gradient-text"></div><div class="text-xs text-[var(--text2)] mt-1">Total</div></div></div></div>'+
