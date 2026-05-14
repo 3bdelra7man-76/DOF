@@ -684,6 +684,7 @@ function renderTab(){
     case'calendar':c.innerHTML=renderCalendar();break;
     case'bookings':c.innerHTML=renderBookings();break;
     case'chat':c.innerHTML=renderChatDashboard();break;
+    case'subscriptions':c.innerHTML=renderSubscriptions();break;
     case'settings':c.innerHTML=renderSettings();break;
   }
 }
@@ -1217,16 +1218,17 @@ function renderCalendar(){
   var fd=new Date(yr,mn,1).getDay(),dim=new Date(yr,mn+1,0).getDate(),dip=new Date(yr,mn,0).getDate();
   var td=new Date(),tds=td.getFullYear()+'-'+String(td.getMonth()+1).padStart(2,'0')+'-'+String(td.getDate()).padStart(2,'0');
   var ad=new Set(S.appointments.map(function(a){return a.date;}));
+  var bd=new Set((S.bookings||[]).filter(function(b){return b.status==='confirmed';}).map(function(b){return b.date;}));
   var days='';
   for(var i=fd-1;i>=0;i--)days+='<div class="cal-day other-month">'+(dip-i)+'</div>';
   for(var d=1;d<=dim;d++){
     var ds=yr+'-'+String(mn+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    var cls='cal-day';if(ds===tds)cls+=' today';if(ds===S.selectedDate)cls+=' selected';if(ad.has(ds))cls+=' has-apt';
+    var cls='cal-day';if(ds===tds)cls+=' today';if(ds===S.selectedDate)cls+=' selected';if(bd.has(ds))cls+=' has-booking';else if(ad.has(ds))cls+=' has-apt';
     days+='<div class="'+cls+'" onclick="selectCalDate(\''+ds+'\')">'+d+'</div>';
   }
   var tc=fd+dim,rem=(7-tc%7)%7;
   for(var i=1;i<=rem;i++)days+='<div class="cal-day other-month">'+i+'</div>';
-  var sa=S.selectedDate?S.appointments.filter(function(a){return a.date===S.selectedDate;}):[];
+  var sa=S.selectedDate?(S.bookings||[]).filter(function(b){return b.date===S.selectedDate&&b.status==='confirmed';}).map(function(b){return{id:b.id,date:b.date,time:b.time,client:b.clientName,service:b.service,status:'confirmed',notes:''};}).concat(S.appointments.filter(function(a){return a.date===S.selectedDate&&!(S.bookings||[]).find(function(b){return String(b.id)===String(a.id)&&b.status==='confirmed';})})):[];
   return'<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">'+t('navCalendar')+'</h2></div>'+
   renderWorkingHoursCard()+
   '<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">'+
@@ -1309,8 +1311,71 @@ function renderBookings(){
 }
 function filterBookings(f){S.bookingFilter=f;renderTab();}
 function updateBookingSt(id,status){
-  var b=S.bookings.find(function(x){return x.id===id;});
-  if(b){b.status=status;renderTab();showToast(status==='confirmed'?'Confirmed':'Cancelled',status==='confirmed'?'success':'info');}
+  var b=S.bookings.find(function(x){return String(x.id)===String(id);});
+  if(!b)return;
+  b.status=status;
+  if(status==='confirmed'){
+    var exists=S.appointments.find(function(a){return String(a.id)===String(b.id);});
+    if(!exists){S.appointments.push({id:b.id,date:b.date,time:b.time,client:b.clientName,service:b.service,status:'confirmed',notes:''});}
+  } else if(status==='cancelled'){
+    S.appointments=S.appointments.filter(function(a){return String(a.id)!==String(b.id);});
+  }
+  renderTab();
+  showToast(status==='confirmed'?'تم تأكيد الحجز':'تم إلغاء الحجز',status==='confirmed'?'success':'info');
+}
+
+/* ===== DASHBOARD: SUBSCRIPTIONS ===== */
+function renderSubscriptions(){
+  var isSubscribed=S.isSubscribed;
+  var trialLeft=S.trialDaysLeft;
+  var statusCard='<div class="card p-5 mb-8 flex items-center justify-between gap-4">'+
+  '<div class="flex items-center gap-4">'+
+  '<div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center shrink-0"><i class="fas '+(isSubscribed?'fa-crown':'fa-clock')+' text-white text-lg"></i></div>'+
+  '<div><div class="font-bold text-lg">'+(isSubscribed?'الخطة الاحترافية':'الفترة التجريبية المجانية')+'</div>'+
+  '<div class="text-sm text-[var(--text2)]">'+(isSubscribed?'اشتراكك نشط وكل الميزات متاحة لك':'متبقي '+trialLeft+' '+(trialLeft===1?'يوم':'أيام')+' من فترتك التجريبية')+'</div></div></div>'+
+  (isSubscribed?'<span class="badge badge-active" style="padding:8px 16px;">نشط ✓</span>':'<span class="badge badge-pending" style="padding:8px 16px;">تجريبي</span>')+
+  '</div>';
+
+  var freePlan='<div class="card p-8 '+(isSubscribed?'opacity-50':'')+'">'+
+  '<div class="text-sm font-semibold text-[var(--text2)] mb-2">مجاني</div>'+
+  '<div class="text-4xl font-bold mb-1">0 <span class="text-xl text-[var(--text2)] font-normal">ج.م</span></div>'+
+  '<div class="text-sm text-[var(--text2)] mb-6">لمدة أسبوع واحد</div>'+
+  '<ul class="space-y-3 text-sm text-[var(--text2)] mb-8">'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>ملف شخصي أساسي</li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>10 صور في المعرض</li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>3 باقات كحد أقصى</li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>حجوزات غير محدودة</li>'+
+  '<li class="line-through opacity-40"><i class="fas fa-times text-[var(--danger)] ml-2"></i>لوحة التحليلات</li>'+
+  '<li class="line-through opacity-40"><i class="fas fa-times text-[var(--danger)] ml-2"></i>دعم أولوية</li>'+
+  '<li class="line-through opacity-40"><i class="fas fa-times text-[var(--danger)] ml-2"></i>ظهور مميز في البحث</li>'+
+  '</ul>'+
+  '<div class="text-center text-sm text-[var(--text2)] py-2.5">الخطة الأساسية</div>'+
+  '</div>';
+
+  var proPlan='<div class="card p-8 border-2 border-[var(--accent)] relative">'+
+  '<div class="absolute -top-3 right-1/2 translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-[var(--accent-d)] to-[var(--accent-l)] text-xs font-bold text-white">الأكثر شعبية</div>'+
+  '<div class="flex items-center gap-2 mb-2"><i class="fas fa-crown text-[var(--accent)]"></i><div class="text-sm font-semibold text-[var(--accent)]">احترافي</div></div>'+
+  '<div class="text-4xl font-bold mb-1 gradient-text">200 <span class="text-xl font-normal text-[var(--text2)]">ج.م</span></div>'+
+  '<div class="text-sm text-[var(--text2)] mb-6">شهريًا • يجدد تلقائياً</div>'+
+  '<ul class="space-y-3 text-sm text-[var(--text2)] mb-8">'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>باقات <strong>غير محدودة</strong></li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>معرض صور غير محدود</li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>لوحة تحليلات متقدمة</li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>دعم أولوية 24/7</li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>ظهور مميز في نتائج البحث</li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>تحليلات الحجوزات التفصيلية</li>'+
+  '</ul>'+
+  (isSubscribed?
+    '<div class="space-y-3">'+
+    '<div class="text-center text-sm text-[var(--success)] font-semibold py-2"><i class="fas fa-check-circle ml-2"></i>أنت مشترك بهذه الخطة</div>'+
+    '</div>':
+    '<button onclick="openModal(\'sub-modal\')" class="btn-primary w-full text-lg py-3"><i class="fas fa-crown ml-2"></i>اشترك الآن — 200 ج.م/شهر</button>'+
+    '<p class="text-xs text-center text-[var(--text2)] mt-3">يمكنك الإلغاء في أي وقت</p>')+
+  '</div>';
+
+  return'<div class="mb-8"><h2 class="text-2xl font-bold mb-1">الاشتراك</h2><p class="text-sm text-[var(--text2)]">اختر الخطة المناسبة لعملك كمصور محترف</p></div>'+
+  statusCard+
+  '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">'+freePlan+proPlan+'</div>';
 }
 
 /* ===== DASHBOARD: SETTINGS ===== */
