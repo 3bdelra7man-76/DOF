@@ -515,15 +515,44 @@ async function confirmBooking(req, res, id) {
   const { profile } = await requireUser(req);
   requireRole(profile, 'photographer');
   const sb = supabaseService();
-  const { data, error } = await sb
+
+  const { data: booking, error } = await sb
     .from('bookings')
     .update({ status: 'confirmed' })
     .eq('id', id)
     .eq('photographer_id', profile.id)
-    .select('*')
+    .select('*, packages(name, duration_minutes)')
     .single();
   if (error) throw fail(422, error.message);
-  ok(res, { booking: data });
+
+  let conversationId = null;
+  if (booking.client_id) {
+    const { data: conv } = await sb
+      .from('conversations')
+      .upsert(
+        { client_id: booking.client_id, photographer_id: profile.id },
+        { onConflict: 'client_id,photographer_id' }
+      )
+      .select('*')
+      .single();
+
+    if (conv) {
+      conversationId = conv.id;
+      const pkgName = booking.packages?.name || '';
+      const msgText = `📅 تم قبول حجزك!\nالخدمة: ${pkgName}\nالتاريخ: ${booking.booking_date}\nالوقت: ${(booking.start_time || '').slice(0, 5)}`;
+      await sb.from('messages').insert({
+        conversation_id: conv.id,
+        sender_id: profile.id,
+        content: msgText
+      });
+      await sb.from('conversations').update({
+        last_message: msgText,
+        last_message_at: new Date().toISOString()
+      }).eq('id', conv.id);
+    }
+  }
+
+  ok(res, { booking, conversationId });
 }
 
 async function listConversations(req, res) {

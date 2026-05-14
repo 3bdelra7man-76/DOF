@@ -196,7 +196,7 @@ function normalizePackage(pkg){
 function normalizeBooking(b){
   var pkg=b.packages||{};
   return {
-    id:b.id,clientName:b.client_name||'',clientEmail:b.client_email||'',clientPhone:b.client_phone||'',
+    id:b.id,clientId:b.client_id||null,clientName:b.client_name||'',clientEmail:b.client_email||'',clientPhone:b.client_phone||'',
     date:b.booking_date,time:(b.start_time||'').slice(0,5),endTime:(b.end_time||'').slice(0,5),
     serviceId:b.package_id,service:pkg.name||b.service||'',servicePrice:Math.round(Number(b.price_cents||0)/100),
     serviceDuration:String(pkg.duration_minutes||'')+' minutes',status:b.status||'pending',
@@ -1360,10 +1360,12 @@ async function updateBookingSt(id,status){
   var b=S.bookings.find(function(x){return String(x.id)===String(id);});
   if(!b)return;
   var action=status==='confirmed'?'confirm':'cancel';
+  var convId=null;
   try{
-    var res=await apiFetch('/bookings/'+id+'/'+action,{method:'PATCH'});
+    var res=await apiRequest('/api/bookings/'+id+'/'+action,{method:'PATCH'});
     var updated=res.booking?normalizeBooking(res.booking):null;
     if(updated){b.status=updated.status;}else{b.status=status;}
+    if(res.conversationId)convId=res.conversationId;
   }catch(e){
     showToast('فشل تحديث الحجز','error');return;
   }
@@ -1375,6 +1377,16 @@ async function updateBookingSt(id,status){
   }
   renderTab();
   showToast(status==='confirmed'?'تم تأكيد الحجز':'تم إلغاء الحجز',status==='confirmed'?'success':'info');
+  if(status==='confirmed'&&convId){
+    try{
+      var convData=await apiRequest('/api/conversations');
+      S.conversations=((convData&&convData.conversations)||[]).map(normalizeConversation);
+    }catch(e){}
+    var panel=document.getElementById('chat-panel');
+    var fab=document.getElementById('chat-fab');
+    if(panel){panel.classList.add('open');if(fab)fab.style.display='none';}
+    openChatByConv(convId);
+  }
 }
 
 /* ===== DASHBOARD: SUBSCRIPTIONS ===== */
