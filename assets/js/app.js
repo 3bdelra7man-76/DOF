@@ -16,7 +16,8 @@ var S={lang:'ar',view:'landing',tab:'overview',
   tempPackageFeatures:[],tempPackageFiles:[],deletePackageId:null,
   portfolioPublished:[],portfolioDirty:false,isPortfolioPreview:false,
   collections:[],openCollectionId:null,editCollectionId:null,pendingColId:null,
-  viewedPhotographer:null,viewedPortfolio:null,viewedPackages:null,
+  viewedPhotographer:null,viewedPortfolio:null,viewedPackages:null,viewedCollections:[],
+  pubViewCollection:null,pubLightboxIdx:null,
   selectedShootType:null,
   selectedRegion:null,detectedLocation:null,isDetectingLocation:false,
   customerVault:[],
@@ -277,7 +278,7 @@ function saveFrontendSession(){
     sessionStorage.setItem('dof_frontend_session_v1',JSON.stringify({
       user:S.user,appointments:S.appointments,bookings:S.bookings,portfolio:S.portfolio,
       portfolioPublished:S.portfolioPublished,packages:S.packages,workingHours:S.workingHours,lang:S.lang,tab:S.tab,
-      viewedPhotographer:S.viewedPhotographer,viewedPortfolio:S.viewedPortfolio,viewedPackages:S.viewedPackages
+      viewedPhotographer:S.viewedPhotographer,viewedPortfolio:S.viewedPortfolio,viewedPackages:S.viewedPackages,viewedCollections:S.viewedCollections
     }));
   }catch(e){}
 }
@@ -298,6 +299,7 @@ function restoreFrontendSession(){
     if(data.viewedPhotographer)S.viewedPhotographer=data.viewedPhotographer;
     if(data.viewedPortfolio)S.viewedPortfolio=data.viewedPortfolio;
     if(data.viewedPackages)S.viewedPackages=data.viewedPackages;
+    if(data.viewedCollections)S.viewedCollections=data.viewedCollections;
   }catch(e){}
 }
 function hashPII(value){
@@ -385,7 +387,8 @@ function formatPrice(v){
   return amount.toLocaleString() + ' EGP';
 }
 function getPackageById(id){
-  return (S.packages||[]).find(function(p){return String(p.id)===String(id);})||null;
+  var all=(S.viewedPackages||S.packages||[]);
+  return all.find(function(p){return String(p.id)===String(id);})||null;
 }
 function formatFileSize(bytes){if(bytes<1024)return bytes+' B';if(bytes<1048576)return(bytes/1024).toFixed(1)+' KB';return(bytes/1048576).toFixed(1)+' MB';}
 function getFileIcon(filename){var ext=filename.split('.').pop().toLowerCase();if(ext==='pdf')return'fa-file-pdf';if(['jpg','jpeg','png'].indexOf(ext)>-1)return'fa-file-image';return'fa-file';}
@@ -596,7 +599,7 @@ function updateNavBar(){
   if(btnOutPub){btnOutPub.classList.toggle('hidden',!u);if(userNamePub&&u)userNamePub.textContent=u.name||'';}
 }
 function navigate(v){
-  if(v!=='public'){S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;saveFrontendSession();}
+  if(v!=='public'){S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;S.viewedCollections=[];S.pubViewCollection=null;S.pubLightboxIdx=null;saveFrontendSession();}
   checkSubscriptionStatus();
   if(!hasPageContainer(v)){goToPage(v);return;}
   S.view=v;
@@ -1445,12 +1448,28 @@ function handleMediaFile(type,input){
   if(!file)return;
   if(!/^image\//.test(file.type)){showToast(S.lang==='ar'?'يرجى اختيار صورة فقط':'Please select an image file','error');input.value='';return;}
   if(file.size>5*1024*1024){showToast(S.lang==='ar'?'الحد الأقصى 5MB':'Max file size is 5MB','error');input.value='';return;}
+  input.value='';
   var reader=new FileReader();
   reader.onload=function(e){
     applyMediaUpdate(type,e.target.result);
-    input.value='';
+    uploadMediaFile(type,file);
   };
   reader.readAsDataURL(file);
+}
+async function uploadMediaFile(type,file){
+  try{
+    var sign=await apiRequest('/api/uploads/sign',{method:'POST',body:{kind:'portfolio',filename:file.name}});
+    var res=await fetch(sign.signedUrl,{method:'PUT',headers:{'Content-Type':file.type},body:file});
+    if(!res.ok)throw new Error('Upload failed');
+    var patch=type==='cover'?{coverUrl:sign.publicUrl}:{avatarUrl:sign.publicUrl};
+    await apiRequest('/api/me/profile',{method:'PATCH',body:patch});
+    applyMediaUpdate(type,sign.publicUrl);
+    saveFrontendSession();
+    showToast(type==='cover'?(S.lang==='ar'?'تم تحديث صورة البانر':'Banner updated'):(S.lang==='ar'?'تم تحديث صورة البروفايل':'Profile photo updated'),'success');
+  }catch(err){
+    saveFrontendSession();
+    showToast(S.lang==='ar'?'تم الحفظ مؤقتاً — فشل الرفع':'Saved locally — upload failed','warning');
+  }
 }
 function applyMediaUpdate(type,dataUrl){
   if(!S.user)return;
@@ -1589,18 +1608,76 @@ async function viewPhotographerProfile(id){
     var profile=normalizeDirectoryPhotographer(data.photographer);
     profile.role='photographer';
     S.viewedPhotographer=profile;
-    S.viewedPortfolio=[];
-    (data.collections||[]).forEach(function(col){
-      (col.portfolio_photos||[]).forEach(function(photo){S.viewedPortfolio.push({id:photo.id,url:photo.url,title:photo.title||''});});
+    S.viewedCollections=(data.collections||[]).map(function(col){
+      return{id:col.id,name:col.name||'',cover:col.cover_url||'',
+        photos:(col.portfolio_photos||[]).map(function(ph){return{id:ph.id,url:ph.url,title:ph.title||''};})};
     });
+    S.viewedPortfolio=[];
+    S.viewedCollections.forEach(function(col){col.photos.forEach(function(ph){S.viewedPortfolio.push(ph);});});
     S.viewedPackages=(data.packages||[]).map(normalizePackage);
   }catch(e){
     var fallback=JSON.parse(JSON.stringify(p));fallback.role='photographer';
     S.viewedPhotographer=fallback;
+    S.viewedCollections=[];
     S.viewedPortfolio=p.portfolio||[];
     S.viewedPackages=JSON.parse(JSON.stringify(p.packages||[]));
   }
+  S.pubViewCollection=null;S.pubLightboxIdx=null;
   navigate('public');
+}
+
+/* ===== PUBLIC PROFILE GALLERY (collections + lightbox) ===== */
+function renderPubGallery(){
+  var isViewing=!!S.viewedPhotographer;
+  var collections=isViewing?(S.viewedCollections||[]):(S.collections||[]);
+  if(collections.length===0){
+    return'<div class="py-10 text-center"><i class="fas fa-images text-4xl block mb-3" style="color:var(--border)"></i><p class="text-[var(--text2)]">'+(S.lang==='ar'?'لا توجد مجموعات في المعرض بعد':'No collections yet')+'</p></div>';
+  }
+  var colId=S.pubViewCollection;
+  if(colId!==null&&colId!==undefined){
+    var col=collections.find(function(c){return String(c.id)===String(colId);});
+    if(!col){S.pubViewCollection=null;return renderPubGallery();}
+    var photos=col.photos||[];
+    var lightboxHtml='';
+    if(S.pubLightboxIdx!==null&&S.pubLightboxIdx!==undefined&&photos[S.pubLightboxIdx]){
+      var ph=photos[S.pubLightboxIdx];
+      lightboxHtml='<div class="pub-lightbox-overlay" onclick="closePubLightbox()">'+
+        '<button class="pub-lightbox-close" onclick="closePubLightbox()"><i class="fas fa-times"></i></button>'+
+        (S.pubLightboxIdx>0?'<button class="pub-lightbox-nav pub-lnav-prev" onclick="event.stopPropagation();movePubLightbox(-1)"><i class="fas fa-chevron-right"></i></button>':'')+
+        '<div class="pub-lightbox-inner" onclick="event.stopPropagation()"><img src="'+ph.url+'" class="pub-lightbox-img" alt="'+(ph.title||'')+'">'+
+        (ph.title?'<div class="pub-lightbox-cap">'+ph.title+'</div>':'')+
+        '</div>'+
+        (S.pubLightboxIdx<photos.length-1?'<button class="pub-lightbox-nav pub-lnav-next" onclick="event.stopPropagation();movePubLightbox(1)"><i class="fas fa-chevron-left"></i></button>':'')+
+        '</div>';
+    }
+    return'<button class="btn-secondary btn-sm mb-4" onclick="closePubCollection()"><i class="fas fa-chevron-right ml-2"></i>'+(col.name||'المجموعة')+'</button>'+
+      '<div class="port-grid">'+photos.map(function(p,i){
+        return'<div class="port-item" style="cursor:pointer" onclick="openPubLightbox('+i+')"><img src="'+p.url+'" alt="'+(p.title||'')+'" loading="lazy"><div class="overlay"><span class="text-sm font-semibold">'+(p.title||'')+'</span></div></div>';
+      }).join('')+'</div>'+lightboxHtml;
+  }
+  return'<div class="grid grid-cols-2 md:grid-cols-3 gap-4">'+collections.map(function(col){
+    var photos=col.photos||[];
+    var cover=col.cover||(photos[0]&&photos[0].url)||'';
+    return'<div class="pub-col-card" onclick="openPubCollection(\''+col.id+'\')">'+
+      (cover?'<img src="'+cover+'" alt="'+(col.name||'')+'" loading="lazy" class="pub-col-thumb">':
+        '<div class="pub-col-thumb pub-col-empty"><i class="fas fa-images text-4xl" style="color:var(--border)"></i></div>')+
+      '<div class="p-3"><div class="font-semibold text-sm">'+(col.name||'')+'</div>'+
+      '<div class="text-xs text-[var(--text2)] mt-0.5">'+photos.length+' '+(S.lang==='ar'?'صورة':'photos')+'</div></div></div>';
+  }).join('')+'</div>';
+}
+function updatePubGallery(){var el=document.getElementById('pub-gallery-section');if(el)el.innerHTML=renderPubGallery();}
+function openPubCollection(id){S.pubViewCollection=id;S.pubLightboxIdx=null;updatePubGallery();}
+function closePubCollection(){S.pubViewCollection=null;S.pubLightboxIdx=null;updatePubGallery();}
+function openPubLightbox(idx){S.pubLightboxIdx=idx;updatePubGallery();}
+function closePubLightbox(){S.pubLightboxIdx=null;updatePubGallery();}
+function movePubLightbox(delta){
+  if(S.pubLightboxIdx===null)return;
+  var isViewing=!!S.viewedPhotographer;
+  var collections=isViewing?(S.viewedCollections||[]):(S.collections||[]);
+  var col=collections.find(function(c){return String(c.id)===String(S.pubViewCollection);});
+  var len=col?(col.photos||[]).length:0;
+  S.pubLightboxIdx=Math.max(0,Math.min(len-1,S.pubLightboxIdx+delta));
+  updatePubGallery();
 }
 
 /* ===== PUBLIC PROFILE (with enhanced package display & booking) ===== */
@@ -1646,8 +1723,8 @@ function renderPublicProfile(){
   (bi?'<p class="bio-text text-[var(--text2)] mb-6 max-w-2xl leading-relaxed">'+bi+'</p>':'')+
   (u.social?'<div class="social-icons-wrapper flex flex-wrap gap-3 mb-10">'+(u.social.facebook?'<a href="'+u.social.facebook+'" target="_blank" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-facebook"></i></a>':'')+(u.social.instagram?'<a href="'+u.social.instagram+'" target="_blank" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-instagram"></i></a>':'')+'</div>':'')+
   
-  /* Portfolio Gallery */
-  '<div class="pub-section mb-12 pt-8 border-t border-[var(--border)]"><h2 class="text-2xl font-bold mb-6">'+t('yourPortfolio')+'</h2><div class="port-grid">'+(pubPortfolio||[]).map(function(p){return'<div class="port-item"><img src="'+p.url+'" alt="'+p.title+'" loading="lazy"><div class="overlay"><span class="text-sm font-semibold">'+p.title+'</span></div></div>';}).join('')+'</div></div>'+
+  /* Portfolio Gallery — collections drill-in */
+  '<div class="pub-section mb-12 pt-8 border-t border-[var(--border)]"><h2 class="text-2xl font-bold mb-6">'+t('yourPortfolio')+'</h2><div id="pub-gallery-section">'+renderPubGallery()+'</div></div>'+
 
   /* Services / Packages Section - Enhanced Display */
   '<div class="pub-section mb-12 pt-8 border-t border-[var(--border)]"><div class="flex items-center justify-between mb-6"><h2 class="text-2xl font-bold">'+(S.lang==='ar'?'الباقات':'Packages')+'</h2>'+
@@ -1682,9 +1759,6 @@ function renderPublicProfile(){
   /* Booking Form */
   '<div class="pub-section mb-20 pt-8 border-t border-[var(--border)]" id="booking-form-section"><h2 class="text-2xl font-bold mb-6">'+t('bookNow')+'</h2><div class="card p-8">'+
   '<form onsubmit="handlePublicBooking(event)" class="space-y-5">'+
-  '<div><label class="block text-sm text-[var(--text2)] mb-2">'+t('shootType')+'</label>'+
-  '<div class="tab-filter flex-wrap" id="shoot-type-selector">'+
-  S.photographyTypes.map(function(st){return'<button type="button" class="'+(S.selectedShootType===st.id?'active':'')+'" onclick="selectShootType(\''+st.id+'\',this)"><i class="fas '+st.icon+' mr-2"></i>'+(S.lang==='ar'?st.ar:st.en)+'</button>';}).join('')+'</div></div>'+
   '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourName')+'</label><input class="input" required id="pub-name"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourEmail')+'</label><input type="email" class="input" id="pub-email"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourPhone')+'</label><input class="input" required id="pub-phone"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('selectService')+'</label><select class="input" required id="pub-service" onchange="onPubServiceChange()"><option value="">'+t('selectService')+'</option>'+(pubPackages||[]).filter(function(p){return p.status==='active';}).map(function(p){return'<option value="'+p.id+'" data-price="'+p.price+'" data-name="'+gf(p,'name')+'" data-duration="'+gf(p,'duration')+'">'+gf(p,'name')+' — '+formatMoney(p.price)+'</option>';}).join('')+'</select></div></div>'+
   '<div id="pub-service-preview" class="hidden rounded-xl border border-[var(--accent)] bg-[rgba(196,145,92,0.08)] p-5"><div class="pub-service-preview-inner flex items-center justify-between"><div class="flex items-center gap-4">'+
   (u.avatar?'<img src="'+u.avatar+'" class="w-14 h-14 rounded-xl object-cover border border-[var(--border)]" alt="">':'<div class="w-14 h-14 rounded-xl border border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-xl" style="color:var(--border)"></i></div>')+
@@ -1694,7 +1768,7 @@ function renderPublicProfile(){
   '<div id="pub-time-area" class="hidden"><label class="block text-sm font-semibold mb-3"><i class="fas fa-clock ml-2 text-[var(--accent)]"></i>'+t('selectTime')+'</label><div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="pub-time-slots"></div></div>'+
   '</div>'+
   '<div class="flex items-center gap-3 text-xs text-[var(--text2)]"><span class="security-badge"><i class="fas fa-shield-alt"></i> SSL Encrypted</span><span class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</span></div>'+
-  '<button type="submit" class="btn-primary text-lg px-8 py-3.5 w-full">'+t('submitBooking')+'</button></form>'+
+  '<button type="submit" class="btn-primary text-lg w-full py-4 mt-2"><i class="fas fa-calendar-check ml-2"></i>'+t('submitBooking')+'</button></form>'+
   '<div id="pub-booking-confirmation" class="hidden mt-4 rounded-xl border border-[var(--success)] bg-[rgba(16,185,129,0.10)] p-4"></div>'+
   '</div></div></div>'+
   
@@ -1806,24 +1880,23 @@ async function handlePublicBooking(e){
   var selectedPkg=getPackageById(document.getElementById('pub-service').value);
   if(!selectedPkg){showToast(t('selectService'),'error');return;}
   if(!S.bookings)S.bookings=[];
-  var shootTypeInfo=S.selectedShootType?S.photographyTypes.find(function(st){return st.id===S.selectedShootType;}):null;
+  var phFor=S.viewedPhotographer||S.user;
   var newBooking={id:++S.nextId,clientName:document.getElementById('pub-name').value,
     clientEmail:document.getElementById('pub-email').value,clientPhone:document.getElementById('pub-phone').value,date:document.getElementById('pub-date').value,
     time:S.selectedTime,serviceId:selectedPkg.id,service:gf(selectedPkg,'name'),servicePrice:selectedPkg.price,serviceDuration:gf(selectedPkg,'duration'),
-    shootType:S.selectedShootType,shootTypeName:shootTypeInfo?(S.lang==='ar'?shootTypeInfo.ar:shootTypeInfo.en):null,
-    photographerName:gf(S.user,'name'),photographerAvatar:S.user.avatar||S.user.cover,status:'pending'};
+    photographerName:gf(phFor,'name'),photographerAvatar:phFor.avatar||phFor.cover,status:'pending'};
   try{
-    if(S.user&&S.user.id){
+    if(phFor&&phFor.id){
       var data=await apiRequest('/api/bookings',{method:'POST',body:{
-        photographerId:S.user.id,packageId:selectedPkg.id,date:newBooking.date,startTime:S.selectedTime,
+        photographerId:phFor.id,packageId:selectedPkg.id,date:newBooking.date,startTime:S.selectedTime,
         clientName:newBooking.clientName,clientEmail:newBooking.clientEmail,clientPhone:newBooking.clientPhone,
-        notes:newBooking.shootTypeName||''
+        notes:''
       }});
       newBooking=normalizeBooking(data.booking);
       newBooking.service=gf(selectedPkg,'name');
       newBooking.servicePrice=selectedPkg.price;
       newBooking.serviceDuration=gf(selectedPkg,'duration');
-      newBooking.photographerName=gf(S.user,'name');
+      newBooking.photographerName=gf(phFor,'name');
     }
     S.bookings.push(newBooking);
     renderClientBookingsPanel();

@@ -508,3 +508,21 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1;}
 @media(prefers-reduced-motion:reduce){
   .fade-up,.float-anim,.pulse-glow{animation:none;transition:none;}
 }
+
+/* ===== PUBLIC PROFILE GALLERY — COLLECTIONS + LIGHTBOX ===== */
+.pub-col-card{border-radius:12px;overflow:hidden;cursor:pointer;border:1px solid var(--border);transition:border-color .2s,transform .15s;}
+.pub-col-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+.pub-col-thumb{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;}
+.pub-col-empty{width:100%;aspect-ratio:1/1;background:var(--bg2);display:flex;align-items:center;justify-content:center;}
+
+/* Lightbox */
+.pub-lightbox-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.pub-lightbox-inner{max-width:90vw;max-height:85vh;display:flex;flex-direction:column;align-items:center;}
+.pub-lightbox-img{max-width:90vw;max-height:80vh;object-fit:contain;border-radius:8px;}
+.pub-lightbox-cap{color:rgba(255,255,255,0.8);font-size:13px;margin-top:10px;text-align:center;}
+.pub-lightbox-close{position:fixed;top:16px;left:16px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10000;}
+.pub-lightbox-close:hover{background:rgba(255,255,255,0.25);}
+.pub-lightbox-nav{position:fixed;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10000;}
+.pub-lightbox-nav:hover{background:rgba(255,255,255,0.25);}
+.pub-lnav-prev{right:16px;}
+.pub-lnav-next{left:16px;}
