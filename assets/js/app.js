@@ -206,7 +206,9 @@ function normalizeBooking(b){
 function normalizeConversation(c){
   return {
     id:c.id,photographerId:c.photographer_id,clientId:c.client_id,clientName:c.client_name||'Client',
+    photographerName:c.photographer_name||'',
     photographerAvatar:c.photographer_avatar||'https://picsum.photos/seed/conv/80/80',
+    clientAvatar:c.client_avatar||'',
     lastMessage:c.last_message||'',lastMessageAt:c.last_message_at||c.created_at,unread:c.unread||0,
     status:(c.archived_by||[]).indexOf(authUser()&&authUser().id)>-1?'archived':'active',blockedBy:c.blocked_by||null
   };
@@ -420,7 +422,11 @@ document.querySelectorAll('.modal-overlay').forEach(function(ov){
   ov.addEventListener('click',function(e){if(e.target===ov){ov.classList.remove('active');document.body.style.overflow='';}});
 });
 document.addEventListener('keydown',function(e){
-  if(e.key==='Escape'){document.querySelectorAll('.modal-overlay.active').forEach(function(m){m.classList.remove('active');document.body.style.overflow='';});}
+  if(e.key==='Escape'){
+    document.querySelectorAll('.modal-overlay.active').forEach(function(m){m.classList.remove('active');document.body.style.overflow='';});
+    var cm=document.getElementById('chat-modal');
+    if(cm&&!cm.classList.contains('hidden')){closeChatModal();}
+  }
 });
 
 /* ===== AUTH SYSTEM ===== */
@@ -478,7 +484,7 @@ async function handleLogin(e){
     }
     showToast(t('welcomeBack'),'success');
   }catch(err){
-    showToast(err.message||'Login failed','error');
+    showToast(err.message||'فشل تسجيل الدخول','error');
     return;
   }
   setupChatFAB();updateChatBadge();updateNavBar();
@@ -492,7 +498,7 @@ async function handleRegister(e){
       region=document.getElementById('reg-region').value;
       email=document.getElementById('reg-email').value;phone=document.getElementById('reg-phone').value;
       pass=document.getElementById('reg-pass').value;
-      if(!name||!email||!phone||!pass){showToast('Fill required fields','error');return;}
+      if(!name||!email||!phone||!pass){showToast('يرجى ملء الحقول المطلوبة','error');return;}
       await apiRequest('/api/auth/register',{method:'POST',body:{
         role:'photographer',displayName:name,email:email,password:pass,phone:phone,
         specialty:spec||'Photography',region:region||'cairo',customLink:email.split('@')[0]
@@ -501,7 +507,7 @@ async function handleRegister(e){
       name=document.getElementById('reg-client-name').value;
       email=document.getElementById('reg-email').value;phone=document.getElementById('reg-phone').value;
       pass=document.getElementById('reg-pass').value;
-      if(!name||!email||!phone||!pass){showToast('Fill required fields','error');return;}
+      if(!name||!email||!phone||!pass){showToast('يرجى ملء الحقول المطلوبة','error');return;}
       await apiRequest('/api/auth/register',{method:'POST',body:{role:'client',displayName:name,email:email,password:pass,phone:phone}});
     }
     var loginData=await apiRequest('/api/auth/login',{method:'POST',body:{email:email,password:pass}});
@@ -512,17 +518,24 @@ async function handleRegister(e){
     if(S.user.role==='photographer'){S.appointments=[];S.bookings=[];S.portfolio=[];S.packages=[];S.portfolioPublished=[];navigate('dashboard');}
     else{S.bookings=[];navigate('landing');}
   }catch(err){
-    showToast(err.message||'Registration failed','error');
+    showToast(err.message||'فشل إنشاء الحساب','error');
     return;
   }
   showToast('تم إنشاء الحساب!','success');
   setupChatFAB();updateChatBadge();updateNavBar();
 }
-function handleLogout(){S.user=null;S.portfolio=[];S.portfolioPublished=[];S.portfolioDirty=false;S.isPortfolioPreview=false;S.collections=[];S.openCollectionId=null;S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;
+function handleLogout(){
+  /* Full state reset so the next user can't see stale data */
+  S.user=null;S.portfolio=[];S.portfolioPublished=[];S.portfolioDirty=false;S.isPortfolioPreview=false;
+  S.collections=[];S.openCollectionId=null;S.packages=[];S.bookings=[];S.appointments=[];
+  S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;S.viewedCollections=[];
+  S.pubViewCollection=null;S.pubLightboxIdx=null;
+  S.conversations=[];S.messages={};S.chatActiveConv=null;S.workingHours=[];
   try{sessionStorage.removeItem('dof_frontend_session_v1');}catch(e){}
   setApiToken('');saveApiProfile(null);
   var fab=document.getElementById('chat-fab');if(fab)fab.classList.add('hidden');
   if(document.getElementById('chat-panel'))document.getElementById('chat-panel').classList.remove('open');
+  if(document.getElementById('chat-modal'))document.getElementById('chat-modal').classList.add('hidden');
   updateChatBadge();updateNavBar();navigate('landing');showToast('تم تسجيل الخروج','info');
 }
 
@@ -908,15 +921,15 @@ async function addPhoto(){
     }else{
       S.portfolio.push({id:++S.nextId,url:url,title:title});
     }
-    S.portfolioDirty=true;renderTab();showToast('Photo added','success');
-  }catch(err){showToast(err.message||'Could not add photo','error');}
+    S.portfolioDirty=true;renderTab();showToast('تم إضافة الصورة','success');
+  }catch(err){showToast(err.message||'تعذر إضافة الصورة','error');}
 }
 async function removePhoto(id){
   try{
     if(apiToken())await apiRequest('/api/portfolio/photos/'+id,{method:'DELETE'});
     S.portfolio=S.portfolio.filter(function(p){return String(p.id)!==String(id);});
-    S.portfolioDirty=true;renderTab();showToast('Photo removed','info');
-  }catch(err){showToast(err.message||'Could not remove photo','error');}
+    S.portfolioDirty=true;renderTab();showToast('تم حذف الصورة','info');
+  }catch(err){showToast(err.message||'تعذر حذف الصورة','error');}
 }
 function openPortfolioReview(){S.isPortfolioPreview=true;navigate('public');}
 function discardPortfolioChanges(){
@@ -1051,9 +1064,9 @@ async function confirmDeletePackage(){
       syncPackagesToDirectory();
       closeModal('delete-modal');
       renderTab();
-      showToast('Package deleted','info');
+      showToast('تم حذف الباقة','info');
       S.deletePackageId=null;
-    }catch(err){showToast(err.message||'Could not delete package','error');}
+    }catch(err){showToast(err.message||'تعذر حذف الباقة','error');}
   }
 }
 
@@ -1225,7 +1238,7 @@ async function handlePackageSubmit(e){
     closeModal('package-modal');
     renderTab();
     showToast(editId?'Package updated':'Package created','success');
-  }catch(err){showToast(err.message||'Could not save package','error');}
+  }catch(err){showToast(err.message||'تعذر حفظ الباقة','error');}
 }
 
 function syncPackagesToDirectory(){
@@ -1320,7 +1333,7 @@ async function saveWorkingHours(){
   try{
     if(apiToken())await apiRequest('/api/availability/working-hours',{method:'PUT',body:{workingHours:rows}});
     showToast(S.lang==='ar'?'تم حفظ ساعات العمل':'Working hours saved','success');
-  }catch(err){showToast(err.message||'Could not save working hours','error');}
+  }catch(err){showToast(err.message||'تعذر حفظ ساعات العمل','error');}
 }
 function changeMonth(dir){S.calMonth+=dir;if(S.calMonth>11){S.calMonth=0;S.calYear++;}if(S.calMonth<0){S.calMonth=11;S.calYear--;}S.selectedDate=null;renderTab();}
 function selectCalDate(ds){S.selectedDate=ds;renderTab();}
@@ -1338,7 +1351,7 @@ function handleAddApt(e){
     time:document.getElementById('apt-time').value,client:document.getElementById('apt-client').value,
     service:document.getElementById('apt-service').value,notes:document.getElementById('apt-notes').value,status:'confirmed'});
   S.selectedDate=document.getElementById('apt-date').value;
-  closeModal('apt-modal');renderTab();showToast('Appointment added','success');
+  closeModal('apt-modal');renderTab();showToast('تم إضافة الموعد','success');
 }
 
 /* ===== DASHBOARD: BOOKINGS ===== */
@@ -1558,9 +1571,9 @@ async function handleSubscribe(){
     closeModal('sub-modal');
     if(data.iframeUrl){window.location.href=data.iframeUrl;return;}
     showToast(S.lang==='ar'?'تم بدء عملية الدفع':'Payment started','success');
-  }catch(err){showToast(err.message||'Could not start subscription','error');}
+  }catch(err){showToast(err.message||'تعذر بدء الاشتراك','error');}
 }
-function copyLink(link){navigator.clipboard.writeText(link).then(function(){showToast('Link copied!','success');}).catch(function(){showToast(link,'info');});}
+function copyLink(link){navigator.clipboard.writeText(link).then(function(){showToast('تم نسخ الرابط','success');}).catch(function(){showToast(link,'info');});}
 function normalizePhoneToWa(phone){
   return String(phone||'').replace(/[^\d]/g,'');
 }
@@ -1969,7 +1982,7 @@ async function handlePublicBooking(e){
     renderClientBookingsPanel();
     addCustomerRecord(newBooking);
     notifyPhotographerWhatsApp(newBooking);
-  }catch(err){showToast(err.message||'Booking failed','error');return;}
+  }catch(err){showToast(err.message||'فشل الحجز','error');return;}
   var conf=document.getElementById('pub-booking-confirmation');
   if(conf){
     conf.innerHTML='<div class="font-semibold text-[var(--success)] mb-1">'+(S.lang==='ar'?'تم تأكيد الحجز بنجاح':'Booking confirmed successfully')+'</div>'+
@@ -2381,7 +2394,7 @@ async function sendChatMessage(){
     var msgs=getConvMessages(S.chatActiveConv);
     msgs.push(msg);
     setConvMessages(S.chatActiveConv,msgs);
-  }catch(err){showToast(err.message||'Could not send message','error');return;}
+  }catch(err){showToast(err.message||'تعذر إرسال الرسالة','error');return;}
   updateConvPreview(S.chatActiveConv,text,msg.timestamp);
   /* Update unread for the other party */
   if(isClient){conv.unread=(conv.unread||0)+1;}
@@ -2420,7 +2433,7 @@ async function startChatWithPhotographer(photographerId){
   }
   var conv;
   try{conv=await findOrCreateConversation(photographerId);}catch(err){showToast(err.message||'Could not start conversation','error');return;}
-  if(!conv){showToast('Could not start conversation','error');return;}
+  if(!conv){showToast('تعذر فتح المحادثة','error');return;}
   openChatConversation(conv.id);
   if(S.view==='public'||S.view==='landing'){
     var panel=document.getElementById('chat-panel');
@@ -2602,7 +2615,7 @@ async function openChatModal(convId){
   var au=authUser();
   var isPhotographer=au&&au.role==='photographer';
   var otherName=isPhotographer?conv.clientName:(conv.photographerName||'المصور');
-  var otherAvatar=isPhotographer?(conv.photographerAvatar||''):(conv.photographerAvatar||'');
+  var otherAvatar=isPhotographer?(conv.clientAvatar||''):(conv.photographerAvatar||'');
   var avatarEl=document.getElementById('chat-modal-avatar');
   var nameEl=document.getElementById('chat-modal-name');
   if(avatarEl){avatarEl.src=otherAvatar||'https://picsum.photos/seed/chat/80/80';}

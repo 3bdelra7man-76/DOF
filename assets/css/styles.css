@@ -537,3 +537,14 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1;}
 .chat-modal-avatar{width:42px;height:42px;border-radius:12px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;}
 .chat-modal-messages{flex:1;overflow-y:auto;padding:24px 20px;display:flex;flex-direction:column;gap:14px;background:var(--bg);}
 .chat-modal-footer{display:flex;align-items:center;gap:10px;padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0;background:var(--bg2);}
+
+@media (max-width: 640px) {
+  .chat-modal-box {
+    width: calc(100vw - 16px);
+    height: calc(100vh - 24px);
+    border-radius: 14px;
+  }
+  .chat-modal-header { padding: 12px 14px; gap: 10px; }
+  .chat-modal-messages { padding: 16px 12px; }
+  .chat-modal-footer { padding: 10px 12px; }
+}

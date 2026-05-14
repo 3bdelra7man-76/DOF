@@ -366,6 +366,15 @@ async function setWorkingHours(req, res) {
     end_time: item.endTime,
     enabled: item.enabled !== false
   }));
+  /* Validate before hitting DB so users get a clean error */
+  for (const r of rows) {
+    if (!(r.day_of_week >= 0 && r.day_of_week <= 6)) {
+      throw fail(422, 'يوم الأسبوع يجب أن يكون بين 0 و 6');
+    }
+    if (!r.start_time || !r.end_time || r.start_time >= r.end_time) {
+      throw fail(422, 'وقت النهاية يجب أن يكون بعد وقت البداية');
+    }
+  }
   const { data, error } = await sb
     .from('working_hours')
     .upsert(rows, { onConflict: 'photographer_id,day_of_week' })
@@ -449,6 +458,21 @@ async function getAvailableSlots(req, res, photographerId) {
 async function createBooking(req, res) {
   const body = await readJson(req);
   required(body, ['photographerId', 'packageId', 'date', 'startTime', 'clientName', 'clientPhone']);
+
+  /* Reject past dates */
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const bookingDate = new Date(body.date + 'T00:00:00');
+  if (isNaN(bookingDate.getTime()) || bookingDate < today) {
+    throw fail(422, 'لا يمكن الحجز في تاريخ ماضٍ');
+  }
+
+  /* Validate email format if provided */
+  if (body.clientEmail && String(body.clientEmail).trim()) {
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(body.clientEmail).trim());
+    if (!emailOk) throw fail(422, 'صيغة البريد الإلكتروني غير صحيحة');
+  }
+
   const tokenUser = await requireUser(req).catch(() => null);
   const sb = supabaseService();
   const { data: pkg, error: pkgError } = await sb
@@ -461,36 +485,30 @@ async function createBooking(req, res) {
   if (pkgError || !pkg) throw fail(404, 'Package not found');
 
   const endTime = addMinutes(body.startTime, pkg.duration_minutes);
-
-  /* Conflict check: no confirmed/pending booking in the same slot */
-  const { data: conflicts } = await sb
-    .from('bookings')
-    .select('id')
-    .eq('photographer_id', body.photographerId)
-    .eq('booking_date', body.date)
-    .in('status', ['confirmed', 'pending'])
-    .lt('start_time', endTime)
-    .gt('end_time', body.startTime);
-  if (conflicts && conflicts.length > 0) throw fail(409, 'Time slot is no longer available');
-
   const clientId = tokenUser?.profile?.role === 'client' ? tokenUser.profile.id : null;
+
+  /* Atomic conflict check + insert via advisory-locked RPC */
+  const { data: rpcRow, error: rpcErr } = await sb.rpc('create_pending_booking', {
+    p_client_id: clientId,
+    p_photographer_id: body.photographerId,
+    p_package_id: body.packageId,
+    p_booking_date: body.date,
+    p_start_time: body.startTime,
+    p_end_time: endTime,
+    p_client_name: cleanString(body.clientName),
+    p_client_email: cleanString(body.clientEmail),
+    p_client_phone: cleanString(body.clientPhone),
+    p_notes: cleanString(body.notes),
+    p_price_cents: pkg.price_cents
+  });
+  if (rpcErr) throw fail(409, rpcErr.message || 'Time slot is no longer available');
+
+  /* RPC returns the bookings row directly; fetch the package join for the client */
+  const bookingId = rpcRow?.id;
   const { data, error } = await sb
     .from('bookings')
-    .insert({
-      photographer_id: body.photographerId,
-      client_id: clientId,
-      package_id: body.packageId,
-      booking_date: body.date,
-      start_time: body.startTime,
-      end_time: endTime,
-      client_name: cleanString(body.clientName),
-      client_email: cleanString(body.clientEmail),
-      client_phone: cleanString(body.clientPhone),
-      notes: cleanString(body.notes),
-      price_cents: pkg.price_cents,
-      status: 'pending'
-    })
     .select('*, packages(name, duration_minutes)')
+    .eq('id', bookingId)
     .single();
   if (error) throw fail(422, error.message);
   created(res, { booking: data });
@@ -547,14 +565,18 @@ async function confirmBooking(req, res, id) {
   requireRole(profile, 'photographer');
   const sb = supabaseService();
 
+  /* Only pending bookings can be confirmed. This avoids re-confirming cancelled
+     bookings (which would also re-fire the auto-message to the client). */
   const { data: booking, error } = await sb
     .from('bookings')
     .update({ status: 'confirmed' })
     .eq('id', id)
     .eq('photographer_id', profile.id)
+    .eq('status', 'pending')
     .select('*, packages(name, duration_minutes)')
-    .single();
+    .maybeSingle();
   if (error) throw fail(422, error.message);
+  if (!booking) throw fail(409, 'Booking is not pending and cannot be confirmed');
 
   let conversationId = null;
   if (booking.client_id) {
@@ -605,6 +627,7 @@ async function listConversations(req, res) {
   ok(res, { conversations: rows.map((row) => ({
     ...row,
     client_name: peopleById[row.client_id]?.display_name || 'Client',
+    client_avatar: peopleById[row.client_id]?.avatar_url || null,
     photographer_name: peopleById[row.photographer_id]?.display_name || 'Photographer',
     photographer_avatar: peopleById[row.photographer_id]?.avatar_url || null
   })) });
