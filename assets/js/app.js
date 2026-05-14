@@ -270,12 +270,14 @@ async function hydrateAuthenticatedState(){
     saveApiProfile(null);
   }
   updateNavBar();
+  saveFrontendSession();
 }
 function saveFrontendSession(){
   try{
     sessionStorage.setItem('dof_frontend_session_v1',JSON.stringify({
       user:S.user,appointments:S.appointments,bookings:S.bookings,portfolio:S.portfolio,
-      portfolioPublished:S.portfolioPublished,packages:S.packages,workingHours:S.workingHours,lang:S.lang,tab:S.tab
+      portfolioPublished:S.portfolioPublished,packages:S.packages,workingHours:S.workingHours,lang:S.lang,tab:S.tab,
+      viewedPhotographer:S.viewedPhotographer,viewedPortfolio:S.viewedPortfolio,viewedPackages:S.viewedPackages
     }));
   }catch(e){}
 }
@@ -293,6 +295,9 @@ function restoreFrontendSession(){
     if(data.portfolioPublished)S.portfolioPublished=data.portfolioPublished;
     if(data.packages)S.packages=data.packages;
     if(data.workingHours)S.workingHours=data.workingHours;
+    if(data.viewedPhotographer)S.viewedPhotographer=data.viewedPhotographer;
+    if(data.viewedPortfolio)S.viewedPortfolio=data.viewedPortfolio;
+    if(data.viewedPackages)S.viewedPackages=data.viewedPackages;
   }catch(e){}
 }
 function hashPII(value){
@@ -591,7 +596,7 @@ function updateNavBar(){
   if(btnOutPub){btnOutPub.classList.toggle('hidden',!u);if(userNamePub&&u)userNamePub.textContent=u.name||'';}
 }
 function navigate(v){
-  if(v!=='public'){S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;}
+  if(v!=='public'){S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;saveFrontendSession();}
   checkSubscriptionStatus();
   if(!hasPageContainer(v)){goToPage(v);return;}
   S.view=v;
