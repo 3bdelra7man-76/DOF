@@ -421,7 +421,7 @@ async function getAvailableSlots(req, res, photographerId) {
   const [{ data: pkg }, { data: workingHours }, { data: bookings }, { data: blocks }] = await Promise.all([
     sb.from('packages').select('*').eq('id', packageId).eq('photographer_id', photographerId).eq('status', 'active').single(),
     sb.from('working_hours').select('*').eq('photographer_id', photographerId),
-    sb.from('bookings').select('start_time,end_time').eq('photographer_id', photographerId).eq('booking_date', date).eq('status', 'confirmed'),
+    sb.from('bookings').select('start_time,end_time').eq('photographer_id', photographerId).eq('booking_date', date).in('status', ['confirmed', 'pending']),
     sb.from('availability_blocks').select('start_time,end_time').eq('photographer_id', photographerId).eq('block_date', date)
   ]);
   if (!pkg) throw fail(404, 'Package not found');
@@ -451,28 +451,37 @@ async function createBooking(req, res) {
   if (pkgError || !pkg) throw fail(404, 'Package not found');
 
   const endTime = addMinutes(body.startTime, pkg.duration_minutes);
-  const { data: rpcData, error } = await sb.rpc('create_instant_booking', {
-    p_client_id: tokenUser?.profile?.role === 'client' ? tokenUser.profile.id : null,
-    p_photographer_id: body.photographerId,
-    p_package_id: body.packageId,
-    p_booking_date: body.date,
-    p_start_time: body.startTime,
-    p_end_time: endTime,
-    p_client_name: cleanString(body.clientName),
-    p_client_email: cleanString(body.clientEmail),
-    p_client_phone: cleanString(body.clientPhone),
-    p_notes: cleanString(body.notes)
-  });
-  if (error) throw fail(409, error.message);
-  const bookingId = typeof rpcData === 'string' ? rpcData : (rpcData?.id ?? (Array.isArray(rpcData) ? rpcData[0]?.id : null));
-  if (!bookingId) throw fail(500, 'Could not determine booking id from RPC response');
-  const { data, error: upErr } = await sb
+
+  /* Conflict check: no confirmed/pending booking in the same slot */
+  const { data: conflicts } = await sb
     .from('bookings')
-    .update({ status: 'pending' })
-    .eq('id', bookingId)
-    .select('*')
+    .select('id')
+    .eq('photographer_id', body.photographerId)
+    .eq('booking_date', body.date)
+    .in('status', ['confirmed', 'pending'])
+    .lt('start_time', endTime)
+    .gt('end_time', body.startTime);
+  if (conflicts && conflicts.length > 0) throw fail(409, 'Time slot is no longer available');
+
+  const clientId = tokenUser?.profile?.role === 'client' ? tokenUser.profile.id : null;
+  const { data, error } = await sb
+    .from('bookings')
+    .insert({
+      photographer_id: body.photographerId,
+      client_id: clientId,
+      package_id: body.packageId,
+      booking_date: body.date,
+      start_time: body.startTime,
+      end_time: endTime,
+      client_name: cleanString(body.clientName),
+      client_email: cleanString(body.clientEmail),
+      client_phone: cleanString(body.clientPhone),
+      notes: cleanString(body.notes),
+      status: 'pending'
+    })
+    .select('*, packages(name, duration_minutes)')
     .single();
-  if (upErr) throw fail(422, upErr.message);
+  if (error) throw fail(422, error.message);
   created(res, { booking: data });
 }
 
