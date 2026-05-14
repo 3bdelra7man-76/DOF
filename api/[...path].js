@@ -359,7 +359,6 @@ async function setWorkingHours(req, res) {
   const body = await readJson(req);
   if (!Array.isArray(body.workingHours)) throw fail(422, 'workingHours must be an array');
   const sb = supabaseService();
-  await sb.from('working_hours').delete().eq('photographer_id', profile.id);
   const rows = body.workingHours.map((item) => ({
     photographer_id: profile.id,
     day_of_week: asInt(item.dayOfWeek),
@@ -367,8 +366,19 @@ async function setWorkingHours(req, res) {
     end_time: item.endTime,
     enabled: item.enabled !== false
   }));
-  const { data, error } = await sb.from('working_hours').insert(rows).select('*');
+  const { data, error } = await sb
+    .from('working_hours')
+    .upsert(rows, { onConflict: 'photographer_id,day_of_week' })
+    .select('*');
   if (error) throw fail(422, error.message);
+  /* Remove days no longer in the submitted set */
+  const activeDays = rows.map((r) => r.day_of_week);
+  if (activeDays.length < 7) {
+    await sb.from('working_hours')
+      .delete()
+      .eq('photographer_id', profile.id)
+      .not('day_of_week', 'in', `(${activeDays.join(',')})`);
+  }
   ok(res, { workingHours: data || [] });
 }
 
@@ -492,11 +502,32 @@ async function listBookings(req, res) {
   const column = profile.role === 'photographer' ? 'photographer_id' : 'client_id';
   const { data, error } = await sb
     .from('bookings')
-    .select('*, packages(name, duration_minutes)')
+    .select('*, packages(name, duration_minutes), profiles!bookings_photographer_id_fkey(display_name, avatar_url)')
     .eq(column, profile.id)
     .order('booking_date', { ascending: false });
   if (error) throw fail(422, error.message);
-  ok(res, { bookings: data || [] });
+  const bookings = (data || []).map((b) => ({
+    ...b,
+    photographer_name: b.profiles?.display_name || '',
+    photographer_avatar: b.profiles?.avatar_url || ''
+  }));
+  ok(res, { bookings });
+}
+
+async function deleteMessage(req, res, conversationId, messageId) {
+  const { profile } = await requireUser(req);
+  const sb = supabaseService();
+  const { data: conv } = await sb.from('conversations').select('*').eq('id', conversationId).single();
+  if (!conv || ![conv.client_id, conv.photographer_id].includes(profile.id)) throw fail(404, 'Conversation not found');
+  const { data, error } = await sb
+    .from('messages')
+    .update({ is_deleted: true })
+    .eq('id', messageId)
+    .eq('sender_id', profile.id)
+    .select('*')
+    .single();
+  if (error) throw fail(422, error.message);
+  ok(res, { message: data });
 }
 
 async function cancelBooking(req, res, id) {
@@ -788,6 +819,7 @@ if (req.method === 'POST' && first === 'auth' && second === 'register') return r
   if (req.method === 'PATCH' && first === 'conversations' && second && third === 'archive') return updateConversationState(req, res, second, 'archive');
   if (req.method === 'GET' && first === 'conversations' && second && third === 'messages') return listMessages(req, res, second);
   if (req.method === 'POST' && first === 'conversations' && second && third === 'messages') return sendMessage(req, res, second);
+  if (req.method === 'DELETE' && first === 'conversations' && second && third === 'messages' && fourth) return deleteMessage(req, res, second, fourth);
   if (req.method === 'POST' && first === 'reports') return createReport(req, res);
 
   if (req.method === 'POST' && first === 'subscriptions' && second === 'paymob' && third === 'start') return startSubscription(req, res);

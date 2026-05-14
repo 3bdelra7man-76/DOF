@@ -433,6 +433,31 @@
 <input type="file" id="col-photo-input" accept="image/*" class="hidden" onchange="handleColPhotoUpload(this)">
 
 
+<!-- ===== FULL-SCREEN CHAT MODAL ===== -->
+<div id="chat-modal" class="chat-modal-overlay hidden" onclick="handleChatModalBackdrop(event)">
+  <div class="chat-modal-box" onclick="event.stopPropagation()">
+    <div class="chat-modal-header">
+      <button onclick="closeChatModal()" class="chat-modal-back" title="إغلاق">
+        <i class="fas fa-times"></i>
+      </button>
+      <img id="chat-modal-avatar" class="chat-modal-avatar" src="" alt="">
+      <div style="flex:1;">
+        <div id="chat-modal-name" class="font-semibold text-[var(--text)]"></div>
+        <div class="text-xs text-[var(--text2)]">محادثة خاصة</div>
+      </div>
+    </div>
+    <div id="chat-modal-messages" class="chat-modal-messages"></div>
+    <div class="chat-modal-footer">
+      <input id="chat-modal-input" type="text" class="input" style="flex:1;"
+             placeholder="اكتب رسالة..."
+             onkeydown="if(event.key==='Enter')sendChatModalMessage()">
+      <button onclick="sendChatModalMessage()" class="btn-primary" style="padding:10px 18px;">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ============================================================ -->
 <!-- ===== COMPLETE JAVASCRIPT ===== -->
 <!-- ============================================================ -->
