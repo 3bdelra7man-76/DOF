@@ -900,9 +900,9 @@ function renderPackages(){
   else if(S.packageSort==='price'){filtered=filtered.slice().sort(function(a,b){return a.price-b.price;});}
   else if(S.packageSort==='newest'){filtered=filtered.slice().reverse();}
   
-  return'<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">'+
+  return'<div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">'+
   '<div><h2 class="text-2xl font-bold">'+(S.lang==='ar'?'الباقات':'Packages')+'</h2><p class="text-sm text-[var(--text2)] mt-1">'+packages.length+' '+(S.lang==='ar'?'إجمالي الباقات':'total packages')+'</p></div>'+
-  '<button onclick="openPackageModal()" class="btn-primary"><i class="fas fa-plus mr-2"></i>'+t('addPackage')+'</button></div>'+
+  '<button onclick="openPackageModal()" class="btn-primary"><i class="fas fa-plus ml-2"></i>'+t('addPackage')+'</button></div>'+
   
   /* Filters & Sort */
   '<div class="flex flex-wrap items-center gap-3 mb-6">'+
@@ -950,8 +950,6 @@ function openPackageModal(editId){
   document.getElementById('pkg-edit-id').value='';
   document.getElementById('package-form').reset();
   document.getElementById('pkg-features-list').innerHTML='';
-  document.getElementById('pkg-files-list').innerHTML='';
-  document.getElementById('pkg-preview-section').classList.add('hidden');
   
   /* Clear validation */
   document.querySelectorAll('.validation-msg').forEach(function(m){m.className='validation-msg';m.textContent='';});
@@ -974,9 +972,7 @@ function openPackageModal(editId){
       S.tempPackageFeatures=(pkg.features||[]).map(function(f,i){return{en:f,ar:(pkg.featuresAr||[])[i]||f};});
       renderPackageFeatures();
       
-      /* Load files info */
       S.tempPackageFiles=pkg.files||[];
-      renderPackageFiles();
     }
   } else {
     document.getElementById('package-modal-title').textContent='إضافة باقة';
