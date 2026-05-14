@@ -80,12 +80,27 @@ async function register(req, res) {
       custom_link: cleanString(body.customLink).toLowerCase(),
       bio: cleanString(body.bio),
       subscription_status: 'free',
-      is_published: true
+      is_published: false
     });
     if (error) throw fail(422, error.message);
   }
 
   created(res, { userId: authData.user.id });
+}
+
+async function resetPassword(req, res) {
+  const body = await readJson(req);
+  required(body, ['email']);
+  const email = cleanString(body.email).toLowerCase();
+  /* Origin for redirect — falls back to env or request host */
+  const origin = req.headers.origin || req.headers.referer || process.env.PUBLIC_SITE_URL || '';
+  const redirectTo = origin ? origin.replace(/\/$/, '') + '/reset.html' : undefined;
+  const { error } = await supabaseAnon().auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
+  /* Always return ok to avoid leaking which emails exist */
+  if (error) {
+    /* swallow */
+  }
+  ok(res, { ok: true });
 }
 
 async function login(req, res) {
@@ -184,12 +199,13 @@ async function getPublicPhotographer(req, res, customLink) {
     .single();
   if (error || !photographer) throw fail(404, 'Photographer not found');
 
-  const [{ data: collections }, { data: packages }] = await Promise.all([
+  const [{ data: collections }, { data: packages }, { data: workingHours }] = await Promise.all([
     sb.from('portfolio_collections').select('*, portfolio_photos(*)').eq('photographer_id', photographer.id).order('created_at'),
-    sb.from('packages').select('*').eq('photographer_id', photographer.id).eq('status', 'active').order('featured', { ascending: false })
+    sb.from('packages').select('*').eq('photographer_id', photographer.id).eq('status', 'active').order('featured', { ascending: false }),
+    sb.from('working_hours').select('*').eq('photographer_id', photographer.id).order('day_of_week')
   ]);
 
-  ok(res, { photographer, collections: collections || [], packages: packages || [] });
+  ok(res, { photographer, collections: collections || [], packages: packages || [], workingHours: workingHours || [] });
 }
 
 async function signUpload(req, res) {
@@ -474,6 +490,9 @@ async function createBooking(req, res) {
   }
 
   const tokenUser = await requireUser(req).catch(() => null);
+  if (!tokenUser || tokenUser.profile?.role !== 'client') {
+    throw fail(401, 'يجب تسجيل الدخول كعميل للحجز');
+  }
   const sb = supabaseService();
   const { data: pkg, error: pkgError } = await sb
     .from('packages')
@@ -485,7 +504,7 @@ async function createBooking(req, res) {
   if (pkgError || !pkg) throw fail(404, 'Package not found');
 
   const endTime = addMinutes(body.startTime, pkg.duration_minutes);
-  const clientId = tokenUser?.profile?.role === 'client' ? tokenUser.profile.id : null;
+  const clientId = tokenUser.profile.id;
 
   /* Atomic conflict check + insert via advisory-locked RPC */
   const { data: rpcRow, error: rpcErr } = await sb.rpc('create_pending_booking', {
@@ -546,6 +565,22 @@ async function deleteMessage(req, res, conversationId, messageId) {
     .single();
   if (error) throw fail(422, error.message);
   ok(res, { message: data });
+}
+
+async function completeBooking(req, res, id) {
+  const { profile } = await requireUser(req);
+  requireRole(profile, 'photographer');
+  const sb = supabaseService();
+  const { data, error } = await sb
+    .from('bookings')
+    .update({ status: 'completed' })
+    .eq('id', id)
+    .eq('photographer_id', profile.id)
+    .eq('status', 'confirmed')
+    .select('*')
+    .single();
+  if (error || !data) throw fail(404, 'Booking not found or not confirmed');
+  ok(res, { booking: data });
 }
 
 async function cancelBooking(req, res, id) {
@@ -806,9 +841,14 @@ async function handle(req, res) {
   const [first, second, third, fourth] = parts;
 
   if (req.method === 'GET' && first === 'health') return ok(res, { ok: true, app: 'dof-studios-api' });
+  if (req.method === 'GET' && first === 'config') return ok(res, {
+    supabaseUrl: process.env.SUPABASE_URL || '',
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || ''
+  });
 
 if (req.method === 'POST' && first === 'auth' && second === 'register') return register(req, res);
   if (req.method === 'POST' && first === 'auth' && second === 'login') return login(req, res);
+  if (req.method === 'POST' && first === 'auth' && second === 'reset-password') return resetPassword(req, res);
   if (req.method === 'GET' && first === 'me') return getMe(req, res);
   if (req.method === 'PATCH' && first === 'me' && second === 'profile') return updateMe(req, res);
 
@@ -835,6 +875,7 @@ if (req.method === 'POST' && first === 'auth' && second === 'register') return r
   if (req.method === 'GET' && first === 'bookings') return listBookings(req, res);
   if (req.method === 'PATCH' && first === 'bookings' && second && third === 'cancel') return cancelBooking(req, res, second);
   if (req.method === 'PATCH' && first === 'bookings' && second && third === 'confirm') return confirmBooking(req, res, second);
+  if (req.method === 'PATCH' && first === 'bookings' && second && third === 'complete') return completeBooking(req, res, second);
 
   if (req.method === 'GET' && first === 'conversations') return listConversations(req, res);
   if (req.method === 'POST' && first === 'conversations') return createConversation(req, res);

@@ -170,7 +170,9 @@ function normalizeProfile(profile){
     rating:profile.rating||0,bookings:profile.booking_count||0,
     subscriptionDueAt:pp?pp.subscription_due_at:null,
     portfolioSuspended:pp?pp.is_suspended===true:false,
-    isSubscribed:pp?pp.subscription_status==='active':false
+    isSubscribed:pp?pp.subscription_status==='active':false,
+    isPublished:pp?pp.is_published===true:false,
+    createdAt:pp?pp.created_at:profile.created_at||null
   };
 }
 function normalizeDirectoryPhotographer(row){
@@ -271,6 +273,7 @@ async function hydrateAuthenticatedState(){
       await refreshMyPortfolio().catch(function(){});
       await refreshWorkingHours().catch(function(){});
       await refreshMyBookings();
+      recomputeTrial();
     } else if(S.user&&S.user.role==='client'){
       await refreshMyBookings();
     }
@@ -280,6 +283,15 @@ async function hydrateAuthenticatedState(){
   }
   updateNavBar();
   saveFrontendSession();
+}
+function recomputeTrial(){
+  if(!S.user||S.user.role!=='photographer')return;
+  if(S.user.isSubscribed){S.trialDaysLeft=0;return;}
+  if(!S.user.createdAt){S.trialDaysLeft=7;return;}
+  var created=new Date(S.user.createdAt).getTime();
+  if(isNaN(created)){S.trialDaysLeft=7;return;}
+  var daysSince=Math.floor((Date.now()-created)/(1000*60*60*24));
+  S.trialDaysLeft=Math.max(0,7-daysSince);
 }
 function saveFrontendSession(){
   try{
@@ -419,7 +431,14 @@ function openModal(id){var m=document.getElementById(id);if(!m)return;m.classLis
 function closeModal(id){var m=document.getElementById(id);if(!m)return;m.classList.remove('active');document.body.style.overflow='';}
 /* Close modal on backdrop click or Escape */
 document.querySelectorAll('.modal-overlay').forEach(function(ov){
-  ov.addEventListener('click',function(e){if(e.target===ov){ov.classList.remove('active');document.body.style.overflow='';}});
+  ov.addEventListener('click',function(e){
+    if(e.target!==ov)return;
+    if(ov.id==='package-modal'&&S.packageModalDirty){
+      if(!confirm('هناك تغييرات غير محفوظة. هل تريد المتابعة؟'))return;
+      S.packageModalDirty=false;
+    }
+    ov.classList.remove('active');document.body.style.overflow='';
+  });
 });
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape'){
@@ -430,7 +449,38 @@ document.addEventListener('keydown',function(e){
 });
 
 /* ===== AUTH SYSTEM ===== */
+function openForgotPassword(){
+  var lf=document.getElementById('login-form');
+  var rf=document.getElementById('register-form');
+  var ff=document.getElementById('forgot-form');
+  if(lf)lf.classList.add('hidden');
+  if(rf)rf.classList.add('hidden');
+  if(ff)ff.classList.remove('hidden');
+}
+function closeForgotPassword(){
+  var ff=document.getElementById('forgot-form');
+  if(ff)ff.classList.add('hidden');
+  switchAuthTab('login');
+}
+async function handleForgotPassword(e){
+  e.preventDefault();
+  var email=document.getElementById('forgot-email').value.trim();
+  if(!validateEmail(email)){showToast('بريد غير صالح','error');return;}
+  try{
+    await apiRequest('/api/auth/reset-password',{method:'POST',body:{email:email}});
+    showToast('إذا كان البريد مسجلاً، ستصلك رسالة استعادة قريباً','success');
+    closeForgotPassword();
+    closeModal('auth-modal');
+  }catch(err){
+    /* Avoid leaking which emails exist — show success either way */
+    showToast('إذا كان البريد مسجلاً، ستصلك رسالة استعادة قريباً','success');
+    closeForgotPassword();
+    closeModal('auth-modal');
+  }
+}
 function switchAuthTab(tab){
+  var ff=document.getElementById('forgot-form');
+  if(ff)ff.classList.add('hidden');
   document.getElementById('login-form').classList.toggle('hidden',tab!=='login');
   document.getElementById('register-form').classList.toggle('hidden',tab!=='register');
   document.querySelectorAll('.auth-tab').forEach(function(btn,i){
@@ -480,7 +530,10 @@ async function handleLogin(e){
       closeModal('auth-modal');navigate('dashboard');
     } else {
       await refreshMyBookings().catch(function(){});
-      closeModal('auth-modal');navigate('landing');
+      closeModal('auth-modal');
+      var hadIntent=false;try{hadIntent=!!sessionStorage.getItem('dof_pending_booking_intent');}catch(e){}
+      if(hadIntent){restorePendingBookingIntent();}
+      else{navigate('landing');}
     }
     showToast(t('welcomeBack'),'success');
   }catch(err){
@@ -516,7 +569,12 @@ async function handleRegister(e){
     S.user=normalizeProfile(loginData.profile);
     closeModal('auth-modal');
     if(S.user.role==='photographer'){S.appointments=[];S.bookings=[];S.portfolio=[];S.packages=[];S.portfolioPublished=[];navigate('dashboard');}
-    else{S.bookings=[];navigate('landing');}
+    else{
+      S.bookings=[];
+      var hadIntent=false;try{hadIntent=!!sessionStorage.getItem('dof_pending_booking_intent');}catch(e){}
+      if(hadIntent){restorePendingBookingIntent();}
+      else{navigate('landing');}
+    }
   }catch(err){
     showToast(err.message||'فشل إنشاء الحساب','error');
     return;
@@ -667,6 +725,8 @@ function renderClientBookingsPanel(){
     return;
   }
   content.innerHTML='<div class="space-y-3">'+items.map(function(b){
+    var cancelBtn=b.status==='pending'?
+      '<button onclick="clientCancelBooking(\''+b.id+'\')" class="btn-danger btn-sm"><i class="fas fa-times ml-1"></i>'+(S.lang==='ar'?'إلغاء الحجز':'Cancel booking')+'</button>':'';
     return'<div class="p-4 rounded-xl bg-[var(--bg2)] border border-[var(--border)]">'+
       '<div class="flex flex-wrap items-center justify-between gap-3 mb-2">'+
       '<div class="font-semibold">'+(b.service||'-')+'</div>'+
@@ -676,8 +736,19 @@ function renderClientBookingsPanel(){
       '<div><span class="text-[var(--text2)]">'+(S.lang==='ar'?'التاريخ: ':'Date: ')+'</span><span class="font-semibold">'+fmtD(b.date)+'</span></div>'+
       '<div><span class="text-[var(--text2)]">'+(S.lang==='ar'?'الوقت: ':'Time: ')+'</span><span class="font-semibold">'+(b.time||'-')+'</span></div>'+
       '<div><span class="text-[var(--text2)]">'+(S.lang==='ar'?'المصور: ':'Photographer: ')+'</span><span class="font-semibold">'+(b.photographerName||'-')+'</span></div>'+
-      '</div></div>';
+      '</div>'+(cancelBtn?'<div class="mt-3">'+cancelBtn+'</div>':'')+'</div>';
   }).join('')+'</div>';
+}
+async function clientCancelBooking(id){
+  if(!confirm(S.lang==='ar'?'هل تريد فعلاً إلغاء هذا الحجز؟':'Cancel this booking?'))return;
+  var b=(S.bookings||[]).find(function(x){return String(x.id)===String(id);});
+  if(!b)return;
+  try{
+    await apiRequest('/api/bookings/'+id+'/cancel',{method:'PATCH'});
+    b.status='cancelled';
+    renderClientBookingsPanel();
+    showToast(S.lang==='ar'?'تم إلغاء الحجز':'Booking cancelled','info');
+  }catch(err){showToast(err.message||'فشل الإلغاء','error');}
 }
 
 /* ===== DASHBOARD SIDEBAR ===== */
@@ -722,7 +793,36 @@ function renderTab(){
 function renderOverview(){
   var u=S.user,link=u.customLink||u.email.split('@')[0];
   var activePackages=(S.packages||[]).filter(function(p){return p.status==='active';}).length;
-  return'<div class="mb-8"><h2 class="text-2xl font-bold mb-1">'+t('welcomeBack')+', '+gf(u,'name')+'</h2></div>'+
+  var publishBanner=(u.isPublished===false)?
+    '<div class="card p-4 mb-6 border border-[var(--accent)] bg-[rgba(196,145,92,0.08)] flex flex-wrap items-center justify-between gap-3">'+
+    '<div class="flex items-start gap-3"><i class="fas fa-eye-slash text-[var(--accent)] mt-0.5"></i><div><div class="font-semibold">'+(S.lang==='ar'?'ملفك غير منشور':'Your profile is hidden')+'</div><div class="text-sm text-[var(--text2)]">'+(S.lang==='ar'?'لن يستطيع العملاء العثور عليك أو حجزك حتى تنشر ملفك.':'Clients cannot find or book you until you publish.')+'</div></div></div>'+
+    '<button onclick="switchTab(\'settings\')" class="btn-primary btn-sm">'+(S.lang==='ar'?'إعدادات النشر':'Open settings')+'</button></div>':'';
+  /* Setup checklist for first-time photographers */
+  var hasAvatar=!!u.avatar;
+  var hasCover=!!u.cover;
+  var hasPkg=(S.packages||[]).length>0;
+  var hasHours=(S.workingHours||[]).filter(function(h){return !h.isClosed&&!h.is_closed;}).length>0;
+  var isPub=u.isPublished===true;
+  var doneCount=[hasAvatar||hasCover,hasPkg,hasHours,isPub].filter(Boolean).length;
+  var checklistRow=function(done,label,tab){
+    return '<div class="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-b-0">'+
+      '<div class="flex items-center gap-2"><i class="fas '+(done?'fa-check-circle text-[var(--success)]':'fa-circle text-[var(--text2)]')+'"></i>'+
+      '<span class="text-sm '+(done?'line-through text-[var(--text2)]':'')+'">'+label+'</span></div>'+
+      (done?'':'<button onclick="switchTab(\''+tab+'\')" class="btn-secondary btn-sm">انتقل</button>')+
+    '</div>';
+  };
+  var checklist=(doneCount<4)?
+    '<div class="card p-5 mb-6"><div class="flex items-center justify-between mb-3"><h3 class="font-bold">إعداد حسابك</h3><span class="text-sm text-[var(--text2)]">'+doneCount+'/4</span></div>'+
+    checklistRow(hasAvatar||hasCover,'ارفع صورة الملف الشخصي والغلاف','settings')+
+    checklistRow(hasPkg,'أنشئ باقة على الأقل','packages')+
+    checklistRow(hasHours,'حدد ساعات العمل','calendar')+
+    checklistRow(isPub,'انشر ملفك ليصبح ظاهراً للعملاء','settings')+
+    '</div>':'';
+  var trialExpiredBanner=(!u.isSubscribed&&S.trialDaysLeft===0)?
+    '<div class="card p-4 mb-6 border border-[var(--danger)] bg-[rgba(217,83,79,0.10)] flex flex-wrap items-center justify-between gap-3">'+
+    '<div class="flex items-start gap-3"><i class="fas fa-exclamation-triangle text-[var(--danger)] mt-0.5"></i><div><div class="font-semibold">'+(S.lang==='ar'?'انتهت الفترة التجريبية':'Trial period ended')+'</div><div class="text-sm text-[var(--text2)]">'+(S.lang==='ar'?'اشترك للاستمرار في استقبال الحجوزات.':'Subscribe to keep receiving bookings.')+'</div></div></div>'+
+    '<button onclick="switchTab(\'subscriptions\')" class="btn-primary btn-sm">'+(S.lang==='ar'?'اشترك الآن':'Subscribe now')+'</button></div>':'';
+  return publishBanner+trialExpiredBanner+checklist+'<div class="mb-8"><h2 class="text-2xl font-bold mb-1">'+t('welcomeBack')+', '+gf(u,'name')+'</h2></div>'+
   '<div class="stat-grid-4 grid grid-cols-4 gap-5 mb-8" style="grid-template-columns:repeat(4,1fr);">'+
   '<div class="stat-card"><div class="text-[var(--text2)] text-sm mb-2">'+t('totalBookings')+'</div><div class="text-3xl font-bold">'+S.bookings.length+'</div></div>'+
   '<div class="stat-card"><div class="text-[var(--text2)] text-sm mb-2">Active Packages</div><div class="text-3xl font-bold">'+activePackages+'</div></div>'+
@@ -1010,6 +1110,7 @@ function sortPackages(sort){S.packageSort=sort;renderTab();}
 function openPackageModal(editId){
   S.tempPackageFeatures=[];
   S.tempPackageFiles=[];
+  S.packageModalDirty=false;
   document.getElementById('pkg-edit-id').value='';
   document.getElementById('package-form').reset();
   document.getElementById('pkg-features-list').innerHTML='';
@@ -1235,10 +1336,18 @@ async function handlePackageSubmit(e){
       pkgData.id=++S.nextId;S.packages.push(pkgData);
     }
     syncPackagesToDirectory();
+    S.packageModalDirty=false;
     closeModal('package-modal');
     renderTab();
     showToast(editId?'Package updated':'Package created','success');
   }catch(err){showToast(err.message||'تعذر حفظ الباقة','error');}
+}
+function closePackageModalSafe(){
+  if(S.packageModalDirty){
+    if(!confirm('هناك تغييرات غير محفوظة. هل تريد المتابعة؟'))return;
+  }
+  S.packageModalDirty=false;
+  closeModal('package-modal');
 }
 
 function syncPackagesToDirectory(){
@@ -1357,22 +1466,25 @@ function handleAddApt(e){
 /* ===== DASHBOARD: BOOKINGS ===== */
 function renderBookings(){
   var filtered=S.bookingFilter==='all'?S.bookings:S.bookings.filter(function(b){return b.status===S.bookingFilter;});
-  return'<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">'+t('navBookings')+'</h2></div>'+
+  return'<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">'+t('navBookings')+'</h2><button onclick="manualRefreshBookings()" class="btn-secondary btn-sm" title="تحديث"><i class="fas fa-sync-alt ml-1"></i>تحديث</button></div>'+
   '<div class="tab-filter mb-6 inline-flex">'+
   '<button class="'+(S.bookingFilter==='all'?'active':'')+'" onclick="filterBookings(\'all\')">'+t('all')+'</button>'+
   '<button class="'+(S.bookingFilter==='pending'?'active':'')+'" onclick="filterBookings(\'pending\')">'+t('pending')+'</button>'+
   '<button class="'+(S.bookingFilter==='confirmed'?'active':'')+'" onclick="filterBookings(\'confirmed\')">'+t('confirmed')+'</button></div>'+
   (filtered.length===0?'<div class="card p-12 text-center"><p class="text-[var(--text2)]">'+t('noBookings')+'</p></div>':
   '<div class="space-y-4">'+filtered.map(function(b){
+    var today=new Date();today.setHours(0,0,0,0);
+    var isPast=b.date&&new Date(b.date+'T00:00:00')<today;
+    var completeBtn=(b.status==='confirmed'&&isPast)?'<button onclick="updateBookingSt(\''+b.id+'\',\'completed\')" class="btn-primary"><i class="fas fa-check ml-1"></i>تم الإنجاز</button>':'';
     return'<div class="card p-5"><div class="flex justify-between items-start gap-3"><div class="flex items-center gap-3"><img src="'+(b.photographerAvatar||S.user.avatar||'https://picsum.photos/seed/booking/120/120')+'" class="w-12 h-12 rounded-xl object-cover border border-[var(--border)]" alt=""><div><div class="font-semibold">'+b.clientName+'</div><div class="text-sm text-[var(--text2)]">'+b.service+' — '+fmtD(b.date)+'</div><div class="text-xs text-[var(--accent)] mt-1">'+formatMoney(b.servicePrice)+'</div></div></div>'+statusBadge(b.status)+'</div>'+
-    (b.status==='pending'?'<div class="flex gap-2 mt-4"><button onclick="updateBookingSt(\''+b.id+'\',\'confirmed\')" class="btn-success">'+t('confirmBooking')+'</button><button onclick="updateBookingSt(\''+b.id+'\',\'cancelled\')" class="btn-danger">'+t('cancelBooking')+'</button></div>':'')+'</div>';
+    (b.status==='pending'?'<div class="flex gap-2 mt-4"><button onclick="updateBookingSt(\''+b.id+'\',\'confirmed\')" class="btn-success">'+t('confirmBooking')+'</button><button onclick="updateBookingSt(\''+b.id+'\',\'cancelled\')" class="btn-danger">'+t('cancelBooking')+'</button></div>':(completeBtn?'<div class="flex gap-2 mt-4">'+completeBtn+'</div>':''))+'</div>';
   }).join('')+'</div>');
 }
 function filterBookings(f){S.bookingFilter=f;renderTab();}
 async function updateBookingSt(id,status){
   var b=S.bookings.find(function(x){return String(x.id)===String(id);});
   if(!b)return;
-  var action=status==='confirmed'?'confirm':'cancel';
+  var action=status==='confirmed'?'confirm':(status==='completed'?'complete':'cancel');
   var convId=null;
   try{
     var res=await apiRequest('/api/bookings/'+id+'/'+action,{method:'PATCH'});
@@ -1385,11 +1497,11 @@ async function updateBookingSt(id,status){
   if(status==='confirmed'){
     var exists=S.appointments.find(function(a){return String(a.id)===String(b.id);});
     if(!exists){S.appointments.push({id:b.id,date:b.date,time:b.time,client:b.clientName,service:b.service,status:'confirmed',notes:''});}
-  } else if(status==='cancelled'){
+  } else if(status==='cancelled'||status==='completed'){
     S.appointments=S.appointments.filter(function(a){return String(a.id)!==String(b.id);});
   }
   renderTab();
-  showToast(status==='confirmed'?'تم تأكيد الحجز':'تم إلغاء الحجز',status==='confirmed'?'success':'info');
+  showToast(status==='confirmed'?'تم تأكيد الحجز':(status==='completed'?'تم تحديث الحجز إلى مكتمل':'تم إلغاء الحجز'),status==='cancelled'?'info':'success');
   if(status==='confirmed'&&convId){
     try{
       var convData=await apiRequest('/api/conversations');
@@ -1459,7 +1571,16 @@ function renderSubscriptions(){
 /* ===== DASHBOARD: SETTINGS ===== */
 function renderSettings(){
   var u=S.user,link=u.customLink||u.email.split('@')[0];
+  var pubOn=u.isPublished===true;
+  var visCard='<div class="card p-6 mb-6 border '+(pubOn?'border-[var(--success)]':'border-[var(--accent)]')+'">'+
+    '<div class="flex items-center justify-between gap-4 flex-wrap">'+
+    '<div><h3 class="font-bold mb-1">'+(S.lang==='ar'?'ظهور حسابك':'Profile visibility')+'</h3>'+
+    '<p class="text-sm text-[var(--text2)]">'+(pubOn?(S.lang==='ar'?'ملفك ظاهر للعملاء في صفحة الاستكشاف.':'Your profile appears in the explore page.'):(S.lang==='ar'?'ملفك غير ظاهر — لن يجدك العملاء حتى تنشر.':'Your profile is hidden — clients cannot find you until you publish.'))+'</p></div>'+
+    '<div class="flex items-center gap-3"><span class="text-sm '+(pubOn?'text-[var(--success)]':'text-[var(--text2)]')+'">'+(pubOn?(S.lang==='ar'?'منشور':'Published'):(S.lang==='ar'?'مخفي':'Hidden'))+'</span>'+
+    '<div class="toggle-track '+(pubOn?'on':'')+'" onclick="togglePublishProfile()"></div></div>'+
+    '</div></div>';
   return'<h2 class="text-2xl font-bold mb-6">'+t('navSettings')+'</h2>'+
+  visCard+
   '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">'+
   '<div class="card p-6"><h3 class="font-bold mb-5">'+t('profileSettings')+'</h3>'+
   '<form onsubmit="updateProfile(event)" class="space-y-4">'+
@@ -1504,6 +1625,16 @@ async function updateProfile(e){
     await apiRequest('/api/me/profile',{method:'PATCH',body:{displayName:nameVal,specialty:specVal,bio:bioVal}});
     showToast('تم تحديث الملف الشخصي','success');
   }catch(err){showToast(err.message||'فشل الحفظ','error');}
+}
+async function togglePublishProfile(){
+  if(!S.user||S.user.role!=='photographer')return;
+  var next=!(S.user.isPublished===true);
+  try{
+    await apiRequest('/api/me/profile',{method:'PATCH',body:{isPublished:next}});
+    S.user.isPublished=next;
+    showToast(next?(S.lang==='ar'?'تم نشر ملفك':'Profile published'):(S.lang==='ar'?'تم إخفاء ملفك':'Profile hidden'),'success');
+    renderTab();
+  }catch(err){showToast(err.message||'فشل التحديث','error');}
 }
 async function updateSocial(){
   if(!S.user.social)S.user.social={};
@@ -1624,7 +1755,7 @@ function notifyPhotographerWhatsApp(booking){
 async function renderExplorePage(){
   if(!S.exploreLoading&&!S.exploreLoaded){
     S.exploreLoading=true;
-    apiRequest('/api/photographers?region='+(S.exploreFilter.region||'')+'&search='+(encodeURIComponent(S.exploreFilter.search||''))).then(function(data){
+    apiRequest('/api/photographers?region='+(S.exploreFilter.region||'')+'&search='+(encodeURIComponent(S.exploreFilter.search||''))+'&specialty='+(encodeURIComponent(S.exploreFilter.specialty||''))).then(function(data){
       S.photographers=(data.photographers||[]).map(normalizeDirectoryPhotographer);
       S.exploreLoaded=true;S.exploreLoading=false;
       renderExplorePage();
@@ -1638,11 +1769,19 @@ async function renderExplorePage(){
   var filtered=S.photographers.filter(function(p){
     var ms=!f.search||p.name.toLowerCase().includes(f.search.toLowerCase())||p.specialty.toLowerCase().includes(f.search.toLowerCase());
     var mr=!f.region||p.region===f.region;
+    var msp=!f.specialty||(p.specialty||'').toLowerCase().indexOf(f.specialty.toLowerCase())>-1;
     if(S.selectedRegion&&!f.region){
-      return mr&&p.region===S.selectedRegion;
+      return mr&&p.region===S.selectedRegion&&msp;
     }
-    return ms&&mr;
+    return ms&&mr&&msp;
   });
+  var specialtyOptions=[
+    {id:'wedding',ar:'حفل زفاف'},{id:'portrait',ar:'بورتريه'},{id:'event',ar:'مناسبات'},
+    {id:'fashion',ar:'أزياء'},{id:'newborn',ar:'مواليد'},{id:'product',ar:'منتجات'},
+    {id:'food',ar:'طعام'},{id:'realestate',ar:'عقارات'},{id:'sports',ar:'رياضة'},
+    {id:'drone',ar:'تصوير جوي'},{id:'cinematic',ar:'فيديو سينمائي'},{id:'maternity',ar:'حمل'},
+    {id:'corporate',ar:'شركات'},{id:'street',ar:'شارع'}
+  ];
   
   var html='<div class="pt-14 pb-20"><div class="max-w-7xl mx-auto px-6">'+
   '<div class="explore-header text-center mb-10"><h1 class="text-4xl font-bold mb-3">'+t('exploreTitle')+'</h1><p class="text-[var(--text2)] max-w-xl mx-auto">'+t('exploreDesc')+'</p></div>'+
@@ -1653,7 +1792,9 @@ async function renderExplorePage(){
   '<i class="fas fa-location-dot ml-1"></i>'+(S.isDetectingLocation?'جاري التحديد...':'استخدم موقعي')+'</button>'+
   (S.selectedRegion?'<span class="badge badge-active"><i class="fas fa-map-marker-alt ml-1"></i>'+(S.egyptRegions.find(function(r){return r.id===S.selectedRegion;})||{}).nameAr+'</span>':'')+'</div>'+
   '<div><label class="block text-xs text-[var(--text2)] mb-1">المنطقة</label><select class="input" style="width:180px" onchange="updateExploreFilter(\'region\',this.value)">'+
-  '<option value="">الكل</option>'+regions.map(function(r){return'<option value="'+r.id+'" '+(f.region===r.id?'selected':'')+'>'+r.nameAr+'</option>';}).join('')+'</select></div></div>'+
+  '<option value="">الكل</option>'+regions.map(function(r){return'<option value="'+r.id+'" '+(f.region===r.id?'selected':'')+'>'+r.nameAr+'</option>';}).join('')+'</select></div>'+
+  '<div><label class="block text-xs text-[var(--text2)] mb-1">'+t('filterBySpecialty')+'</label><select class="input" style="width:180px" onchange="updateExploreFilter(\'specialty\',this.value)">'+
+  '<option value="">الكل</option>'+specialtyOptions.map(function(o){return'<option value="'+o.id+'" '+(f.specialty===o.id?'selected':'')+'>'+o.ar+'</option>';}).join('')+'</select></div></div>'+
   '<div class="photo-grid">'+filtered.map(function(p){
     /* Get active packages and find lowest price */
     var activePkgs=(p.packages||[]).filter(function(pkg){return pkg.status==='active';});
@@ -1668,7 +1809,7 @@ async function renderExplorePage(){
     '<div class="photo-card-social">'+(p.social&&p.social.facebook?'<a href="'+p.social.facebook+'" target="_blank"><i class="fab fa-facebook"></i></a>':'')+(p.social&&p.social.instagram?'<a href="'+p.social.instagram+'" target="_blank"><i class="fab fa-instagram"></i></a>':'')+'</div>'+
     '<button onclick="viewPhotographerProfile(\''+p.id+'\')" class="btn-primary w-full btn-sm">'+t('viewProfile')+'</button></div></div>';
   }).join('')+'</div>'+
-  (filtered.length===0?'<div class="text-center py-20"><i class="fas fa-search text-4xl text-[var(--border)] mb-4 block"></i><p class="text-[var(--text2)]">No photographers found</p></div>':'')+'</div></div>';
+  (S.exploreLoading?'<div class="text-center py-20"><i class="fas fa-spinner fa-spin text-3xl text-[var(--accent)] mb-3 block"></i><p class="text-[var(--text2)]">'+(S.lang==='ar'?'جاري التحميل...':'Loading...')+'</p></div>':(filtered.length===0?'<div class="text-center py-20"><i class="fas fa-search text-4xl text-[var(--border)] mb-4 block"></i><p class="text-[var(--text2)]">'+(S.lang==='ar'?'لا يوجد مصورون مطابقون':'No photographers found')+'</p></div>':''))+'</div></div>';
   var container=document.getElementById('explore-content');
   if(container){container.innerHTML=html;}
   return html;
@@ -1677,11 +1818,33 @@ function updateExploreFilter(key,val){
   if(S.exploreFilter[key]===val)return;
   S.exploreFilter[key]=val;
   S.exploreLoaded=false;
+  persistExploreFilter();
   renderExplorePage();
+}
+function persistExploreFilter(){
+  if(S.view!=='explore')return;
+  try{
+    var params=new URLSearchParams();
+    if(S.exploreFilter.region)params.set('region',S.exploreFilter.region);
+    if(S.exploreFilter.specialty)params.set('specialty',S.exploreFilter.specialty);
+    if(S.exploreFilter.search)params.set('q',S.exploreFilter.search);
+    var qs=params.toString();
+    history.replaceState({},'',window.location.pathname+(qs?'?'+qs:''));
+  }catch(e){}
+}
+function loadExploreFilterFromUrl(){
+  try{
+    var params=new URLSearchParams(window.location.search);
+    var region=params.get('region');var specialty=params.get('specialty');var q=params.get('q');
+    if(region)S.exploreFilter.region=region;
+    if(specialty)S.exploreFilter.specialty=specialty;
+    if(q)S.exploreFilter.search=q;
+  }catch(e){}
 }
 async function viewPhotographerProfile(id){
   var p=S.photographers.find(function(x){return x.id===id;});
   if(!p)return;
+  showToast(S.lang==='ar'?'جاري التحميل...':'Loading...','info');
   try{
     var data=await apiRequest('/api/photographers/'+encodeURIComponent(p.customLink||p.custom_link||id));
     var profile=normalizeDirectoryPhotographer(data.photographer);
@@ -1694,12 +1857,14 @@ async function viewPhotographerProfile(id){
     S.viewedPortfolio=[];
     S.viewedCollections.forEach(function(col){col.photos.forEach(function(ph){S.viewedPortfolio.push(ph);});});
     S.viewedPackages=(data.packages||[]).map(normalizePackage);
+    S.viewedWorkingHours=(data.workingHours||[]);
   }catch(e){
     var fallback=JSON.parse(JSON.stringify(p));fallback.role='photographer';
     S.viewedPhotographer=fallback;
     S.viewedCollections=[];
     S.viewedPortfolio=p.portfolio||[];
     S.viewedPackages=JSON.parse(JSON.stringify(p.packages||[]));
+    S.viewedWorkingHours=[];
   }
   S.pubViewCollection=null;S.pubLightboxIdx=null;
   navigate('public');
@@ -1835,10 +2000,45 @@ function renderPublicProfile(){
   /* Package Detail Preview (shown when a package is selected) */
   '<div id="pub-package-detail" class="pub-section hidden mb-12"><div class="card p-8" id="pub-package-detail-content"></div></div>'+
   
+  /* Working Hours Card */
+  (function(){
+    var hours=isViewing?(S.viewedWorkingHours||[]):(S.workingHours||[]);
+    var dayNames=['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+    var byDay={};
+    hours.forEach(function(h){var d=(h.day_of_week!==undefined?h.day_of_week:h.dayOfWeek);byDay[d]=h;});
+    var hasAny=Object.keys(byDay).length>0;
+    if(!hasAny){
+      return '<div class="pub-section mb-10 pt-8 border-t border-[var(--border)]"><h2 class="text-xl font-bold mb-3">ساعات العمل</h2><div class="card p-5 text-sm text-[var(--text2)]">'+(S.lang==='ar'?'المصور لم يحدد ساعات العمل بعد — تواصل معه مباشرة عبر الرسائل.':'Photographer has not set working hours yet — contact them via messages.')+'</div></div>';
+    }
+    var rows='';
+    for(var i=0;i<7;i++){
+      var h=byDay[i];
+      var label=dayNames[i];
+      var val=(h&&(h.is_closed===false||h.isClosed===false||(h.is_closed===undefined&&h.isClosed===undefined&&h.start_time)))
+        ? ((h.start_time||h.startTime||'')+' — '+(h.end_time||h.endTime||''))
+        : '<span class="text-[var(--text2)]">مغلق</span>';
+      rows+='<div class="flex justify-between py-2 border-b border-[var(--border)] last:border-b-0"><span class="text-sm">'+label+'</span><span class="text-sm font-semibold" dir="ltr">'+val+'</span></div>';
+    }
+    return '<div class="pub-section mb-10 pt-8 border-t border-[var(--border)]"><h2 class="text-xl font-bold mb-3"><i class="fas fa-clock ml-2 text-[var(--accent)]"></i>ساعات العمل</h2><div class="card p-5">'+rows+'</div></div>';
+  })()+
+
   /* Booking Form */
   '<div class="pub-section mb-20 pt-8 border-t border-[var(--border)]" id="booking-form-section"><h2 class="text-2xl font-bold mb-6">'+t('bookNow')+'</h2><div class="card p-8">'+
   '<form onsubmit="handlePublicBooking(event)" class="space-y-5">'+
-  (function(){var c=(!isViewing&&S.user&&S.user.role==='client')?S.user:(S.user&&S.user.role==='client'?S.user:null);return'<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourName')+'</label><input class="input" required id="pub-name" value="'+(c?c.name||'':'')+'"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourEmail')+'</label><input type="email" class="input" id="pub-email" value="'+(c?c.email||'':'')+'"></div><div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourPhone')+'</label><input class="input" required id="pub-phone" value="'+(c?c.phone||'':'')+'"></div>';})()+'<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('selectService')+'</label><select class="input" required id="pub-service" onchange="onPubServiceChange()"><option value="">'+t('selectService')+'</option>'+(pubPackages||[]).filter(function(p){return p.status==='active';}).map(function(p){return'<option value="'+p.id+'" data-price="'+p.price+'" data-name="'+gf(p,'name')+'" data-duration="'+gf(p,'duration')+'">'+gf(p,'name')+' — '+formatMoney(p.price)+'</option>';}).join('')+'</select></div>'+
+  (function(){
+    var loggedClient=(S.user&&S.user.role==='client')?S.user:null;
+    if(loggedClient){
+      /* Logged-in client: hide name/email/phone (we'll send from session); show a small "booking as" notice */
+      return '<div class="rounded-xl border border-[var(--border)] bg-[var(--bg2)] p-3 text-sm text-[var(--text2)]"><i class="fas fa-user-check ml-1 text-[var(--accent)]"></i>'+(S.lang==='ar'?'تحجز باسم: ':'Booking as: ')+'<strong class="text-[var(--text)]">'+escapeHtml(loggedClient.name||'')+'</strong></div>'+
+      '<input type="hidden" id="pub-name" value="'+escapeHtml(loggedClient.name||'')+'">'+
+      '<input type="hidden" id="pub-email" value="'+escapeHtml(loggedClient.email||'')+'">'+
+      '<input type="hidden" id="pub-phone" value="'+escapeHtml(loggedClient.phone||'')+'">';
+    }
+    /* Anonymous: keep the visible fields (read-only feel) but they won't be submitted */
+    return '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourName')+'</label><input class="input" id="pub-name" disabled placeholder="'+(S.lang==='ar'?'سجل الدخول للحجز':'Sign in to book')+'"></div>'+
+    '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourEmail')+'</label><input type="email" class="input" id="pub-email" disabled></div>'+
+    '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourPhone')+'</label><input class="input" id="pub-phone" disabled></div>';
+  })()+'<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('selectService')+'</label><select class="input" required id="pub-service" onchange="onPubServiceChange()"><option value="">'+t('selectService')+'</option>'+(pubPackages||[]).filter(function(p){return p.status==='active';}).map(function(p){return'<option value="'+p.id+'" data-price="'+p.price+'" data-name="'+gf(p,'name')+'" data-duration="'+gf(p,'duration')+'">'+gf(p,'name')+' — '+formatMoney(p.price)+'</option>';}).join('')+'</select></div>'+
   '<div id="pub-service-preview" class="hidden rounded-xl border border-[var(--accent)] bg-[rgba(196,145,92,0.08)] p-5"><div class="pub-service-preview-inner flex items-center justify-between"><div class="flex items-center gap-4">'+
   (u.avatar?'<img src="'+u.avatar+'" class="w-14 h-14 rounded-xl object-cover border border-[var(--border)]" alt="">':'<div class="w-14 h-14 rounded-xl border border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-xl" style="color:var(--border)"></i></div>')+
   '<div><div id="pub-service-name" class="font-bold text-lg text-[var(--accent)]"></div><div id="pub-service-duration" class="text-sm text-[var(--text2)]"></div><div id="pub-service-features-preview" class="text-xs text-[var(--text2)] mt-1"></div></div><div class="text-right"><div id="pub-service-price" class="text-3xl font-bold gradient-text"></div><div class="text-xs text-[var(--text2)] mt-1">Total</div></div></div></div>'+
@@ -1847,7 +2047,10 @@ function renderPublicProfile(){
   '<div id="pub-time-area" class="hidden"><label class="block text-sm font-semibold mb-3"><i class="fas fa-clock ml-2 text-[var(--accent)]"></i>'+t('selectTime')+'</label><div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="pub-time-slots"></div></div>'+
   '</div>'+
   '<div class="flex items-center gap-3 text-xs text-[var(--text2)]"><span class="security-badge"><i class="fas fa-shield-alt"></i> SSL Encrypted</span><span class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</span></div>'+
-  '<button type="submit" class="btn-primary text-lg w-full py-4 mt-2"><i class="fas fa-calendar-check ml-2"></i>'+t('submitBooking')+'</button></form>'+
+  ((S.user&&S.user.role==='client')
+    ?'<button type="submit" class="btn-primary text-lg w-full py-4 mt-2"><i class="fas fa-calendar-check ml-2"></i>'+t('submitBooking')+'</button>'
+    :'<button type="button" onclick="promptLoginToBook()" class="btn-primary text-lg w-full py-4 mt-2"><i class="fas fa-sign-in-alt ml-2"></i>'+(S.lang==='ar'?'سجّل الدخول للحجز':'Sign in to book')+'</button>')+
+  '</form>'+
   '<div id="pub-booking-confirmation" class="hidden mt-4 rounded-xl border border-[var(--success)] bg-[rgba(16,185,129,0.10)] p-4"></div>'+
   '</div></div></div></div>'+
 
@@ -1954,8 +2157,59 @@ function startAnotherBooking(serviceId){
   if(nameInput){nameInput.focus();}
   scrollToBookingForm();
 }
+function promptLoginToBook(){
+  /* Stash whatever booking info has been picked so far so we can restore after login */
+  var serviceSel=document.getElementById('pub-service');
+  var dateSel=document.getElementById('pub-date');
+  var phFor=S.viewedPhotographer||S.user;
+  var intent={
+    photographerId:phFor&&phFor.id?phFor.id:null,
+    photographerLink:phFor&&phFor.customLink?phFor.customLink:null,
+    packageId:serviceSel?serviceSel.value:'',
+    date:dateSel?dateSel.value:'',
+    time:S.selectedTime||'',
+    savedAt:Date.now()
+  };
+  try{sessionStorage.setItem('dof_pending_booking_intent',JSON.stringify(intent));}catch(e){}
+  /* Default to client signup since they're trying to book */
+  S.regRole='client';
+  switchAuthTab('register');
+  openModal('auth-modal');
+}
+function restorePendingBookingIntent(){
+  if(!S.user||S.user.role!=='client')return;
+  var raw='';try{raw=sessionStorage.getItem('dof_pending_booking_intent')||'';}catch(e){return;}
+  if(!raw)return;
+  var intent;try{intent=JSON.parse(raw);}catch(e){return;}
+  /* expire after 30 minutes */
+  if(!intent||!intent.savedAt||Date.now()-intent.savedAt>30*60*1000){
+    try{sessionStorage.removeItem('dof_pending_booking_intent');}catch(e){}
+    return;
+  }
+  try{sessionStorage.removeItem('dof_pending_booking_intent');}catch(e){}
+  if(!intent.photographerLink){return;}
+  /* Navigate back to the same photographer profile and rehydrate the form */
+  apiRequest('/api/photographers/'+encodeURIComponent(intent.photographerLink)).then(function(data){
+    if(!data||!data.photographer)return;
+    S.viewedPhotographer=normalizeDirectoryPhotographer(data.photographer);
+    S.viewedPackages=(data.packages||[]).map(normalizePackage);
+    S.viewedPortfolio=data.photos||[];
+    S.viewedWorkingHours=(data.workingHours||[]);
+    navigate('public');
+    setTimeout(function(){
+      var svc=document.getElementById('pub-service');
+      if(svc&&intent.packageId){svc.value=intent.packageId;onPubServiceChange();}
+      var dt=document.getElementById('pub-date');
+      if(dt&&intent.date){dt.value=intent.date;onPubDateChange().then(function(){
+        if(intent.time){S.selectedTime=intent.time;}
+      });}
+      scrollToBookingForm();
+    },300);
+  }).catch(function(){});
+}
 async function handlePublicBooking(e){
   e.preventDefault();
+  if(!S.user||S.user.role!=='client'){promptLoginToBook();return;}
   if(!S.selectedTime){showToast(t('noTimes'),'error');return;}
   var selectedPkg=getPackageById(document.getElementById('pub-service').value);
   if(!selectedPkg){showToast(t('selectService'),'error');return;}
@@ -2693,6 +2947,61 @@ function initChatSystem(){
       updateChatBadge();
     }
   });
+  initRealtimePolling();
+}
+/* ===== LIGHTWEIGHT POLLING =====
+   Keeps booking statuses and chat conversations in sync without WebSockets.
+   Bookings poll every 30s, conversations every 20s, but only when:
+     - the user is logged in (apiToken() is present)
+     - the tab is visible (skip background tabs to save battery/quota)
+*/
+var _pollIntervals={bookings:null,convs:null};
+function initRealtimePolling(){
+  if(_pollIntervals.bookings)clearInterval(_pollIntervals.bookings);
+  if(_pollIntervals.convs)clearInterval(_pollIntervals.convs);
+  _pollIntervals.bookings=setInterval(pollBookings,30000);
+  _pollIntervals.convs=setInterval(pollConversations,20000);
+}
+async function pollBookings(){
+  if(!apiToken()||!S.user)return;
+  if(document.visibilityState==='hidden')return;
+  try{
+    var prev=JSON.stringify(S.bookings.map(function(b){return {id:b.id,status:b.status};}));
+    await refreshMyBookings();
+    var next=JSON.stringify(S.bookings.map(function(b){return {id:b.id,status:b.status};}));
+    if(prev===next)return;
+    if(S.view==='dashboard'&&(S.tab==='bookings'||S.tab==='overview'||S.tab==='calendar'))renderTab();
+    else if(S.view==='landing'&&S.user.role==='client')renderClientBookingsPanel();
+  }catch(e){}
+}
+async function pollConversations(){
+  if(!apiToken()||!S.user)return;
+  if(document.visibilityState==='hidden')return;
+  try{
+    var prev=JSON.stringify(S.conversations.map(function(c){return {id:c.id,last:c.lastMessageAt,unread:c.unread};}));
+    await refreshConversations();
+    var next=JSON.stringify(S.conversations.map(function(c){return {id:c.id,last:c.lastMessageAt,unread:c.unread};}));
+    updateChatBadge();
+    if(prev===next)return;
+    if(S.view==='dashboard'&&S.tab==='chat')renderTab();
+    var modal=document.getElementById('chat-modal');
+    if(modal&&!modal.classList.contains('hidden')&&S.chatActiveConv){
+      var data=await apiRequest('/api/conversations/'+S.chatActiveConv+'/messages');
+      var conv=S.conversations.find(function(c){return String(c.id)===String(S.chatActiveConv);});
+      if(conv){
+        setConvMessages(S.chatActiveConv,(data.messages||[]).map(function(m){return normalizeMessage(m,conv);}));
+        renderChatModalMessages(getConvMessages(S.chatActiveConv));
+      }
+    }
+  }catch(e){}
+}
+async function manualRefreshBookings(){
+  if(!apiToken())return;
+  try{
+    await refreshMyBookings();
+    renderTab();
+    showToast('تم التحديث','success');
+  }catch(e){showToast('فشل التحديث','error');}
 }
 /* Expose init for use after login */
 function setupChatFAB(){
@@ -2731,6 +3040,7 @@ async function initializeCurrentPage(){
   }
   var view=getPageView();
   S.view=view;
+  if(view==='explore')loadExploreFilterFromUrl();
   if(view==='dashboard'&&apiToken()&&(!S.user||S.user.role!=='photographer')){navigate('landing');return;}
   if(view==='dashboard'||view==='public'){loadDemoPhotographer();}
   navigate(view);

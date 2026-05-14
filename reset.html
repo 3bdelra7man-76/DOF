@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0C0C0C">
+<title>إعادة تعيين كلمة المرور — DOF STUDIOS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/js/tailwind.config.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="assets/css/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6 bg-[var(--bg)]" style="font-family:'Cairo',sans-serif;">
+<div class="card p-8 max-w-md w-full">
+  <div class="flex items-center gap-2 mb-6">
+    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white"></i></div>
+    <span class="font-bold tracking-wide text-lg">DOF STUDIOS</span>
+  </div>
+  <h1 class="text-xl font-bold mb-2">إعادة تعيين كلمة المرور</h1>
+  <p class="text-sm text-[var(--text2)] mb-5" id="reset-hint">أدخل كلمة المرور الجديدة.</p>
+  <form id="reset-form" class="space-y-4">
+    <div>
+      <label class="block text-sm text-[var(--text2)] mb-1">كلمة المرور الجديدة</label>
+      <input type="password" class="input" id="new-pass" required minlength="8" placeholder="********">
+    </div>
+    <div>
+      <label class="block text-sm text-[var(--text2)] mb-1">تأكيد كلمة المرور</label>
+      <input type="password" class="input" id="new-pass-confirm" required minlength="8" placeholder="********">
+    </div>
+    <button type="submit" class="btn-primary w-full">حفظ كلمة المرور الجديدة</button>
+    <div id="reset-msg" class="text-sm hidden"></div>
+  </form>
+  <div class="mt-6 text-center">
+    <a href="/index.html" class="text-sm text-[var(--accent)] hover:underline">العودة إلى الصفحة الرئيسية</a>
+  </div>
+</div>
+<script>
+(async function(){
+  /* Supabase project config — must match the backend */
+  var SUPABASE_URL = window.SUPABASE_URL || (document.querySelector('meta[name="supabase-url"]')||{}).content || '';
+  var SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || (document.querySelector('meta[name="supabase-anon-key"]')||{}).content || '';
+  /* Pull config from /api/health if not provided */
+  if(!SUPABASE_URL||!SUPABASE_ANON_KEY){
+    try{
+      var cfg=await fetch('/api/config').then(function(r){return r.ok?r.json():null;});
+      if(cfg){SUPABASE_URL=cfg.supabaseUrl;SUPABASE_ANON_KEY=cfg.supabaseAnonKey;}
+    }catch(e){}
+  }
+  var hint=document.getElementById('reset-hint');
+  var msg=document.getElementById('reset-msg');
+  function showMsg(text,isError){
+    msg.textContent=text;
+    msg.className='text-sm '+(isError?'text-[var(--danger)]':'text-[var(--success)]');
+    msg.classList.remove('hidden');
+  }
+  if(!SUPABASE_URL||!SUPABASE_ANON_KEY){
+    showMsg('إعدادات الخادم غير مكتملة. يرجى المحاولة لاحقاً.',true);
+    return;
+  }
+  var supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{detectSessionInUrl:true,persistSession:false}});
+  /* Wait briefly for Supabase to consume the recovery token from the URL */
+  await new Promise(function(r){setTimeout(r,300);});
+  var sess=await supabase.auth.getSession();
+  if(!sess||!sess.data||!sess.data.session){
+    hint.textContent='هذا الرابط غير صالح أو منتهي. اطلب رابطاً جديداً.';
+    document.getElementById('reset-form').classList.add('hidden');
+    return;
+  }
+  document.getElementById('reset-form').addEventListener('submit',async function(e){
+    e.preventDefault();
+    var p1=document.getElementById('new-pass').value;
+    var p2=document.getElementById('new-pass-confirm').value;
+    if(p1!==p2){showMsg('كلمتا المرور غير متطابقتين',true);return;}
+    if(p1.length<8){showMsg('كلمة المرور يجب ألا تقل عن 8 أحرف',true);return;}
+    var resp=await supabase.auth.updateUser({password:p1});
+    if(resp.error){showMsg(resp.error.message||'فشل التحديث',true);return;}
+    showMsg('تم تحديث كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.',false);
+    setTimeout(function(){window.location.href='/index.html';},2000);
+  });
+})();
+</script>
+</body>
+</html>
