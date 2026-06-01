@@ -79,7 +79,30 @@ Paymob webhook success activates premium for one month and updates the photograp
 
 ## Admin
 
+- `GET /api/content`
+  - Public content/settings used by the frontend.
+- `GET /api/admin/overview`
 - `GET /api/admin/users`
+- `GET /api/admin/photographers`
+- `PATCH /api/admin/photographers/:id/moderation`
+  - Body: optional `isSuspended`, optional `isPublished`, optional `reason`.
+- `GET /api/admin/bookings`
+- `PATCH /api/admin/bookings/:id/status`
+  - Body: `status` as `pending`, `confirmed`, `cancelled`, or `completed`.
 - `GET /api/admin/reports`
+- `PATCH /api/admin/reports/:id`
+  - Body: `status` as `open`, `reviewing`, or `closed`.
+- `GET /api/admin/subscriptions`
+- `PATCH /api/admin/subscriptions/:id`
+  - Body: `status`, optional `currentPeriodEnd`.
+- `GET /api/admin/analytics?range=daily|weekly|monthly`
+- `GET /api/admin/content`
+- `PUT /api/admin/content`
+- `GET /api/admin/settings`
+- `PUT /api/admin/settings`
+- `GET /api/admin/notifications`
+- `PATCH /api/admin/notifications/:id`
+- `PATCH /api/admin/notifications/read-all`
+- `GET /api/admin/audit-logs`
 
 Admin users are regular `profiles` rows with `role = 'admin'`.

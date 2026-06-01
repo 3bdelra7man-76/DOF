@@ -5,11 +5,29 @@ import { limitsForPlan, planForPhotographer } from '../backend/lib/limits.js';
 import { createPaymobSubscriptionIntent, verifyPaymobHmac } from '../backend/lib/paymob.js';
 import { addMinutes, generateSlots } from '../backend/lib/slots.js';
 import { supabaseAnon, supabaseService } from '../backend/lib/supabase.js';
-import { asInt, required } from '../backend/lib/validation.js';
+import { asInt, assertUuid, required } from '../backend/lib/validation.js';
 
 const PORTFOLIO_BUCKET = 'portfolio';
 const PACKAGE_BUCKET = 'package-attachments';
 const MONTHLY_SUBSCRIPTION_EGP = 200;
+const ADMIN_PAGE_SIZE_MAX = 100;
+const DEFAULT_PUBLIC_CONTENT = {
+  heroTitle1Ar: 'حيث يلتقي التصوير',
+  heroTitle2Ar: 'بالفرصة',
+  heroTitle1En: 'Where Photography',
+  heroTitle2En: 'Meets Opportunity',
+  heroDescAr: 'تواصل مع مصورين موهوبين واستكشف معارض مذهلة واحجز جلستك المثالية.',
+  heroDescEn: 'Connect with talented photographers, explore stunning portfolios, and book your perfect session.',
+  footerAboutAr: 'المنصة المتكاملة للمصورين والعملاء.',
+  footerAboutEn: 'The complete platform for photographers and clients.'
+};
+const DEFAULT_PLATFORM_SETTINGS = {
+  registrationOpen: true,
+  maintenanceMode: false,
+  trialDays: 7,
+  maxFreePortfolioPhotos: 10,
+  subscriptionPriceEgp: MONTHLY_SUBSCRIPTION_EGP
+};
 
 function routePath(req) {
   // Try Vercel's injected query.path first (array or string)
@@ -36,6 +54,99 @@ function cleanString(value) {
   return String(value || '').trim();
 }
 
+function pageParams(req, defaultPageSize = 25) {
+  const page = Math.max(1, asInt(param(req, 'page') || 1));
+  const requested = asInt(param(req, 'pageSize') || defaultPageSize);
+  const pageSize = Math.min(ADMIN_PAGE_SIZE_MAX, Math.max(1, requested || defaultPageSize));
+  return { page, pageSize, from: (page - 1) * pageSize, to: page * pageSize - 1 };
+}
+
+function moneyFromCents(cents) {
+  return Math.round(Number(cents || 0) / 100);
+}
+
+function dateKey(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function monthKey(date) {
+  return date.toISOString().slice(0, 7);
+}
+
+function weekStart(date) {
+  const d = new Date(date);
+  const day = d.getUTCDay();
+  d.setUTCDate(d.getUTCDate() - day);
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
+
+function buildSeries(rows, range = 'monthly') {
+  const now = new Date();
+  const points = [];
+  if (range === 'daily') {
+    for (let i = 29; i >= 0; i -= 1) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const key = dateKey(d);
+      points.push({ key, label: `${d.getDate()}/${d.getMonth() + 1}`, value: 0 });
+    }
+  } else if (range === 'weekly') {
+    for (let i = 7; i >= 0; i -= 1) {
+      const d = weekStart(now);
+      d.setUTCDate(d.getUTCDate() - i * 7);
+      const key = dateKey(d);
+      points.push({ key, label: `W${points.length + 1}`, value: 0 });
+    }
+  } else {
+    for (let i = 11; i >= 0; i -= 1) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+      const key = monthKey(d);
+      points.push({ key, label: d.toLocaleString('en', { month: 'short' }), value: 0 });
+    }
+  }
+  const byKey = Object.fromEntries(points.map((point) => [point.key, point]));
+  for (const row of rows || []) {
+    const rawDate = row.created_at || row.booking_date;
+    if (!rawDate) continue;
+    const d = new Date(rawDate);
+    if (Number.isNaN(d.getTime())) continue;
+    const key = range === 'daily' ? dateKey(d) : range === 'weekly' ? dateKey(weekStart(d)) : monthKey(d);
+    if (byKey[key]) byKey[key].value += moneyFromCents(row.price_cents || row.amount_cents);
+  }
+  return points;
+}
+
+async function getPlatformSettings(sb = supabaseService()) {
+  const { data } = await sb.from('site_settings').select('value').eq('key', 'platform').maybeSingle();
+  return { ...DEFAULT_PLATFORM_SETTINGS, ...(data?.value || {}) };
+}
+
+async function getPublicCopy(sb = supabaseService()) {
+  const { data } = await sb.from('site_content').select('value').eq('key', 'public_copy').maybeSingle();
+  return { ...DEFAULT_PUBLIC_CONTENT, ...(data?.value || {}) };
+}
+
+async function requireAdmin(req) {
+  const { profile } = await requireUser(req);
+  requireRole(profile, 'admin');
+  return profile;
+}
+
+async function writeAdminLog(sb, actor, action, entityType, entityId, metadata = {}) {
+  await sb.from('admin_audit_logs').insert({
+    actor_id: actor?.id || null,
+    action,
+    entity_type: entityType || null,
+    entity_id: entityId ? String(entityId) : null,
+    metadata
+  });
+}
+
+async function writeAdminNotification(sb, type, title, message, metadata = {}) {
+  await sb.from('admin_notifications').insert({ type, title, message, metadata });
+}
+
 async function getPhotographerProfile(sb, profileId) {
   const { data, error } = await sb
     .from('photographer_profiles')
@@ -52,6 +163,9 @@ async function register(req, res) {
   if (!['client', 'photographer'].includes(body.role)) throw fail(422, 'Invalid role');
 
   const sb = supabaseService();
+  const settings = await getPlatformSettings(sb);
+  if (settings.registrationOpen === false) throw fail(403, 'Registration is currently closed');
+
   const { data: authData, error: authError } = await sb.auth.admin.createUser({
     email: cleanString(body.email).toLowerCase(),
     password: body.password,
@@ -164,6 +278,12 @@ async function updateMe(req, res) {
   ok(res, { saved: true });
 }
 
+async function getPublicContent(req, res) {
+  const sb = supabaseService();
+  const [content, settings] = await Promise.all([getPublicCopy(sb), getPlatformSettings(sb)]);
+  ok(res, { content, settings });
+}
+
 async function listPhotographers(req, res) {
   const sb = supabaseService();
   const search = cleanString(param(req, 'search')).toLowerCase();
@@ -196,6 +316,7 @@ async function getPublicPhotographer(req, res, customLink) {
     .select('*')
     .eq('custom_link', customLink)
     .eq('is_published', true)
+    .eq('is_suspended', false)
     .single();
   if (error || !photographer) throw fail(404, 'Photographer not found');
 
@@ -539,14 +660,19 @@ async function listBookings(req, res) {
   const column = profile.role === 'photographer' ? 'photographer_id' : 'client_id';
   const { data, error } = await sb
     .from('bookings')
-    .select('*, packages(name, duration_minutes), profiles!bookings_photographer_id_fkey(display_name, avatar_url)')
+    .select('*, packages(name, duration_minutes)')
     .eq(column, profile.id)
     .order('booking_date', { ascending: false });
   if (error) throw fail(422, error.message);
+  const photographerIds = Array.from(new Set((data || []).map((booking) => booking.photographer_id).filter(Boolean)));
+  const { data: photographers } = photographerIds.length
+    ? await sb.from('profiles').select('id, display_name, avatar_url').in('id', photographerIds)
+    : { data: [] };
+  const photographerById = Object.fromEntries((photographers || []).map((person) => [person.id, person]));
   const bookings = (data || []).map((b) => ({
     ...b,
-    photographer_name: b.profiles?.display_name || '',
-    photographer_avatar: b.profiles?.avatar_url || ''
+    photographer_name: photographerById[b.photographer_id]?.display_name || '',
+    photographer_avatar: photographerById[b.photographer_id]?.avatar_url || ''
   }));
   ok(res, { bookings });
 }
@@ -758,9 +884,11 @@ async function createReport(req, res) {
 async function startSubscription(req, res) {
   const { profile } = await requireUser(req);
   requireRole(profile, 'photographer');
+  const settings = await getPlatformSettings();
+  const subscriptionPriceEgp = Math.max(1, asInt(settings.subscriptionPriceEgp, MONTHLY_SUBSCRIPTION_EGP));
   const merchantOrderId = `dof-sub-${profile.id}-${Date.now()}`;
   const intent = await createPaymobSubscriptionIntent({
-    amountCents: MONTHLY_SUBSCRIPTION_EGP * 100,
+    amountCents: subscriptionPriceEgp * 100,
     merchantOrderId,
     customer: { email: profile.email || `${profile.id}@dof.local`, name: profile.display_name, phone: profile.phone }
   });
@@ -769,7 +897,7 @@ async function startSubscription(req, res) {
     provider: 'paymob',
     provider_order_id: String(intent.orderId),
     merchant_order_id: merchantOrderId,
-    amount_cents: MONTHLY_SUBSCRIPTION_EGP * 100,
+    amount_cents: subscriptionPriceEgp * 100,
     currency: 'EGP',
     status: 'pending'
   });
@@ -820,20 +948,473 @@ async function paymobWebhook(req, res) {
   ok(res, { received: true });
 }
 
+function adminSearchTerm(req) {
+  return cleanString(param(req, 'search')).replace(/[,%]/g, ' ');
+}
+
+function normalizedEmbeddedOne(value) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+async function adminOverview(req, res) {
+  await requireAdmin(req);
+  const sb = supabaseService();
+  const [{ data: profiles }, { data: photographers }, { data: reports }, { data: bookings }, { data: subscriptions }, { data: latestUsers }, { data: latestLogs }] = await Promise.all([
+    sb.from('profiles').select('id, role, created_at'),
+    sb.from('photographer_profiles').select('profile_id, is_published, is_suspended, subscription_status'),
+    sb.from('reports').select('id, status, created_at'),
+    sb.from('bookings').select('id, status, price_cents, created_at'),
+    sb.from('subscriptions').select('id, status, amount_cents, created_at'),
+    sb.from('profiles').select('id, role, display_name, email, created_at').order('created_at', { ascending: false }).limit(5),
+    sb.from('admin_audit_logs').select('*').order('created_at', { ascending: false }).limit(8)
+  ]);
+
+  const users = profiles || [];
+  const photoRows = photographers || [];
+  const bookingRows = bookings || [];
+  const subscriptionRows = subscriptions || [];
+  const activeBookingRows = bookingRows.filter((row) => row.status !== 'cancelled');
+
+  ok(res, {
+    metrics: {
+      totalUsers: users.length,
+      clients: users.filter((row) => row.role === 'client').length,
+      photographers: users.filter((row) => row.role === 'photographer').length,
+      admins: users.filter((row) => row.role === 'admin').length,
+      activePhotographers: photoRows.filter((row) => !row.is_suspended && row.is_published).length,
+      suspendedPhotographers: photoRows.filter((row) => row.is_suspended).length,
+      openReports: (reports || []).filter((row) => row.status === 'open').length,
+      pendingBookings: bookingRows.filter((row) => row.status === 'pending').length,
+      completedBookings: bookingRows.filter((row) => row.status === 'completed').length,
+      grossBookingValue: activeBookingRows.reduce((sum, row) => sum + moneyFromCents(row.price_cents), 0),
+      activeSubscriptions: subscriptionRows.filter((row) => row.status === 'active').length,
+      pendingSubscriptions: subscriptionRows.filter((row) => row.status === 'pending').length,
+      failedSubscriptions: subscriptionRows.filter((row) => ['failed', 'overdue'].includes(row.status)).length,
+      subscriptionRevenue: subscriptionRows.filter((row) => row.status === 'active').reduce((sum, row) => sum + moneyFromCents(row.amount_cents), 0)
+    },
+    series: {
+      monthlyRevenue: buildSeries(activeBookingRows, 'monthly'),
+      dailyRevenue: buildSeries(activeBookingRows, 'daily')
+    },
+    latestUsers: latestUsers || [],
+    latestLogs: latestLogs || []
+  });
+}
+
 async function adminListUsers(req, res) {
-  const { profile } = await requireUser(req);
-  requireRole(profile, 'admin');
-  const { data, error } = await supabaseService().from('profiles').select('*, photographer_profiles(*)').order('created_at', { ascending: false });
+  await requireAdmin(req);
+  const sb = supabaseService();
+  const { page, pageSize, from, to } = pageParams(req);
+  const role = cleanString(param(req, 'role'));
+  const search = adminSearchTerm(req);
+  let query = sb
+    .from('profiles')
+    .select('*, photographer_profiles(*)', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to);
+
+  if (['client', 'photographer', 'admin'].includes(role)) query = query.eq('role', role);
+  if (search) query = query.or(`display_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+
+  const { data, error, count } = await query;
   if (error) throw fail(422, error.message);
-  ok(res, { users: data || [] });
+
+  const users = data || [];
+  const ids = users.map((user) => user.id);
+  const [{ data: clientBookings }, { data: photographerBookings }, { data: packages }, { data: photos }] = ids.length ? await Promise.all([
+    sb.from('bookings').select('client_id, status, price_cents').in('client_id', ids),
+    sb.from('bookings').select('photographer_id, status, price_cents').in('photographer_id', ids),
+    sb.from('packages').select('photographer_id, id').in('photographer_id', ids),
+    sb.from('portfolio_photos').select('photographer_id, id').in('photographer_id', ids)
+  ]) : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }];
+
+  const rows = users.map((user) => {
+    const photographerProfile = normalizedEmbeddedOne(user.photographer_profiles);
+    const clientRows = (clientBookings || []).filter((row) => row.client_id === user.id && row.status !== 'cancelled');
+    const photographerRows = (photographerBookings || []).filter((row) => row.photographer_id === user.id && row.status !== 'cancelled');
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      displayName: user.display_name,
+      phone: user.phone,
+      avatarUrl: user.avatar_url,
+      createdAt: user.created_at,
+      photographerProfile: photographerProfile || null,
+      status: user.role === 'photographer'
+        ? photographerProfile?.is_suspended ? 'suspended' : photographerProfile?.is_published ? 'active' : 'hidden'
+        : 'active',
+      bookingCount: user.role === 'photographer' ? photographerRows.length : clientRows.length,
+      grossValue: user.role === 'photographer'
+        ? photographerRows.reduce((sum, row) => sum + moneyFromCents(row.price_cents), 0)
+        : clientRows.reduce((sum, row) => sum + moneyFromCents(row.price_cents), 0),
+      packageCount: (packages || []).filter((row) => row.photographer_id === user.id).length,
+      portfolioPhotoCount: (photos || []).filter((row) => row.photographer_id === user.id).length
+    };
+  });
+
+  ok(res, { users: rows, page, pageSize, total: count || 0 });
+}
+
+async function adminListPhotographers(req, res) {
+  await requireAdmin(req);
+  const sb = supabaseService();
+  const { page, pageSize, from, to } = pageParams(req);
+  const search = adminSearchTerm(req);
+  const status = cleanString(param(req, 'status'));
+  const subscription = cleanString(param(req, 'subscription'));
+  const region = cleanString(param(req, 'region'));
+
+  let query = sb
+    .from('photographer_directory')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to);
+
+  if (search) query = query.or(`display_name.ilike.%${search}%,specialty.ilike.%${search}%,region.ilike.%${search}%`);
+  if (region) query = query.eq('region', region);
+  if (subscription) query = query.eq('subscription_status', subscription);
+  if (status === 'suspended') query = query.eq('is_suspended', true);
+  if (status === 'published') query = query.eq('is_suspended', false).eq('is_published', true);
+  if (status === 'hidden') query = query.eq('is_published', false);
+
+  const { data, error, count } = await query;
+  if (error) throw fail(422, error.message);
+  const photographers = data || [];
+  const ids = photographers.map((row) => row.id);
+  const [{ data: bookings }, { data: packages }, { data: photos }, { data: people }] = ids.length ? await Promise.all([
+    sb.from('bookings').select('photographer_id, status, price_cents').in('photographer_id', ids),
+    sb.from('packages').select('photographer_id, id').in('photographer_id', ids),
+    sb.from('portfolio_photos').select('photographer_id, id').in('photographer_id', ids),
+    sb.from('profiles').select('id, email').in('id', ids)
+  ]) : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }];
+  const emailById = Object.fromEntries((people || []).map((person) => [person.id, person.email]));
+
+  ok(res, {
+    photographers: photographers.map((row) => {
+      const bookingRows = (bookings || []).filter((booking) => booking.photographer_id === row.id && booking.status !== 'cancelled');
+      return {
+        ...row,
+        email: emailById[row.id] || '',
+        status: row.is_suspended ? 'suspended' : row.is_published ? 'active' : 'hidden',
+        packageCount: (packages || []).filter((pkg) => pkg.photographer_id === row.id).length,
+        portfolioPhotoCount: (photos || []).filter((photo) => photo.photographer_id === row.id).length,
+        grossRevenue: bookingRows.reduce((sum, booking) => sum + moneyFromCents(booking.price_cents), 0)
+      };
+    }),
+    page,
+    pageSize,
+    total: count || 0
+  });
+}
+
+async function adminUpdatePhotographerModeration(req, res, photographerId) {
+  const actor = await requireAdmin(req);
+  assertUuid(photographerId, 'photographerId');
+  const body = await readJson(req);
+  const patch = {};
+  if (body.isSuspended !== undefined) patch.is_suspended = body.isSuspended === true;
+  if (body.isPublished !== undefined) patch.is_published = body.isPublished === true;
+  if (!Object.keys(patch).length) throw fail(422, 'No moderation fields supplied');
+
+  const sb = supabaseService();
+  const { data, error } = await sb
+    .from('photographer_profiles')
+    .update(patch)
+    .eq('profile_id', photographerId)
+    .select('*')
+    .single();
+  if (error) throw fail(422, error.message);
+  await writeAdminLog(sb, actor, 'photographer_moderation_update', 'photographer', photographerId, { patch, reason: cleanString(body.reason) });
+  if (patch.is_suspended === true) {
+    await writeAdminNotification(sb, 'moderation', 'Photographer suspended', `A photographer was suspended by ${actor.display_name}.`, { photographerId });
+  }
+  ok(res, { photographerProfile: data });
+}
+
+async function adminListBookings(req, res) {
+  await requireAdmin(req);
+  const sb = supabaseService();
+  const { page, pageSize } = pageParams(req);
+  const status = cleanString(param(req, 'status'));
+  const fromDate = cleanString(param(req, 'from'));
+  const toDate = cleanString(param(req, 'to'));
+  const search = adminSearchTerm(req).toLowerCase();
+
+  let query = sb
+    .from('bookings')
+    .select('*, packages(name, duration_minutes)')
+    .order('created_at', { ascending: false })
+    .limit(1000);
+  if (['pending', 'confirmed', 'cancelled', 'completed'].includes(status)) query = query.eq('status', status);
+  if (fromDate) query = query.gte('booking_date', fromDate);
+  if (toDate) query = query.lte('booking_date', toDate);
+
+  const { data, error } = await query;
+  if (error) throw fail(422, error.message);
+  const rows = data || [];
+  const profileIds = Array.from(new Set(rows.flatMap((row) => [row.client_id, row.photographer_id]).filter(Boolean)));
+  const { data: people } = profileIds.length
+    ? await sb.from('profiles').select('id, display_name, email, phone, avatar_url').in('id', profileIds)
+    : { data: [] };
+  const peopleById = Object.fromEntries((people || []).map((person) => [person.id, person]));
+  const enriched = rows.map((row) => ({
+    ...row,
+    client: peopleById[row.client_id] || null,
+    photographer: peopleById[row.photographer_id] || null,
+    value: moneyFromCents(row.price_cents)
+  })).filter((row) => {
+    if (!search) return true;
+    const haystack = `${row.client_name} ${row.client_email} ${row.client_phone} ${row.client?.display_name || ''} ${row.photographer?.display_name || ''} ${row.packages?.name || ''}`.toLowerCase();
+    return haystack.includes(search);
+  });
+  const total = enriched.length;
+  const start = (page - 1) * pageSize;
+  ok(res, { bookings: enriched.slice(start, start + pageSize), page, pageSize, total });
+}
+
+async function adminUpdateBookingStatus(req, res, bookingId) {
+  const actor = await requireAdmin(req);
+  assertUuid(bookingId, 'bookingId');
+  const body = await readJson(req);
+  const status = cleanString(body.status);
+  if (!['pending', 'confirmed', 'cancelled', 'completed'].includes(status)) throw fail(422, 'Invalid booking status');
+  const sb = supabaseService();
+  const { data, error } = await sb.from('bookings').update({ status }).eq('id', bookingId).select('*').single();
+  if (error) throw fail(422, error.message);
+  await writeAdminLog(sb, actor, 'booking_status_update', 'booking', bookingId, { status });
+  ok(res, { booking: data });
 }
 
 async function adminListReports(req, res) {
-  const { profile } = await requireUser(req);
-  requireRole(profile, 'admin');
-  const { data, error } = await supabaseService().from('reports').select('*').order('created_at', { ascending: false });
+  await requireAdmin(req);
+  const sb = supabaseService();
+  const { page, pageSize, from, to } = pageParams(req);
+  const status = cleanString(param(req, 'status'));
+  let query = sb.from('reports').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(from, to);
+  if (['open', 'reviewing', 'closed'].includes(status)) query = query.eq('status', status);
+  const { data, error, count } = await query;
   if (error) throw fail(422, error.message);
-  ok(res, { reports: data || [] });
+  const reports = data || [];
+  const conversationIds = Array.from(new Set(reports.map((row) => row.conversation_id).filter(Boolean)));
+  const { data: conversations } = conversationIds.length
+    ? await sb.from('conversations').select('*').in('id', conversationIds)
+    : { data: [] };
+  const conversationById = Object.fromEntries((conversations || []).map((conversation) => [conversation.id, conversation]));
+  const profileIds = Array.from(new Set(reports.flatMap((row) => {
+    const conv = conversationById[row.conversation_id];
+    return [row.reporter_id, row.reported_profile_id, conv?.client_id, conv?.photographer_id];
+  }).filter(Boolean)));
+  const { data: people } = profileIds.length
+    ? await sb.from('profiles').select('id, display_name, email, role').in('id', profileIds)
+    : { data: [] };
+  const peopleById = Object.fromEntries((people || []).map((person) => [person.id, person]));
+  ok(res, {
+    reports: reports.map((row) => {
+      const conv = conversationById[row.conversation_id];
+      const derivedReportedId = row.reported_profile_id || (conv && row.reporter_id === conv.client_id ? conv.photographer_id : conv?.client_id);
+      return {
+        ...row,
+        reporter: peopleById[row.reporter_id] || null,
+        reported: peopleById[derivedReportedId] || null,
+        conversation: conv || null
+      };
+    }),
+    page,
+    pageSize,
+    total: count || 0
+  });
+}
+
+async function adminUpdateReport(req, res, reportId) {
+  const actor = await requireAdmin(req);
+  assertUuid(reportId, 'reportId');
+  const body = await readJson(req);
+  const status = cleanString(body.status);
+  if (!['open', 'reviewing', 'closed'].includes(status)) throw fail(422, 'Invalid report status');
+  const sb = supabaseService();
+  const { data, error } = await sb.from('reports').update({ status }).eq('id', reportId).select('*').single();
+  if (error) throw fail(422, error.message);
+  await writeAdminLog(sb, actor, 'report_status_update', 'report', reportId, { status });
+  ok(res, { report: data });
+}
+
+async function adminListSubscriptions(req, res) {
+  await requireAdmin(req);
+  const sb = supabaseService();
+  const { page, pageSize } = pageParams(req);
+  const status = cleanString(param(req, 'status'));
+  const search = adminSearchTerm(req).toLowerCase();
+  let query = sb.from('subscriptions').select('*').order('created_at', { ascending: false }).limit(1000);
+  if (['pending', 'active', 'failed', 'cancelled', 'overdue'].includes(status)) query = query.eq('status', status);
+  const { data, error } = await query;
+  if (error) throw fail(422, error.message);
+  const subscriptions = data || [];
+  const photographerIds = Array.from(new Set(subscriptions.map((row) => row.photographer_id).filter(Boolean)));
+  const [{ data: people }, { data: photographerProfiles }] = photographerIds.length ? await Promise.all([
+    sb.from('profiles').select('id, display_name, email, phone').in('id', photographerIds),
+    sb.from('photographer_profiles').select('profile_id, custom_link, subscription_status, subscription_due_at, is_suspended').in('profile_id', photographerIds)
+  ]) : [{ data: [] }, { data: [] }];
+  const peopleById = Object.fromEntries((people || []).map((person) => [person.id, person]));
+  const photographerProfileById = Object.fromEntries((photographerProfiles || []).map((profile) => [profile.profile_id, profile]));
+  const enriched = subscriptions.map((row) => ({
+    ...row,
+    amount: moneyFromCents(row.amount_cents),
+    photographer: peopleById[row.photographer_id] || null,
+    photographerProfile: photographerProfileById[row.photographer_id] || null
+  })).filter((row) => {
+    if (!search) return true;
+    const haystack = `${row.photographer?.display_name || ''} ${row.photographer?.email || ''} ${row.merchant_order_id || ''} ${row.provider_order_id || ''}`.toLowerCase();
+    return haystack.includes(search);
+  });
+  const total = enriched.length;
+  const start = (page - 1) * pageSize;
+  ok(res, { subscriptions: enriched.slice(start, start + pageSize), page, pageSize, total });
+}
+
+async function adminUpdateSubscription(req, res, subscriptionId) {
+  const actor = await requireAdmin(req);
+  assertUuid(subscriptionId, 'subscriptionId');
+  const body = await readJson(req);
+  const status = cleanString(body.status);
+  if (!['pending', 'active', 'failed', 'cancelled', 'overdue'].includes(status)) throw fail(422, 'Invalid subscription status');
+  const patch = { status };
+  if (body.currentPeriodEnd !== undefined) patch.current_period_end = body.currentPeriodEnd || null;
+  const sb = supabaseService();
+  const { data, error } = await sb.from('subscriptions').update(patch).eq('id', subscriptionId).select('*').single();
+  if (error) throw fail(422, error.message);
+  const photographerStatus = status === 'failed' ? 'overdue' : status;
+  const profilePatch = {
+    subscription_status: photographerStatus,
+    subscription_due_at: data.current_period_end || null
+  };
+  if (status === 'active') profilePatch.is_suspended = false;
+  if (['pending', 'active', 'overdue', 'cancelled'].includes(photographerStatus)) {
+    await sb.from('photographer_profiles').update(profilePatch).eq('profile_id', data.photographer_id);
+  }
+  await writeAdminLog(sb, actor, 'subscription_status_update', 'subscription', subscriptionId, { status });
+  ok(res, { subscription: data });
+}
+
+async function adminAnalytics(req, res) {
+  await requireAdmin(req);
+  const range = ['daily', 'weekly', 'monthly'].includes(param(req, 'range')) ? param(req, 'range') : 'monthly';
+  const sb = supabaseService();
+  const [{ data: bookings }, { data: subscriptions }] = await Promise.all([
+    sb.from('bookings').select('status, price_cents, created_at'),
+    sb.from('subscriptions').select('status, amount_cents, created_at')
+  ]);
+  const bookingRows = (bookings || []).filter((row) => row.status !== 'cancelled');
+  const subscriptionRows = (subscriptions || []).filter((row) => row.status === 'active');
+  ok(res, {
+    range,
+    revenueSeries: buildSeries(bookingRows, range),
+    subscriptionSeries: buildSeries(subscriptionRows, range),
+    visitSeries: [],
+    totals: {
+      bookingRevenue: bookingRows.reduce((sum, row) => sum + moneyFromCents(row.price_cents), 0),
+      subscriptionRevenue: subscriptionRows.reduce((sum, row) => sum + moneyFromCents(row.amount_cents), 0),
+      visits: 0
+    }
+  });
+}
+
+async function adminGetContent(req, res) {
+  await requireAdmin(req);
+  ok(res, { content: await getPublicCopy() });
+}
+
+async function adminSaveContent(req, res) {
+  const actor = await requireAdmin(req);
+  const body = await readJson(req);
+  const content = { ...DEFAULT_PUBLIC_CONTENT, ...(body.content || body || {}) };
+  const sb = supabaseService();
+  const { data, error } = await sb
+    .from('site_content')
+    .upsert({ key: 'public_copy', value: content, updated_by: actor.id, updated_at: new Date().toISOString() })
+    .select('*')
+    .single();
+  if (error) throw fail(422, error.message);
+  await writeAdminLog(sb, actor, 'site_content_update', 'site_content', 'public_copy', {});
+  ok(res, { content: data.value });
+}
+
+async function adminGetSettings(req, res) {
+  await requireAdmin(req);
+  ok(res, { settings: await getPlatformSettings() });
+}
+
+async function adminSaveSettings(req, res) {
+  const actor = await requireAdmin(req);
+  const body = await readJson(req);
+  const settings = {
+    ...DEFAULT_PLATFORM_SETTINGS,
+    ...(body.settings || body || {})
+  };
+  settings.registrationOpen = settings.registrationOpen !== false;
+  settings.maintenanceMode = settings.maintenanceMode === true;
+  settings.trialDays = Math.max(0, asInt(settings.trialDays, DEFAULT_PLATFORM_SETTINGS.trialDays));
+  settings.maxFreePortfolioPhotos = Math.max(1, asInt(settings.maxFreePortfolioPhotos, DEFAULT_PLATFORM_SETTINGS.maxFreePortfolioPhotos));
+  settings.subscriptionPriceEgp = Math.max(1, asInt(settings.subscriptionPriceEgp, DEFAULT_PLATFORM_SETTINGS.subscriptionPriceEgp));
+
+  const sb = supabaseService();
+  const { data, error } = await sb
+    .from('site_settings')
+    .upsert({ key: 'platform', value: settings, updated_by: actor.id, updated_at: new Date().toISOString() })
+    .select('*')
+    .single();
+  if (error) throw fail(422, error.message);
+  await writeAdminLog(sb, actor, 'site_settings_update', 'site_settings', 'platform', settings);
+  ok(res, { settings: data.value });
+}
+
+async function adminListNotifications(req, res) {
+  await requireAdmin(req);
+  const sb = supabaseService();
+  const { page, pageSize, from, to } = pageParams(req, 30);
+  const { data, error, count } = await sb
+    .from('admin_notifications')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to);
+  if (error) throw fail(422, error.message);
+  ok(res, { notifications: data || [], page, pageSize, total: count || 0 });
+}
+
+async function adminReadNotification(req, res, notificationId) {
+  await requireAdmin(req);
+  assertUuid(notificationId, 'notificationId');
+  const { data, error } = await supabaseService()
+    .from('admin_notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('id', notificationId)
+    .select('*')
+    .single();
+  if (error) throw fail(422, error.message);
+  ok(res, { notification: data });
+}
+
+async function adminReadAllNotifications(req, res) {
+  await requireAdmin(req);
+  const { error } = await supabaseService()
+    .from('admin_notifications')
+    .update({ read_at: new Date().toISOString() })
+    .is('read_at', null);
+  if (error) throw fail(422, error.message);
+  ok(res, { saved: true });
+}
+
+async function adminListLogs(req, res) {
+  await requireAdmin(req);
+  const sb = supabaseService();
+  const { page, pageSize, from, to } = pageParams(req, 50);
+  const { data, error, count } = await sb
+    .from('admin_audit_logs')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to);
+  if (error) throw fail(422, error.message);
+  ok(res, { logs: data || [], page, pageSize, total: count || 0 });
 }
 
 async function handle(req, res) {
@@ -845,6 +1426,7 @@ async function handle(req, res) {
     supabaseUrl: process.env.SUPABASE_URL || '',
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || ''
   });
+  if (req.method === 'GET' && first === 'content') return getPublicContent(req, res);
 
 if (req.method === 'POST' && first === 'auth' && second === 'register') return register(req, res);
   if (req.method === 'POST' && first === 'auth' && second === 'login') return login(req, res);
@@ -890,8 +1472,25 @@ if (req.method === 'POST' && first === 'auth' && second === 'register') return r
   if (req.method === 'GET' && first === 'subscriptions' && second === 'current') return currentSubscription(req, res);
   if (req.method === 'POST' && first === 'webhooks' && second === 'paymob') return paymobWebhook(req, res);
 
+  if (req.method === 'GET' && first === 'admin' && second === 'overview') return adminOverview(req, res);
   if (req.method === 'GET' && first === 'admin' && second === 'users') return adminListUsers(req, res);
+  if (req.method === 'GET' && first === 'admin' && second === 'photographers') return adminListPhotographers(req, res);
+  if (req.method === 'PATCH' && first === 'admin' && second === 'photographers' && third && fourth === 'moderation') return adminUpdatePhotographerModeration(req, res, third);
+  if (req.method === 'GET' && first === 'admin' && second === 'bookings') return adminListBookings(req, res);
+  if (req.method === 'PATCH' && first === 'admin' && second === 'bookings' && third && fourth === 'status') return adminUpdateBookingStatus(req, res, third);
   if (req.method === 'GET' && first === 'admin' && second === 'reports') return adminListReports(req, res);
+  if (req.method === 'PATCH' && first === 'admin' && second === 'reports' && third) return adminUpdateReport(req, res, third);
+  if (req.method === 'GET' && first === 'admin' && second === 'subscriptions') return adminListSubscriptions(req, res);
+  if (req.method === 'PATCH' && first === 'admin' && second === 'subscriptions' && third) return adminUpdateSubscription(req, res, third);
+  if (req.method === 'GET' && first === 'admin' && second === 'analytics') return adminAnalytics(req, res);
+  if (req.method === 'GET' && first === 'admin' && second === 'content') return adminGetContent(req, res);
+  if (req.method === 'PUT' && first === 'admin' && second === 'content') return adminSaveContent(req, res);
+  if (req.method === 'GET' && first === 'admin' && second === 'settings') return adminGetSettings(req, res);
+  if (req.method === 'PUT' && first === 'admin' && second === 'settings') return adminSaveSettings(req, res);
+  if (req.method === 'GET' && first === 'admin' && second === 'notifications') return adminListNotifications(req, res);
+  if (req.method === 'PATCH' && first === 'admin' && second === 'notifications' && third === 'read-all') return adminReadAllNotifications(req, res);
+  if (req.method === 'PATCH' && first === 'admin' && second === 'notifications' && third) return adminReadNotification(req, res, third);
+  if (req.method === 'GET' && first === 'admin' && second === 'audit-logs') return adminListLogs(req, res);
 
   if (first) throw fail(404, 'Endpoint not found');
   methodNotAllowed(res);

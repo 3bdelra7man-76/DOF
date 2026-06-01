@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=5.0,user-scalable=yes">
+<meta name="theme-color" content="#0A0A0B">
+<title>DOF STUDIOS — لوحة الإدارة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   DOF STUDIOS — Admin Dashboard
+   Design System & Component Library
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. Design Tokens ──────────────────────────────────────── */
+:root{
+  --bg:#0A0A0B;--bg2:#111113;--bg3:#18181B;
+  --card:#1C1C20;--card-hover:#222226;
+  --accent:#C4915C;--accent-l:#D4A574;--accent-d:#A07040;--accent-glow:rgba(196,145,92,.15);
+  --text:#F0EBE3;--text2:#8A8580;--text3:#5A5652;
+  --border:#2A2523;--border-l:#3A3533;
+  --success:#4ADE80;--warn:#FBBF24;--danger:#F87171;--info:#60A5FA;
+  --radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:20px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.3);
+  --shadow-md:0 4px 16px rgba(0,0,0,.4);
+  --shadow-lg:0 8px 40px rgba(0,0,0,.5);
+  --shadow-accent:0 4px 30px rgba(196,145,92,.2);
+  --transition:all .3s cubic-bezier(.4,0,.2,1);
+  --spring:all .5s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* ── 2. Reset & Base ───────────────────────────────────────── */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;min-height:100vh;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,h5,h6{font-family:'Playfair Display',serif;line-height:1.3}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+button{font-family:inherit}
+input,select,textarea{font-family:inherit}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent-d)}
+::selection{background:var(--accent);color:#fff}
+
+/* ── 3. Background Effects ─────────────────────────────────── */
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");opacity:.6}
+
+/* Ambient glow blobs */
+.bg-glow{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-glow::before,.bg-glow::after{content:'';position:absolute;border-radius:50%;filter:blur(120px);opacity:.06;animation:glowDrift 20s ease-in-out infinite alternate}
+.bg-glow::before{width:600px;height:600px;background:var(--accent);top:-200px;right:-100px}
+.bg-glow::after{width:500px;height:500px;background:var(--info);bottom:-200px;left:-100px;animation-delay:-10s}
+@keyframes glowDrift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(-50px,30px) scale(1.1)}100%{transform:translate(30px,-40px) scale(.95)}}
+
+/* ── 4. Typography Utilities ───────────────────────────────── */
+.gradient-text{background:linear-gradient(135deg,var(--accent-l),var(--accent),var(--accent-d));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.text-gold{color:var(--accent)}
+.text-muted{color:var(--text2)}
+.text-dim{color:var(--text3)}
+.font-display{font-family:'Playfair Display',serif}
+.font-body{font-family:'DM Sans',sans-serif}
+
+/* ── 5. Layout Utilities ───────────────────────────────────── */
+.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}
+.gap-1{gap:4px}.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}.gap-5{gap:20px}.gap-6{gap:24px}
+.grid{display:grid}.grid-2{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:repeat(3,1fr)}.grid-4{grid-template-columns:repeat(4,1fr)}
+.w-full{width:100%}.flex-1{flex:1}
+.text-center{text-align:center}.text-left{text-align:left}.text-right{text-align:right}
+.relative{position:relative}.absolute{position:absolute}.fixed{position:fixed}
+.overflow-hidden{overflow:hidden}.overflow-auto{overflow:auto}
+.p-3{padding:12px}.p-4{padding:16px}.p-5{padding:20px}.p-6{padding:24px}.p-8{padding:32px}
+.px-4{padding-left:16px;padding-right:16px}.py-2{padding-top:8px;padding-bottom:8px}.py-3{padding-top:12px;padding-bottom:12px}
+.mb-1{margin-bottom:4px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}.mb-4{margin-bottom:16px}.mb-5{margin-bottom:20px}.mb-6{margin-bottom:24px}.mb-8{margin-bottom:32px}
+.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}.mt-6{margin-top:24px}
+.ml-2{margin-left:8px}.mr-1{margin-right:4px}.mr-2{margin-right:8px}
+.rounded{border-radius:var(--radius-sm)}.rounded-md{border-radius:var(--radius-md)}.rounded-lg{border-radius:var(--radius-lg)}.rounded-xl{border-radius:var(--radius-xl)}.rounded-full{border-radius:50%}
+.border{border:1px solid var(--border)}.border-b{border-bottom:1px solid var(--border)}.border-t{border-top:1px solid var(--border)}
+.hidden{display:none!important}
+.min-h-screen{min-height:100vh}
+.space-y-3>*+*{margin-top:12px}.space-y-4>*+*{margin-top:16px}.space-y-5>*+*{margin-top:20px}.space-y-6>*+*{margin-top:24px}
+
+/* ── 6. Buttons ────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;border:none;cursor:pointer;transition:var(--transition);font-size:14px;min-height:44px;touch-action:manipulation;position:relative;overflow:hidden;letter-spacing:.2px}
+.btn::after{content:'';position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.1),transparent);opacity:0;transition:var(--transition)}
+.btn:hover::after{opacity:1}
+.btn:active{transform:scale(.97)}
+
+.btn-primary{background:linear-gradient(135deg,var(--accent-d),var(--accent),var(--accent-l));color:#fff;padding:12px 24px;border-radius:var(--radius-sm);box-shadow:var(--shadow-accent)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 35px rgba(196,145,92,.35)}
+.btn-primary:active{transform:translateY(0) scale(.98)}
+
+.btn-secondary{background:transparent;color:var(--accent);padding:12px 24px;border-radius:var(--radius-sm);border:1.5px solid var(--accent)}
+.btn-secondary:hover{background:var(--accent);color:#fff;box-shadow:var(--shadow-accent)}
+
+.btn-ghost{background:transparent;color:var(--text2);padding:8px 16px;border-radius:var(--radius-sm);border:none}
+.btn-ghost:hover{background:rgba(255,255,255,.05);color:var(--text)}
+
+.btn-sm{padding:8px 16px;font-size:13px;min-height:36px;border-radius:6px}
+.btn-xs{padding:6px 12px;font-size:12px;min-height:30px;border-radius:6px}
+
+.btn-success{background:linear-gradient(135deg,#22c55e,var(--success));color:#fff;padding:8px 16px;border-radius:6px;font-weight:600;border:none;cursor:pointer;transition:var(--transition);font-size:13px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 12px rgba(74,222,128,.2)}
+.btn-success:hover{box-shadow:0 4px 20px rgba(74,222,128,.3);transform:translateY(-1px)}
+
+.btn-danger{background:linear-gradient(135deg,#ef4444,var(--danger));color:#fff;padding:8px 16px;border-radius:6px;font-weight:600;border:none;cursor:pointer;transition:var(--transition);font-size:13px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 12px rgba(248,113,113,.2)}
+.btn-danger:hover{box-shadow:0 4px 20px rgba(248,113,113,.3);transform:translateY(-1px)}
+
+.btn:disabled,.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+
+.btn-icon{width:38px;height:38px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition);flex-shrink:0;font-size:14px}
+.btn-icon:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.btn-icon.danger:hover{border-color:var(--danger);color:var(--danger);background:rgba(248,113,113,.1)}
+
+/* ── 7. Cards ──────────────────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);transition:var(--transition);position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(196,145,92,.15),transparent);opacity:0;transition:var(--transition)}
+.card:hover{border-color:var(--border-l);box-shadow:var(--shadow-md)}
+.card:hover::before{opacity:1}
+
+.glass-card{background:rgba(28,28,32,.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.06);border-radius:var(--radius-lg)}
+
+/* ── 8. Form Elements ──────────────────────────────────────── */
+.input{background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:var(--radius-sm);font-size:14px;width:100%;transition:var(--transition);outline:none}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.input::placeholder{color:var(--text3)}
+select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238A8580' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:left 12px center;padding-left:36px;cursor:pointer}
+textarea.input{resize:vertical;min-height:80px;line-height:1.5}
+label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-weight:500}
+
+/* ── 9. Modal ──────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .35s ease}
+.modal-overlay.active{opacity:1;pointer-events:all}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-xl);max-width:560px;width:100%;max-height:88vh;overflow-y:auto;transform:translateY(24px) scale(.97);transition:transform .4s cubic-bezier(.34,1.56,.64,1);padding:32px;box-shadow:var(--shadow-lg)}
+.modal-box.lg{max-width:780px}
+.modal-overlay.active .modal-box{transform:translateY(0) scale(1)}
+.modal-box::-webkit-scrollbar{width:4px}
+.modal-box::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ── 10. Toast Notifications ───────────────────────────────── */
+#toast-container{position:fixed;top:24px;left:24px;z-index:2000;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.toast{padding:14px 20px;border-radius:var(--radius-md);color:#fff;font-size:14px;font-weight:500;display:flex;align-items:center;gap:10px;min-width:300px;box-shadow:var(--shadow-lg);pointer-events:all;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08)}
+.toast.success{background:linear-gradient(135deg,rgba(34,197,94,.9),rgba(74,222,128,.9))}
+.toast.error{background:linear-gradient(135deg,rgba(239,68,68,.9),rgba(248,113,113,.9))}
+.toast.info{background:linear-gradient(135deg,rgba(160,112,64,.9),rgba(196,145,92,.9))}
+.toast.warning{background:linear-gradient(135deg,rgba(217,119,6,.9),rgba(251,191,36,.9))}
+@keyframes toastSlideIn{from{opacity:0;transform:translateX(-50px) scale(.95)}to{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes toastSlideOut{from{opacity:1;transform:translateX(0) scale(1)}to{opacity:0;transform:translateX(-50px) scale(.95)}}
+.toast{animation:toastSlideIn .4s cubic-bezier(.34,1.56,.64,1)}
+.toast.removing{animation:toastSlideOut .3s ease forwards}
+
+/* ── 11. Sidebar ───────────────────────────────────────────── */
+.sidebar{width:272px;min-height:100vh;background:var(--bg2);border-left:1px solid var(--border);position:fixed;right:0;top:0;z-index:100;transition:transform .4s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.sidebar-link{display:flex;align-items:center;gap:12px;padding:10px 16px;color:var(--text2);cursor:pointer;transition:var(--transition);border-radius:var(--radius-sm);margin:2px 10px;font-size:14px;position:relative}
+.sidebar-link::before{content:'';position:absolute;right:-10px;top:50%;transform:translateY(-50%);width:3px;height:0;background:var(--accent);border-radius:3px;transition:var(--transition)}
+.sidebar-link:hover{background:var(--accent-glow);color:var(--accent)}
+.sidebar-link.active{background:var(--accent-glow);color:var(--accent);font-weight:600}
+.sidebar-link.active::before{height:20px}
+.sidebar-link i{width:20px;text-align:center;font-size:15px}
+.dash-content{margin-right:272px;min-height:100vh;padding:32px;position:relative;z-index:1}
+
+/* ── 12. Topbar ────────────────────────────────────────────── */
+.topbar{position:fixed;top:0;left:0;right:272px;z-index:50;background:rgba(10,10,11,.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;transition:right .4s cubic-bezier(.4,0,.2,1)}
+
+/* ── 13. Stat Cards ────────────────────────────────────────── */
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;position:relative;overflow:hidden;transition:var(--transition)}
+.stat-card::after{content:'';position:absolute;top:-20px;left:-20px;width:100px;height:100px;background:radial-gradient(circle,var(--accent-glow),transparent 70%);border-radius:50%;pointer-events:none}
+.stat-card:hover{border-color:var(--border-l);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.stat-card .stat-icon{width:44px;height:44px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:18px;transition:var(--transition)}
+.stat-card:hover .stat-icon{transform:scale(1.1);box-shadow:var(--shadow-accent)}
+
+/* ── 14. Badges ────────────────────────────────────────────── */
+.badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;letter-spacing:.3px}
+.badge-pending{background:rgba(251,191,36,.12);color:var(--warn);border:1px solid rgba(251,191,36,.2)}
+.badge-confirmed{background:rgba(74,222,128,.12);color:var(--success);border:1px solid rgba(74,222,128,.2)}
+.badge-cancelled{background:rgba(248,113,113,.12);color:var(--danger);border:1px solid rgba(248,113,113,.2)}
+.badge-active{background:rgba(74,222,128,.12);color:var(--success);border:1px solid rgba(74,222,128,.2)}
+.badge-inactive{background:rgba(138,133,128,.12);color:var(--text2);border:1px solid rgba(138,133,128,.2)}
+.badge-suspended{background:rgba(248,113,113,.12);color:var(--danger);border:1px solid rgba(248,113,113,.2)}
+.badge-featured{background:var(--accent-glow);color:var(--accent);border:1px solid rgba(196,145,92,.2)}
+.badge-admin{background:rgba(96,165,250,.12);color:var(--info);border:1px solid rgba(96,165,250,.2)}
+.badge-editor{background:var(--accent-glow);color:var(--accent);border:1px solid rgba(196,145,92,.2)}
+.badge-moderator{background:rgba(138,133,128,.12);color:var(--text2);border:1px solid rgba(138,133,128,.2)}
+
+.security-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.15);font-size:12px;color:var(--success);font-weight:500}
+.dof-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:linear-gradient(135deg,var(--accent-d),var(--accent-l));border-radius:20px;font-size:.75rem;font-weight:600;color:#fff;letter-spacing:.5px}
+
+/* ── 15. Tables ────────────────────────────────────────────── */
+.data-table{width:100%;border-collapse:separate;border-spacing:0}
+.data-table thead{background:var(--bg2)}
+.data-table th{padding:12px 16px;text-align:right;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);white-space:nowrap}
+.data-table td{padding:12px 16px;border-bottom:1px solid rgba(42,37,35,.5);font-size:14px;vertical-align:middle}
+.data-table tbody tr{transition:var(--transition)}
+.data-table tbody tr:hover{background:rgba(196,145,92,.04)}
+
+/* ── 16. Toggle Switch ─────────────────────────────────────── */
+.toggle-track{width:44px;height:24px;border-radius:12px;background:var(--border);position:relative;cursor:pointer;transition:var(--transition);flex-shrink:0;border:none;outline:none}
+.toggle-track.on{background:var(--accent);box-shadow:0 0 12px rgba(196,145,92,.3)}
+.toggle-track::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;right:3px;transition:var(--spring);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle-track.on::after{transform:translateX(-20px)}
+
+/* ── 17. Search Bar ────────────────────────────────────────── */
+.search-bar{position:relative}
+.search-bar input{padding-right:44px}
+.search-bar i{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px}
+
+/* ── 18. Tab Filter ────────────────────────────────────────── */
+.tab-filter{display:flex;gap:2px;background:var(--bg2);padding:4px;border-radius:var(--radius-sm);flex-wrap:wrap;border:1px solid var(--border)}
+.tab-filter button{padding:8px 16px;border:none;background:transparent;color:var(--text2);border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;transition:var(--transition);font-family:'DM Sans',sans-serif;white-space:nowrap}
+.tab-filter button.active{background:var(--accent);color:#fff;box-shadow:var(--shadow-accent)}
+.tab-filter button:hover:not(.active){background:rgba(196,145,92,.12);color:var(--accent)}
+
+/* ── 19. Progress Bar ──────────────────────────────────────── */
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent-d),var(--accent));border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+
+/* ── 20. Avatar ────────────────────────────────────────────── */
+.avatar{width:40px;height:40px;border-radius:var(--radius-sm);object-fit:cover;border:2px solid var(--border)}
+.avatar-initial{display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);font-weight:700;flex-shrink:0}
+.avatar-initial.sm{width:32px;height:32px;font-size:13px}
+.avatar-initial.md{width:40px;height:40px;font-size:15px}
+.avatar-initial.lg{width:56px;height:56px;font-size:22px;border-radius:var(--radius-md)}
+.avatar-initial.xl{width:80px;height:80px;font-size:32px;border-radius:var(--radius-lg)}
+
+/* ── 21. Pagination ────────────────────────────────────────── */
+.pagination{display:flex;align-items:center;gap:4px;margin-top:24px;justify-content:center}
+.pagination button{width:36px;height:36px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg2);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:var(--transition)}
+.pagination button:hover{border-color:var(--accent);color:var(--accent)}
+.pagination button.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:var(--shadow-accent)}
+.pagination button:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── 22. Empty State ───────────────────────────────────────── */
+.empty-state{text-align:center;padding:80px 20px;color:var(--text2)}
+.empty-state i{font-size:4rem;color:var(--border);margin-bottom:20px;display:block;opacity:.5}
+
+/* ── 23. Log Items ─────────────────────────────────────────── */
+.log-item{padding:12px 16px;border-bottom:1px solid rgba(42,37,35,.4);font-size:13px;display:flex;align-items:flex-start;gap:12px;transition:var(--transition)}
+.log-item:hover{background:rgba(196,145,92,.03)}
+.log-time{color:var(--text3);font-size:11px;white-space:nowrap;min-width:55px}
+.log-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.log-icon.lg-success{background:rgba(74,222,128,.1);color:var(--success)}
+.log-icon.lg-warning{background:rgba(251,191,36,.1);color:var(--warn)}
+.log-icon.lg-danger{background:rgba(248,113,113,.1);color:var(--danger)}
+.log-icon.lg-info{background:rgba(96,165,250,.1);color:var(--info)}
+
+/* ── 24. Notification Items ────────────────────────────────── */
+.notification-item{display:flex;gap:12px;padding:16px;border-bottom:1px solid rgba(42,37,35,.4);transition:var(--transition);cursor:pointer}
+.notification-item:hover{background:rgba(196,145,92,.04)}
+.notification-item.unread{border-right:3px solid var(--accent);background:rgba(196,145,92,.03)}
+
+/* ── 25. Animations ────────────────────────────────────────── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+@keyframes slideRight{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 rgba(196,145,92,.3)}50%{box-shadow:0 0 0 8px rgba(196,145,92,0)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.fade-up{animation:fadeUp .6s cubic-bezier(.4,0,.2,1) forwards;opacity:0}
+.fade-in{animation:fadeIn .5s ease forwards;opacity:0}
+.scale-in{animation:scaleIn .4s cubic-bezier(.34,1.56,.64,1) forwards;opacity:0}
+.slide-right{animation:slideRight .5s ease forwards;opacity:0}
+.delay-1{animation-delay:.1s}.delay-2{animation-delay:.2s}.delay-3{animation-delay:.3s}.delay-4{animation-delay:.4s}
+
+/* Staggered children animation */
+.stagger>*{opacity:0;animation:fadeUp .5s cubic-bezier(.4,0,.2,1) forwards}
+.stagger>*:nth-child(1){animation-delay:.05s}
+.stagger>*:nth-child(2){animation-delay:.1s}
+.stagger>*:nth-child(3){animation-delay:.15s}
+.stagger>*:nth-child(4){animation-delay:.2s}
+.stagger>*:nth-child(5){animation-delay:.25s}
+.stagger>*:nth-child(6){animation-delay:.3s}
+
+/* ── 26. Responsive ────────────────────────────────────────── */
+@media(max-width:1200px){
+  .grid-4{grid-template-columns:repeat(2,1fr)!important}
+}
+@media(max-width:1024px){
+  .sidebar{transform:translateX(100%)}
+  .sidebar.open{transform:translateX(0)}
+  .dash-content{margin-right:0!important}
+  .topbar{right:0!important}
+}
+@media(max-width:768px){
+  h1{font-size:2rem!important;line-height:1.2!important}
+  h2{font-size:1.5rem!important}
+  .modal-box{padding:20px;margin:12px}
+  .data-table{font-size:12px}
+  .data-table th,.data-table td{padding:8px 10px}
+  .dash-content{padding:16px!important}
+  .stat-card{padding:16px!important}
+  .topbar{padding:0 16px}
+  .grid-4,.grid-3,.grid-2{grid-template-columns:1fr!important}
+  .hide-mobile{display:none!important}
+}
+@media(hover:none){
+  .btn-primary:hover,.btn-secondary:hover{transform:none}
+  .btn-primary:active,.btn-secondary:active{transform:scale(.98)}
+  .card:hover{border-color:var(--border)}
+  .stat-card:hover{transform:none}
+}
+</style>
+</head>
+<body>
+
+<div class="bg-glow" aria-hidden="true"></div>
+<div id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     LOGIN SCREEN
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="login-screen" class="min-h-screen flex items-center justify-center relative" style="z-index:10">
+  <div class="w-full" style="max-width:440px;padding:0 24px">
+
+    <!-- Brand -->
+    <div class="text-center mb-8 fade-up">
+      <div class="flex items-center justify-center gap-3 mb-6">
+        <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--accent-d),var(--accent-l));display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-accent)">
+          <i class="fas fa-camera text-white" style="font-size:22px"></i>
+        </div>
+        <span class="font-display font-bold" style="font-size:26px;letter-spacing:1px">DOF STUDIOS</span>
+      </div>
+      <h1 class="font-display font-bold mb-2" style="font-size:32px">لوحة الإدارة</h1>
+      <p class="text-muted" style="font-size:15px">تسجيل دخول المسؤولين</p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="glass-card p-8 fade-up delay-2" style="box-shadow:var(--shadow-lg)">
+      <form onsubmit="handleAdminLogin(event)" class="space-y-5">
+        <div>
+          <label>البريد الإلكتروني</label>
+          <div class="relative">
+            <i class="fas fa-envelope absolute" style="right:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px"></i>
+            <input type="email" class="input" style="padding-right:42px" id="admin-email" placeholder="admin@dofstudios.com" required>
+          </div>
+        </div>
+        <div>
+          <label>كلمة المرور</label>
+          <div class="relative">
+            <i class="fas fa-lock absolute" style="right:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px"></i>
+            <input type="password" class="input" style="padding-right:42px" id="admin-pass" placeholder="••••••••" required>
+            <button type="button" onclick="togglePassVis('admin-pass',this)" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;padding:4px" tabindex="-1"><i class="fas fa-eye"></i></button>
+          </div>
+        </div>
+        <div id="login-error" class="hidden" style="font-size:13px;color:var(--danger);background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.15);padding:12px;border-radius:var(--radius-sm)"></div>
+        <div class="flex items-center justify-between">
+          <label class="flex items-center gap-2 cursor-pointer" style="font-size:13px;color:var(--text2)"><input type="checkbox" class="accent-[var(--accent)]" checked style="width:16px;height:16px"><span>تذكرني</span></label>
+        </div>
+        <button type="submit" class="btn btn-primary w-full justify-center" style="font-size:15px;padding:14px" id="login-btn">
+          <i class="fas fa-arrow-right-to-bracket"></i>تسجيل الدخول
+        </button>
+      </form>
+      <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border)">
+        <div class="flex items-center justify-center gap-2" style="font-size:12px;color:var(--text3)"><i class="fas fa-shield-halved"></i><span>محمي بتشفير 256-بت SSL</span></div>
+      </div>
+    </div>
+
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     ADMIN DASHBOARD
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="admin-dashboard" class="hidden">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="admin-sidebar">
+    <div class="p-5 border-b">
+      <div class="flex items-center gap-2 mb-6">
+        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent-d),var(--accent-l));display:flex;align-items:center;justify-content:center"><i class="fas fa-camera text-white" style="font-size:14px"></i></div>
+        <span class="font-display font-bold" style="font-size:17px;letter-spacing:.5px">DOF STUDIOS</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="avatar-initial md" style="background:linear-gradient(135deg,var(--accent-d),var(--accent-l));color:#fff" id="sb-avatar">م</div>
+        <div>
+          <div style="font-size:14px;font-weight:600" id="sb-name">مدير النظام</div>
+          <div style="font-size:12px;color:var(--accent);font-weight:500" id="sb-role">مشرف عام</div>
+        </div>
+      </div>
+    </div>
+    <nav class="flex-1 py-3" style="overflow-y:auto" id="sidebar-nav"></nav>
+    <div class="p-4 border-t">
+      <button onclick="handleAdminLogout()" class="sidebar-link w-full" style="color:var(--danger)"><i class="fas fa-arrow-right-from-bracket"></i><span>تسجيل الخروج</span></button>
+    </div>
+  </aside>
+
+  <!-- Topbar -->
+  <div class="topbar" id="topbar">
+    <div class="flex items-center gap-4">
+      <button onclick="toggleSidebar()" class="btn-icon" style="display:none" id="menu-btn"><i class="fas fa-bars"></i></button>
+      <h2 class="font-display font-bold" style="font-size:18px" id="page-title">نظرة عامة</h2>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="search-bar hide-mobile"><i class="fas fa-search"></i><input type="text" class="input" style="width:220px;padding-right:42px;font-size:13px" placeholder="بحث سريع..." oninput="globalSearch(this.value)"></div>
+      <button class="btn-icon relative" onclick="switchTab('notifications')">
+        <i class="fas fa-bell"></i>
+        <span class="absolute" style="top:-4px;left:-4px;width:18px;height:18px;background:var(--danger);border-radius:50%;font-size:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700" id="notif-badge">0</span>
+      </button>
+      <span class="security-badge hide-mobile"><i class="fas fa-lock" style="font-size:10px"></i> آمن</span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="dash-content" style="padding-top:96px" id="tab-content"></main>
+</div>
+
+<!-- Modal -->
+<div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box" id="modal-box"></div>
+</div>
+<div id="sidebar-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99;backdrop-filter:blur(4px)" class="hidden" onclick="toggleSidebar()"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   DOF STUDIOS — Application State
+   ═══════════════════════════════════════════════════════════════ */
+var S={
+  tab:'overview',admin:null,searchQuery:'',
+  customerPage:1,customerFilter:'all',customerSearch:'',
+  photoPage:1,photoSearch:'',
+  visitRange:'monthly',revenueRange:'monthly',
+  notifPage:1,logPage:1,
+  admins:[
+    {id:1,name:'مدير النظام',email:'admin@dofstudios.com',passHash:'admin123',role:'admin',active:true,createdAt:'2025-01-01',lastLogin:'2025-06-15T10:30:00'},
+    {id:2,name:'أحمد محرر',email:'editor@dofstudios.com',passHash:'editor123',role:'editor',active:true,createdAt:'2025-02-10',lastLogin:'2025-06-14T08:00:00'},
+    {id:3,name:'سارة مراقبة',email:'mod@dofstudios.com',passHash:'mod123',role:'moderator',active:true,createdAt:'2025-03-05',lastLogin:'2025-06-13T14:20:00'},
+    {id:4,name:'محمد مساعد',email:'helper@dofstudios.com',passHash:'help123',role:'moderator',active:false,createdAt:'2025-04-01',lastLogin:'2025-05-20T09:00:00'}
+  ],
+  customers:[
+    {id:1,name:'ياسمين علي',email:'yasmine@email.com',phone:'01012345678',bookings:5,spent:35000,region:'القاهرة',status:'active',joined:'2025-01-15'},
+    {id:2,name:'عمر حسن',email:'omar@email.com',phone:'01098765432',bookings:3,spent:22000,region:'الإسكندرية',status:'active',joined:'2025-02-01'},
+    {id:3,name:'فاطمة أحمد',email:'fatma@email.com',phone:'01155544433',bookings:8,spent:67000,region:'الجيزة',status:'active',joined:'2024-12-10'},
+    {id:4,name:'كريم سعيد',email:'karim@email.com',phone:'01234567890',bookings:1,spent:5000,region:'المنصورة',status:'inactive',joined:'2025-03-20'},
+    {id:5,name:'نورا محمد',email:'nora@email.com',phone:'01067890123',bookings:12,spent:95000,region:'القاهرة',status:'active',joined:'2024-11-05'},
+    {id:6,name:'حسين علي',email:'hussein@email.com',phone:'01123456789',bookings:2,spent:15000,region:'الأقصر',status:'active',joined:'2025-04-15'},
+    {id:7,name:'مريم خالد',email:'mariam@email.com',phone:'01034567890',bookings:0,spent:0,region:'أسوان',status:'inactive',joined:'2025-05-01'},
+    {id:8,name:'يوسف إبراهيم',email:'yousef@email.com',phone:'01245678901',bookings:6,spent:48000,region:'القاهرة',status:'active',joined:'2025-01-28'},
+    {id:9,name:'رنا محمود',email:'rana@email.com',phone:'01056789012',bookings:4,spent:29000,region:'الإسكندرية',status:'active',joined:'2025-02-14'},
+    {id:10,name:'خالد عبدالله',email:'khaled@email.com',phone:'01167890123',bookings:1,spent:8000,region:'طنطا',status:'inactive',joined:'2025-05-10'}
+  ],
+  photographers:[
+    {id:1,name:'لينا منصور',specialty:'تصوير أعراس',region:'القاهرة',bookings:156,revenue:245000,rating:4.9,status:'active',packages:3,joined:'2024-10-01',featured:true},
+    {id:2,name:'خالد حسن',specialty:'تصوير بورتريه',region:'الجيزة',bookings:98,revenue:120000,rating:4.8,status:'active',packages:2,joined:'2024-11-15',featured:false},
+    {id:3,name:'نورة هلال',specialty:'تصوير فعاليات',region:'الإسكندرية',bookings:75,revenue:95000,rating:4.7,status:'active',packages:1,joined:'2025-01-10',featured:true},
+    {id:4,name:'أحمد رضا',specialty:'زفاف وبورتريه',region:'القاهرة',bookings:210,revenue:380000,rating:5.0,status:'active',packages:2,joined:'2024-09-01',featured:true},
+    {id:5,name:'سارة أحمد',specialty:'تصوير أزياء',region:'الجيزة',bookings:62,revenue:88000,rating:4.6,status:'active',packages:1,joined:'2025-02-01',featured:false},
+    {id:6,name:'عمر صلاح',specialty:'تصوير مواليد',region:'المنصورة',bookings:130,revenue:165000,rating:4.9,status:'active',packages:1,joined:'2024-12-01',featured:false},
+    {id:7,name:'منى فاروق',specialty:'تصوير عقارات',region:'السويس',bookings:45,revenue:52000,rating:4.5,status:'suspended',packages:2,joined:'2025-03-15',featured:false},
+    {id:8,name:'طارق نبيل',specialty:'تصوير رياضي',region:'القاهرة',bookings:88,revenue:110000,rating:4.7,status:'active',packages:1,joined:'2025-01-20',featured:false}
+  ],
+  notifications:[
+    {id:1,type:'booking',title:'حجز جديد',msg:'ياسمين علي حجزت باقة زفاف كاملة مع لينا منصور',time:'2025-06-15T10:30:00',read:false,icon:'fa-calendar-check',iconClass:'lg-success'},
+    {id:2,type:'alert',title:'اشتراك منتهي',msg:'اشتراك منى فاروق انتهى ولم يتم التجديد',time:'2025-06-15T09:00:00',read:false,icon:'fa-triangle-exclamation',iconClass:'lg-warning'},
+    {id:3,type:'system',title:'تحديث النظام',msg:'تم تحديث النظام إلى الإصدار 2.5 بنجاح',time:'2025-06-14T22:00:00',read:false,icon:'fa-gear',iconClass:'lg-info'},
+    {id:4,type:'booking',title:'حجز ملغي',msg:'رنا محمود ألغت حجز تصوير أزياء',time:'2025-06-14T16:00:00',read:true,icon:'fa-circle-xmark',iconClass:'lg-danger'},
+    {id:5,type:'revenue',title:'إيرادات يومية',msg:'إجمالي إيرادات اليوم: 43,000 ج.م',time:'2025-06-14T23:59:00',read:true,icon:'fa-chart-line',iconClass:'lg-success'}
+  ],
+  logs:[
+    {id:1,action:'تسجيل دخول',user:'مدير النظام',time:'2025-06-15T10:30:00',type:'info'},
+    {id:2,action:'تعديل بيانات عميل: ياسمين علي',user:'مدير النظام',time:'2025-06-15T10:25:00',type:'warning'},
+    {id:3,action:'حجز جديد #1001',user:'النظام',time:'2025-06-15T10:20:00',type:'success'},
+    {id:4,action:'إيقاف مصور: منى فاروق',user:'مدير النظام',time:'2025-06-15T09:15:00',type:'danger'},
+    {id:5,action:'تحديث محتوى الصفحة الرئيسية',user:'أحمد محرر',time:'2025-06-14T15:00:00',type:'info'},
+    {id:6,action:'إشعار دفع فاشل',user:'النظام',time:'2025-06-14T14:30:00',type:'danger'},
+    {id:7,action:'تسجيل مصور جديد: طارق نبيل',user:'النظام',time:'2025-06-14T10:00:00',type:'success'},
+    {id:8,action:'تصدير تقرير الإيرادات',user:'مدير النظام',time:'2025-06-13T16:00:00',type:'info'}
+  ],
+  content:{
+    heroTitleAr:'حيث يلتقي التصوير بالفرصة',heroTitleEn:'Where Photography Meets Opportunity',
+    heroDescAr:'تواصل مع مصورين موهوبين واستكشف معارض مذهلة واحجز جلستك المثالية.',heroDescEn:'Connect with talented photographers, explore stunning portfolios, and book your perfect session.',
+    footerAboutAr:'المنصة المتكاملة للمصورين والعملاء في مصر.',footerAboutEn:'The complete platform for photographers and clients in Egypt.',
+    maintenanceMode:false,registrationOpen:true,maxFreePackages:3,trialDays:7
+  },
+  revenueData:{daily:[],weekly:[],monthly:[]},
+  visitData:{daily:[],weekly:[],monthly:[]},
+  settings:{passMinLen:6,requireVerification:true,preventReuse:true},
+  nextId:2000
+};
+
+/* Generate chart data */
+(function(){
+  var months=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  for(var i=0;i<12;i++){S.revenueData.monthly.push({label:months[i],value:Math.floor(200000+Math.random()*300000)});S.visitData.monthly.push({label:months[i],value:Math.floor(2000+Math.random()*6000)});}
+  for(var i=0;i<8;i++){S.revenueData.weekly.push({label:'أسبوع '+(i+1),value:Math.floor(80000+Math.random()*120000)});S.visitData.weekly.push({label:'أسبوع '+(i+1),value:Math.floor(800+Math.random()*2000)});}
+  for(var i=0;i<30;i++){var d=new Date();d.setDate(d.getDate()-(29-i));var lbl=d.getDate()+'/'+(d.getMonth()+1);S.revenueData.daily.push({label:lbl,value:Math.floor(10000+Math.random()*25000)});S.visitData.daily.push({label:lbl,value:Math.floor(200+Math.random()*800)});}
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+function fmt(n){return Number(n||0).toLocaleString('ar-EG');}
+function fmtMoney(n){return fmt(n)+' ج.م';}
+function fmtDate(d){if(!d)return'-';return new Date(d).toLocaleDateString('ar-EG',{year:'numeric',month:'short',day:'numeric'});}
+function fmtDateTime(d){if(!d)return'-';return new Date(d).toLocaleDateString('ar-EG',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
+function timeAgo(iso){
+  if(!iso)return'';var diff=Date.now()-new Date(iso).getTime();var m=Math.floor(diff/60000);
+  if(m<1)return'الآن';if(m<60)return m+' د';var h=Math.floor(m/60);if(h<24)return h+' س';var dy=Math.floor(h/24);if(dy<7)return dy+' ي';return fmtDate(iso);
+}
+function stars(r){if(!r)return'';var s='',f=Math.floor(r);for(var i=0;i<f;i++)s+='<i class="fas fa-star" style="color:var(--accent);font-size:11px"></i>';if(r%1>=.5)s+='<i class="fas fa-star-half-stroke" style="color:var(--accent);font-size:11px"></i>';return s;}
+function statusBadge(st){var m={pending:'badge-pending',confirmed:'badge-confirmed',cancelled:'badge-cancelled',active:'badge-active',inactive:'badge-inactive',suspended:'badge-suspended'};var l={pending:'قيد الانتظار',confirmed:'مؤكد',cancelled:'ملغي',active:'نشط',inactive:'غير نشط',suspended:'موقوف'};return'<span class="badge '+(m[st]||'badge-inactive')+'">'+(l[st]||st)+'</span>';}
+function roleBadge(r){var m={admin:'badge-admin',editor:'badge-editor',moderator:'badge-moderator'};var l={admin:'مشرف عام',editor:'محرر',moderator:'مراقب'};return'<span class="badge '+(m[r]||'')+'">'+(l[r]||r)+'</span>';}
+function paginate(arr,page,perPage){perPage=perPage||8;var total=Math.max(1,Math.ceil(arr.length/perPage));return{items:arr.slice((page-1)*perPage,page*perPage),total:total,page:page};}
+function paginationHTML(current,total,onchange){
+  if(total<=1)return'';
+  var h='<div class="pagination">';
+  h+='<button '+(current<=1?'disabled':'')+' onclick="'+onchange+'('+(current-1)+')"><i class="fas fa-chevron-right" style="font-size:11px"></i></button>';
+  for(var i=1;i<=total;i++){
+    if(total>7&&i>2&&i<total-1&&Math.abs(i-current)>1){if(i===3||i===total-2)h+='<button disabled>...</button>';continue;}
+    h+='<button class="'+(i===current?'active':'')+'" onclick="'+onchange+'('+i+')">'+i+'</button>';
+  }
+  h+='<button '+(current>=total?'disabled':'')+' onclick="'+onchange+'('+(current+1)+')"><i class="fas fa-chevron-left" style="font-size:11px"></i></button>';
+  h+='</div>';return h;
+}
+
+/* Toast */
+function showToast(msg,type){
+  type=type||'info';var c=document.getElementById('toast-container');
+  var icons={success:'fa-circle-check',error:'fa-circle-exclamation',info:'fa-circle-info',warning:'fa-triangle-exclamation'};
+  var el=document.createElement('div');el.className='toast '+type;
+  el.innerHTML='<i class="fas '+icons[type]+'"></i><span>'+msg+'</span>';
+  c.appendChild(el);
+  setTimeout(function(){el.classList.add('removing');setTimeout(function(){el.remove()},300)},3500);
+}
+
+/* Modal */
+function openModal(html,lg){
+  document.getElementById('modal-box').className='modal-box'+(lg?' lg':'');
+  document.getElementById('modal-box').innerHTML=html;
+  document.getElementById('modal-overlay').classList.add('active');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('active');document.body.style.overflow='';}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+
+/* Toggle Password */
+function togglePassVis(id,btn){var inp=document.getElementById(id);if(inp.type==='password'){inp.type='text';btn.innerHTML='<i class="fas fa-eye-slash"></i>';}else{inp.type='password';btn.innerHTML='<i class="fas fa-eye"></i>';}}
+
+/* ═══════════════════════════════════════════════════════════════
+   AUTH
+   ═══════════════════════════════════════════════════════════════ */
+function handleAdminLogin(e){
+  e.preventDefault();
+  var email=document.getElementById('admin-email').value.trim();
+  var pass=document.getElementById('admin-pass').value;
+  var errEl=document.getElementById('login-error');
+  var btn=document.getElementById('login-btn');
+  errEl.classList.add('hidden');
+  btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> جارٍ التحقق...';
+  setTimeout(function(){
+    var found=S.admins.find(function(a){return a.email===email&&a.passHash===pass;});
+    if(!found){errEl.textContent='البريد الإلكتروني أو كلمة المرور غير صحيحة';errEl.classList.remove('hidden');btn.disabled=false;btn.innerHTML='<i class="fas fa-arrow-right-to-bracket"></i> تسجيل الدخول';return;}
+    if(!found.active){errEl.textContent='هذا الحساب معطل. تواصل مع المشرف العام.';errEl.classList.remove('hidden');btn.disabled=false;btn.innerHTML='<i class="fas fa-arrow-right-to-bracket"></i> تسجيل الدخول';return;}
+    found.lastLogin=new Date().toISOString();S.admin=found;
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('admin-dashboard').classList.remove('hidden');
+    document.getElementById('sb-name').textContent=found.name;
+    document.getElementById('sb-avatar').textContent=found.name.charAt(0);
+    document.getElementById('sb-role').textContent=found.role==='admin'?'مشرف عام':found.role==='editor'?'محرر':'مراقب';
+    buildSidebar();switchTab('overview');
+    addLog('تسجيل دخول',found.name,'info');
+    showToast('مرحباً '+found.name,'success');
+    btn.disabled=false;btn.innerHTML='<i class="fas fa-arrow-right-to-bracket"></i> تسجيل الدخول';
+  },900);
+}
+function handleAdminLogout(){S.admin=null;document.getElementById('admin-dashboard').classList.add('hidden');document.getElementById('login-screen').classList.remove('hidden');showToast('تم تسجيل الخروج','info');}
+function canDo(action){
+  if(!S.admin)return false;
+  var perms={admin:['all'],editor:['content','customers_view','photographers_view','notifications'],moderator:['customers_view','photographers_view','notifications']};
+  var p=perms[S.admin.role]||[];return p.indexOf('all')>-1||p.indexOf(action)>-1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SIDEBAR & NAVIGATION
+   ═══════════════════════════════════════════════════════════════ */
+var TABS=[
+  {id:'overview',icon:'fa-table-cells-large',label:'نظرة عامة',perm:'all'},
+  {id:'revenue',icon:'fa-chart-line',label:'الإيرادات',perm:'all'},
+  {id:'visits',icon:'fa-eye',label:'الزيارات',perm:'all'},
+  {id:'customers',icon:'fa-users',label:'العملاء',perm:'customers_view'},
+  {id:'photographers',icon:'fa-camera-retro',label:'المصورون',perm:'photographers_view'},
+  {id:'content',icon:'fa-file-lines',label:'المحتوى',perm:'content'},
+  {id:'users',icon:'fa-user-shield',label:'المسؤولون',perm:'all'},
+  {id:'notifications',icon:'fa-bell',label:'الإشعارات',perm:'notifications'},
+  {id:'settings',icon:'fa-gear',label:'الإعدادات',perm:'all'},
+  {id:'logs',icon:'fa-clock-rotate-left',label:'سجل النشاط',perm:'all'}
+];
+function buildSidebar(){
+  var nav=document.getElementById('sidebar-nav');
+  nav.innerHTML=TABS.filter(function(t){return canDo(t.perm);}).map(function(t){
+    return'<div class="sidebar-link'+(S.tab===t.id?' active':'')+'" data-tab="'+t.id+'" onclick="switchTab(\''+t.id+'\')"><i class="fas '+t.icon+'"></i><span>'+t.label+'</span></div>';
+  }).join('');
+}
+function switchTab(id){
+  var tabInfo=TABS.find(function(t){return t.id===id;});
+  if(!tabInfo||!canDo(tabInfo.perm)){showToast('ليس لديك صلاحية الوصول','error');return;}
+  S.tab=id;S.searchQuery='';
+  document.querySelectorAll('.sidebar-link').forEach(function(el){el.classList.toggle('active',el.dataset.tab===id);});
+  document.getElementById('page-title').textContent=tabInfo.label;
+  renderTab();
+  if(window.innerWidth<1024){document.getElementById('admin-sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.add('hidden');}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function toggleSidebar(){document.getElementById('admin-sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('hidden');}
+function renderTab(){
+  var c=document.getElementById('tab-content');
+  var renderers={overview:renderOverview,revenue:renderRevenue,visits:renderVisits,customers:renderCustomers,photographers:renderPhotographers,content:renderContent,users:renderUsers,notifications:renderNotifications,settings:renderSettings,logs:renderLogs};
+  c.innerHTML='<div class="scale-in">'+(renderers[S.tab]||function(){return'';})()+'</div>';
+  if(S.tab==='revenue')setTimeout(function(){drawChart('revenue-chart',S.revenueData[S.revenueRange],'#C4915C')},60);
+  if(S.tab==='visits')setTimeout(function(){drawChart('visits-chart',S.visitData[S.visitRange],'#60A5FA')},60);
+  if(S.tab==='overview'){setTimeout(function(){drawChart('mini-revenue',S.revenueData.monthly.slice(-6),'#C4915C')},60);setTimeout(function(){drawChart('mini-visits',S.visitData.monthly.slice(-6),'#60A5FA')},60);}
+  updateNotifBadge();
+}
+function globalSearch(q){S.searchQuery=q.toLowerCase();renderTab();}
+function updateNotifBadge(){var unread=S.notifications.filter(function(n){return!n.read;}).length;var b=document.getElementById('notif-badge');if(b){b.textContent=unread;b.style.display=unread>0?'flex':'none';}}
+function addLog(action,user,type){S.logs.unshift({id:++S.nextId,action:action,user:user||'النظام',time:new Date().toISOString(),type:type||'info'});if(S.logs.length>200)S.logs.length=200;}
+
+/* Responsive menu button */
+function checkMobile(){var btn=document.getElementById('menu-btn');if(btn)btn.style.display=window.innerWidth<1024?'flex':'none';}
+window.addEventListener('resize',function(){
+  checkMobile();
+  if(S.tab==='revenue')drawChart('revenue-chart',S.revenueData[S.revenueRange],'#C4915C');
+  if(S.tab==='visits')drawChart('visits-chart',S.visitData[S.visitRange],'#60A5FA');
+  if(S.tab==='overview'){drawChart('mini-revenue',S.revenueData.monthly.slice(-6),'#C4915C');drawChart('mini-visits',S.visitData.monthly.slice(-6),'#60A5FA');}
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   CHART — Enhanced Canvas Bar Chart
+   ═══════════════════════════════════════════════════════════════ */
+function drawChart(canvasId,data,color){
+  var canvas=document.getElementById(canvasId);if(!canvas||!data||!data.length)return;
+  var ctx=canvas.getContext('2d');var dpr=window.devicePixelRatio||1;
+  var rect=canvas.parentElement.getBoundingClientRect();
+  canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;
+  canvas.style.width=rect.width+'px';canvas.style.height=rect.height+'px';
+  ctx.scale(dpr,dpr);
+  var W=rect.width,H=rect.height,pad={top:24,right:16,bottom:44,left:56};
+  var cW=W-pad.left-pad.right,cH=H-pad.top-pad.bottom;
+  var maxV=Math.max.apply(null,data.map(function(d){return d.value;}))*1.15;
+  if(maxV===0)maxV=1;
+  var stepY=Math.round(maxV/5);
+  ctx.clearRect(0,0,W,H);
+
+  /* Grid lines */
+  ctx.strokeStyle='rgba(42,37,35,0.5)';ctx.lineWidth=.5;ctx.font='11px DM Sans';ctx.fillStyle='#5A5652';ctx.textAlign='right';
+  for(var i=0;i<=5;i++){
+    var y=pad.top+cH-(i/5)*cH;
+    ctx.beginPath();ctx.setLineDash([4,4]);ctx.moveTo(pad.left,y);ctx.lineTo(W-pad.right,y);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillText(fmt(stepY*i),pad.left-10,y+4);
+  }
+
+  /* Bars */
+  var barW=Math.max(6,Math.min(36,(cW/data.length)*0.55));
+  var gap=(cW-barW*data.length)/(data.length+1);
+  data.forEach(function(d,i){
+    var x=pad.left+gap+i*(barW+gap)+barW/2;
+    var barH=Math.max(2,(d.value/maxV)*cH);
+    var y=pad.top+cH-barH;
+
+    /* Gradient bar */
+    var grad=ctx.createLinearGradient(0,y,0,pad.top+cH);
+    grad.addColorStop(0,color);
+    grad.addColorStop(1,color+'18');
+    ctx.fillStyle=grad;
+
+    /* Rounded top bar */
+    var r=Math.min(4,barW/2);
+    ctx.beginPath();ctx.moveTo(x-barW/2+r,y);ctx.lineTo(x+barW/2-r,y);ctx.quadraticCurveTo(x+barW/2,y,x+barW/2,y+r);ctx.lineTo(x+barW/2,pad.top+cH);ctx.lineTo(x-barW/2,pad.top+cH);ctx.lineTo(x-barW/2,y+r);ctx.quadraticCurveTo(x-barW/2,y,x-barW/2+r,y);ctx.fill();
+
+    /* Glow effect on bar top */
+    ctx.save();
+    ctx.shadowColor=color;ctx.shadowBlur=8;ctx.shadowOffsetY=2;
+    ctx.fillStyle=color+'40';
+    ctx.beginPath();ctx.arc(x,y+r,r,Math.PI,0);ctx.fill();
+    ctx.restore();
+
+    /* Label */
+    ctx.fillStyle='#5A5652';ctx.font='10px DM Sans';ctx.textAlign='center';
+    var lbl=d.label;if(data.length>15)lbl=lbl.split('/')[0]||lbl;
+    ctx.fillText(lbl,x,H-pad.bottom+18);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXPORT
+   ═══════════════════════════════════════════════════════════════ */
+function exportCSV(filename,headers,rows){
+  var csv='\uFEFF'+headers.join(',')+'\n'+rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=filename;link.click();URL.revokeObjectURL(link.href);
+  showToast('تم تصدير التقرير بنجاح','success');
+  addLog('تصدير تقرير: '+filename,S.admin.name,'info');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB: OVERVIEW
+   ═══════════════════════════════════════════════════════════════ */
+function renderOverview(){
+  var totalRev=S.revenueData.monthly.reduce(function(s,d){return s+d.value;},0);
+  var totalVisits=S.visitData.monthly.reduce(function(s,d){return s+d.value;},0);
+  var activePhotographers=S.photographers.filter(function(p){return p.status==='active';}).length;
+  return'<div class="grid grid-4 gap-5 mb-8 stagger">'+
+  statCard('fa-money-bill-wave','إجمالي الإيرادات',fmtMoney(totalRev),'<i class="fas fa-arrow-up" style="font-size:10px"></i> 12% هذا الشهر','var(--success)')+
+  statCard('fa-eye','إجمالي الزيارات',fmt(totalVisits),'<i class="fas fa-arrow-up" style="font-size:10px"></i> 8% هذا الشهر','var(--info)')+
+  statCard('fa-users','العملاء المسجلين',fmt(S.customers.length),'23 عميل جديد','var(--accent)')+
+  statCard('fa-camera-retro','المصورون النشطون',fmt(activePhotographers),'من إجمالي '+S.photographers.length+' مصور','var(--warn)')+'</div>'+
+
+  '<div class="grid grid-2 gap-6 mb-8" style="grid-template-columns:1fr 1fr">'+
+  '<div class="card p-6"><div class="flex justify-between items-center mb-5"><h3 class="font-display font-bold" style="font-size:17px">الإيرادات</h3><span class="text-dim" style="font-size:12px">آخر 6 أشهر</span></div><div style="height:200px;position:relative"><canvas id="mini-revenue"></canvas></div></div>'+
+  '<div class="card p-6"><div class="flex justify-between items-center mb-5"><h3 class="font-display font-bold" style="font-size:17px">الزيارات</h3><span class="text-dim" style="font-size:12px">آخر 6 أشهر</span></div><div style="height:200px;position:relative"><canvas id="mini-visits"></canvas></div></div></div>'+
+
+  '<div class="grid grid-2 gap-6 mb-8" style="grid-template-columns:1fr 1fr">'+
+  '<div class="card p-6"><div class="flex justify-between items-center mb-5"><h3 class="font-display font-bold" style="font-size:17px">أحدث العملاء</h3><button class="btn btn-ghost btn-sm" onclick="switchTab(\'customers\')">عرض الكل <i class="fas fa-chevron-left" style="font-size:10px"></i></button></div>'+
+  '<div class="space-y-3">'+S.customers.slice(0,5).map(function(c){return'<div class="flex items-center justify-between p-3 rounded-md" style="background:var(--bg2);border:1px solid var(--border)"><div class="flex items-center gap-3"><div class="avatar-initial sm" style="background:var(--accent-glow);color:var(--accent)">'+c.name.charAt(0)+'</div><div><div style="font-size:13px;font-weight:600">'+c.name+'</div><div class="text-dim" style="font-size:12px">'+c.region+' • '+fmtDate(c.joined)+'</div></div></div><div class="text-left"><div style="font-size:13px;font-weight:700;color:var(--accent)">'+fmtMoney(c.spent)+'</div>'+statusBadge(c.status)+'</div></div>';}).join('')+'</div></div>'+
+
+  '<div class="card p-6"><div class="flex justify-between items-center mb-5"><h3 class="font-display font-bold" style="font-size:17px">النشاط الأخير</h3><button class="btn btn-ghost btn-sm" onclick="switchTab(\'logs\')">عرض الكل <i class="fas fa-chevron-left" style="font-size:10px"></i></button></div>'+
+  '<div class="space-y-0">'+S.logs.slice(0,6).map(function(l){return'<div class="log-item"><div class="log-icon lg-'+l.type+'"><i class="fas '+(l.type==='success'?'fa-check':l.type==='warning'?'fa-exclamation':l.type==='danger'?'fa-xmark':'fa-info')+'"></i></div><div class="flex-1"><div style="font-size:13px">'+l.action+'</div><div class="text-dim" style="font-size:11px">'+l.user+'</div></div><div class="log-time">'+timeAgo(l.time)+'</div></div>';}).join('')+'</div></div></div>';
+}
+function statCard(icon,label,value,sub,subColor){
+  return'<div class="stat-card"><div class="flex items-center gap-3 mb-4"><div class="stat-icon" style="background:var(--accent-glow);color:var(--accent)"><i class="fas '+icon+'"></i></div><span class="text-muted" style="font-size:13px;font-weight:500">'+label+'</span></div><div style="font-size:26px;font-weight:700;margin-bottom:4px" class="font-display">'+value+'</div><div style="font-size:12px;color:'+subColor+';font-weight:500">'+sub+'</div></div>';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB: REVENUE
+   ═══════════════════════════════════════════════════════════════ */
+function renderRevenue(){
+  var data=S.revenueData[S.revenueRange];
+  var total=data.reduce(function(s,d){return s+d.value;},0);
+  var avg=Math.round(total/data.length);
+  var max=data.reduce(function(m,d){return d.value>m.value?d:m;},data[0]);
+  var min=data.reduce(function(m,d){return d.value<m.value?d:m;},data[0]);
+  return'<div class="flex flex-wrap items-center justify-between gap-4 mb-6">'+
+  '<div><h2 class="font-display" style="font-size:26px;font-weight:700">تحليل الإيرادات</h2><p class="text-muted mt-1" style="font-size:14px">إجمالي: <span class="gradient-text" style="font-weight:700">'+fmtMoney(total)+'</span></p></div>'+
+  '<button class="btn btn-primary btn-sm" onclick="exportRevenue()"><i class="fas fa-download"></i>تصدير CSV</button></div>'+
+
+  '<div class="grid grid-3 gap-5 mb-6 stagger">'+
+  statCard('fa-calculator','المتوسط',fmtMoney(avg),'لكل '+(S.revenueRange==='daily'?'يوم':S.revenueRange==='weekly'?'أسبوع':'شهر'),'var(--accent)')+
+  statCard('fa-arrow-trend-up','الأعلى',fmtMoney(max.value),max.label,'var(--success)')+
+  statCard('fa-arrow-trend-down','الأدنى',fmtMoney(min.value),min.label,'var(--warn)')+'</div>'+
+
+  '<div class="card p-6 mb-6"><div class="flex flex-wrap items-center justify-between gap-4 mb-5"><h3 class="font-display font-bold" style="font-size:17px">رسم بياني</h3>'+
+  '<div class="tab-filter"><button class="'+(S.revenueRange==='daily'?'active':'')+'" onclick="S.revenueRange=\'daily\';renderTab()">يومي</button><button class="'+(S.revenueRange==='weekly'?'active':'')+'" onclick="S.revenueRange=\'weekly\';renderTab()">أسبوعي</button><button class="'+(S.revenueRange==='monthly'?'active':'')+'" onclick="S.revenueRange=\'monthly\';renderTab()">شهري</button></div></div>'+
+  '<div style="height:300px;position:relative"><canvas id="revenue-chart"></canvas></div></div>'+
+
+  '<div class="card p-6"><h3 class="font-display font-bold mb-5" style="font-size:17px">تفاصيل</h3><table class="data-table"><thead><tr><th>الفترة</th><th>الإيرادات</th><th>النسبة</th></tr></thead><tbody>'+
+  data.map(function(d){var pct=Math.round((d.value/total)*100);return'<tr><td style="font-weight:500">'+d.label+'</td><td class="font-bold" style="color:var(--accent)">'+fmtMoney(d.value)+'</td><td><div class="flex items-center gap-3"><div class="progress-bar" style="max-width:120px;flex:1"><div class="progress-bar-fill" style="width:'+pct+'%"></div></div><span class="text-dim" style="font-size:12px">'+pct+'%</span></div></td></tr>';}).join('')+'</tbody></table></div>';
+}
+function exportRevenue(){var data=S.revenueData[S.revenueRange];exportCSV('revenue_'+S.revenueRange+'.csv',['الفترة','الإيرادات (ج.م)'],data.map(function(d){return[d.label,d.value];}));}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB: VISITS
+   ═══════════════════════════════════════════════════════════════ */
+function renderVisits(){
+  var data=S.visitData[S.visitRange];var total=data.reduce(function(s,d){return s+d.value;},0);var avg=Math.round(total/data.length);
+  var max=data.reduce(function(m,d){return d.value>m.value?d:m;},data[0]);
+  var sources=[{name:'بحث مباشر',pct:42,color:'var(--accent)'},{name:'وسائل التواصل',pct:28,color:'var(--info)'},{name:'روابط خارجية',pct:18,color:'var(--success)'},{name:'مباشر',pct:12,color:'var(--warn)'}];
+  return'<div class="flex flex-wrap items-center justify-between gap-4 mb-6">'+
+  '<div><h2 class="font-display" style="font-size:26px;font-weight:700">إحصائيات الزيارات</h2><p class="text-muted mt-1" style="font-size:14px">إجمالي: <span class="gradient-text" style="font-weight:700">'+fmt(total)+'</span> زيارة</p></div>'+
+  '<button class="btn btn-primary btn-sm" onclick="exportVisits()"><i class="fas fa-download"></i>تصدير CSV</button></div>'+
+
+  '<div class="grid grid-3 gap-5 mb-6 stagger">'+
+  statCard('fa-calculator','المتوسط',fmt(avg),'لكل '+(S.visitRange==='daily'?'يوم':S.visitRange==='weekly'?'أسبوع':'شهر'),'var(--info)')+
+  statCard('fa-arrow-trend-up','أعلى زيارة',fmt(max.value),max.label,'var(--success)')+
+  statCard('fa-chart-pie','مصادر الزيارات','4 مصادر','بحث مباشر 42%','var(--accent)')+'</div>'+
+
+  '<div class="grid grid-2 gap-6 mb-6" style="grid-template-columns:2fr 1fr">'+
+  '<div class="card p-6"><div class="flex flex-wrap items-center justify-between gap-4 mb-5"><h3 class="font-display font-bold" style="font-size:17px">رسم بياني</h3>'+
+  '<div class="tab-filter"><button class="'+(S.visitRange==='daily'?'active':'')+'" onclick="S.visitRange=\'daily\';renderTab()">يومي</button><button class="'+(S.visitRange==='weekly'?'active':'')+'" onclick="S.visitRange=\'weekly\';renderTab()">أسبوعي</button><button class="'+(S.visitRange==='monthly'?'active':'')+'" onclick="S.visitRange=\'monthly\';renderTab()">شهري</button></div></div>'+
+  '<div style="height:300px;position:relative"><canvas id="visits-chart"></canvas></div></div>'+
+
+  '<div class="card p-6"><h3 class="font-display font-bold mb-5" style="font-size:17px">مصادر الزيارات</h3><div class="space-y-5">'+sources.map(function(s){return'<div><div class="flex justify-between mb-2" style="font-size:13px"><span>'+s.name+'</span><span style="font-weight:700">'+s.pct+'%</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width:'+s.pct+'%;background:'+s.color+'"></div></div></div>';}).join('')+'</div></div></div>';
+}
+function exportVisits(){var data=S.visitData[S.visitRange];exportCSV('visits_'+S.visitRange+'.csv',['الفترة','الزيارات'],data.map(function(d){return[d.label,d.value];}));}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB: CUSTOMERS
+   ═══════════════════════════════════════════════════════════════ */
+function renderCustomers(){
+  var filtered=S.customers.filter(function(c){
+    var mf=S.customerFilter==='all'||c.status===S.customerFilter;
+    var ms=!S.customerSearch||c.name.includes(S.customerSearch)||c.email.includes(S.customerSearch)||c.phone.includes(S.customerSearch);
+    return mf&&ms;
+  });
+  var pg=paginate(filtered,S.customerPage,8);
+  return'<div class="flex flex-wrap items-center justify-between gap-4 mb-6">'+
+  '<div><h2 class="font-display" style="font-size:26px;font-weight:700">إدارة العملاء</h2><p class="text-muted mt-1" style="font-size:14px">'+filtered.length+' عميل</p></div>'+
+  '<button class="btn btn-primary btn-sm" onclick="exportCustomers()"><i class="fas fa-download"></i>تصدير</button></div>'+
+
+  '<div class="flex flex-wrap gap-3 mb-6">'+
+  '<div class="search-bar flex-1" style="max-width:320px"><i class="fas fa-search"></i><input class="input" style="padding-right:42px;font-size:13px" placeholder="بحث بالاسم أو البريد أو الهاتف..." value="'+S.customerSearch+'" oninput="S.customerSearch=this.value;S.customerPage=1;renderTab()"></div>'+
+  '<div class="tab-filter"><button class="'+(S.customerFilter==='all'?'active':'')+'" onclick="S.customerFilter=\'all\';S.customerPage=1;renderTab()">الكل</button><button class="'+(S.customerFilter==='active'?'active':'')+'" onclick="S.customerFilter=\'active\';S.customerPage=1;renderTab()">نشط</button><button class="'+(S.customerFilter==='inactive'?'active':'')+'" onclick="S.customerFilter=\'inactive\';S.customerPage=1;renderTab()">غير نشط</button></div></div>'+
+
+  (pg.items.length===0?'<div class="empty-state"><i class="fas fa-users"></i><h3>لا يوجد عملاء</h3></div>':
+  '<div class="card overflow-hidden"><table class="data-table"><thead><tr><th>العميل</th><th>الهاتف</th><th>المنطقة</th><th>الحجوزات</th><th>المصروف</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>'+
+  pg.items.map(function(c){return'<tr><td><div class="flex items-center gap-3"><div class="avatar-initial sm" style="background:var(--accent-glow);color:var(--accent)">'+c.name.charAt(0)+'</div><div><div style="font-size:13px;font-weight:600">'+c.name+'</div><div class="text-dim" style="font-size:12px">'+c.email+'</div></div></div></td><td style="font-size:13px">'+c.phone+'</td><td style="font-size:13px">'+c.region+'</td><td style="font-size:13px;font-weight:600">'+c.bookings+'</td><td style="font-size:13px;font-weight:700;color:var(--accent)">'+fmtMoney(c.spent)+'</td><td>'+statusBadge(c.status)+'</td><td><div class="flex gap-2"><button class="btn-icon" onclick="editCustomer('+c.id+')" title="تعديل"><i class="fas fa-pen" style="font-size:12px"></i></button>'+(canDo('all')?'<button class="btn-icon danger" onclick="deleteCustomer('+c.id+')" title="حذف"><i class="fas fa-trash" style="font-size:12px"></i></button>':'')+'</div></td></tr>';}).join('')+'</tbody></table></div>')+paginationHTML(pg.page,pg.total,'goCustomerPage');
+}
+function goCustomerPage(p){S.customerPage=p;renderTab();}
+function editCustomer(id){
+  var c=S.customers.find(function(x){return x.id===id;});if(!c)return;
+  openModal('<div class="flex justify-between items-center mb-6"><h3 class="font-display" style="font-size:20px;font-weight:700">تعديل عميل</h3><button onclick="closeModal()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:4px"><i class="fas fa-xmark"></i></button></div>'+
+  '<form onsubmit="saveCustomer(event,'+id+')" class="space-y-5">'+
+  '<div class="grid grid-2 gap-4" style="grid-template-columns:1fr 1fr"><div><label>الاسم</label><input class="input" id="ec-name" value="'+c.name+'" required></div><div><label>البريد</label><input class="input" id="ec-email" type="email" value="'+c.email+'" required></div></div>'+
+  '<div class="grid grid-2 gap-4" style="grid-template-columns:1fr 1fr"><div><label>الهاتف</label><input class="input" id="ec-phone" value="'+c.phone+'"></div><div><label>المنطقة</label><input class="input" id="ec-region" value="'+c.region+'"></div></div>'+
+  '<div><label>الحالة</label><select class="input" id="ec-status"><option value="active" '+(c.status==='active'?'selected':'')+'>نشط</option><option value="inactive" '+(c.status==='inactive'?'selected':'')+'>غير نشط</option></select></div>'+
+  '<div class="flex gap-3 pt-2"><button type="button" onclick="closeModal()" class="btn btn-secondary flex-1">إلغاء</button><button type="submit" class="btn btn-primary flex-1">حفظ التعديلات</button></div></form>');
+}
+function saveCustomer(e,id){
+  e.preventDefault();var c=S.customers.find(function(x){return x.id===id;});if(!c)return;
+  c.name=document.getElementById('ec-name').value;c.email=document.getElementById('ec-email').value;
+  c.phone=document.getElementById('ec-phone').value;c.region=document.getElementById('ec-region').value;
+  c.status=document.getElementById('ec-status').value;
+  closeModal();renderTab();showToast('تم تحديث بيانات العميل','success');
+  addLog('تعديل بيانات عميل: '+c.name,S.admin.name,'warning');
+}
+function deleteCustomer(id){
+  var c=S.customers.find(function(x){return x.id===id;});if(!c)return;
+  openModal('<div class="text-center"><div style="width:64px;height:64px;border-radius:50%;background:rgba(248,113,113,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><i class="fas fa-trash" style="font-size:24px;color:var(--danger)"></i></div><h3 class="font-display" style="font-size:20px;font-weight:700;margin-bottom:8px">حذف العميل؟</h3><p class="text-muted" style="font-size:14px;margin-bottom:24px">سيتم حذف <strong>'+c.name+'</strong> نهائياً.</p><div class="flex gap-3"><button onclick="closeModal()" class="btn btn-secondary flex-1">إلغاء</button><button onclick="confirmDeleteCustomer('+id+')" class="btn btn-danger flex-1" style="padding:12px">حذف</button></div></div>');
+}
+function confirmDeleteCustomer(id){
+  var c=S.customers.find(function(x){return x.id===id;});
+  S.customers=S.customers.filter(function(x){return x.id!==id;});
+  closeModal();renderTab();showToast('تم حذف العميل','info');
+  addLog('حذف عميل: '+(c?c.name:''),S.admin.name,'danger');
+}
+function exportCustomers(){exportCSV('customers.csv',['الاسم','البريد','الهاتف','المنطقة','الحجوزات','المصروف','الحالة','تاريخ الانضمام'],S.customers.map(function(c){return[c.name,c.email,c.phone,c.region,c.bookings,c.spent,c.status,c.joined];}));}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB: PHOTOGRAPHERS
+   ═══════════════════════════════════════════════════════════════ */
+function renderPhotographers(){
+  var filtered=S.photographers.filter(function(p){return!S.photoSearch||p.name.includes(S.photoSearch)||p.specialty.includes(S.photoSearch)||p.region.includes(S.photoSearch);});
+  var pg=paginate(filtered,S.photoPage,8);
+  return'<div class="flex flex-wrap items-center justify-between gap-4 mb-6">'+
+  '<div><h2 class="font-display" style="font-size:26px;font-weight:700">إدارة المصورين</h2><p class="text-muted mt-1" style="font-size:14px">'+filtered.length+' مصور</p></div>'+
+  '<button class="btn btn-primary btn-sm" onclick="exportPhotographers()"><i class="fas fa-download"></i>تصدير</button></div>'+
+
+  '<div class="search-bar mb-6" style="max-width:360px"><i class="fas fa-search"></i><input class="input" style="padding-right:42px;font-size:13px" placeholder="بحث بالاسم أو التخصص أو المنطقة..." value="'+S.photoSearch+'" oninput="S.photoSearch=this.value;S.photoPage=1;renderTab()"></div>'+
+
+  (pg.items.length===0?'<div class="empty-state"><i class="fas fa-camera-retro"></i><h3>لا يوجد مصورون</h3></div>':
+  '<div class="card overflow-hidden"><table class="data-table"><thead><tr><th>المصور</th><th>التخصص</th><th>المنطقة</th><th>التقييم</th><th>الحجوزات</th><th>الإيرادات</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>'+
+  pg.items.map(function(p){return'<tr><td><div class="flex items-center gap-3"><div class="avatar-initial sm" style="background:var(--accent-glow);color:var(--accent)">'+p.name.charAt(0)+'</div><div><div style="font-size:13px;font-weight:600">'+p.name+'</div>'+(p.featured?'<span class="badge badge-featured" style="font-size:9px;padding:2px 6px"><i class="fas fa-star" style="font-size:8px"></i> مميز</span>':'')+'</div></div></td><td style="font-size:13px">'+p.specialty+'</td><td style="font-size:13px">'+p.region+'</td><td><div class="flex items-center gap-1">'+stars(p.rating)+'<span class="text-dim mr-1" style="font-size:11px">'+p.rating+'</span></div></td><td style="font-size:13px;font-weight:600">'+p.bookings+'</td><td style="font-size:13px;font-weight:700;color:var(--accent)">'+fmtMoney(p.revenue)+'</td><td>'+statusBadge(p.status)+'</td><td><div class="flex gap-2"><button class="btn-icon" onclick="viewPhotoDetail('+p.id+')" title="تفاصيل"><i class="fas fa-eye" style="font-size:12px"></i></button>'+(canDo('all')?'<button class="btn-icon '+(p.status==='suspended'?'':'danger')+'" onclick="togglePhotoStatus('+p.id+')" title="'+(p.status==='suspended'?'تفعيل':'إيقاف')+'"><i class="fas '+(p.status==='suspended'?'fa-check':'fa-ban')+'" style="font-size:12px"></i></button>':'')+'</div></td></tr>';}).join('')+'</tbody></table></div>')+paginationHTML(pg.page,pg.total,'goPhotoPage');
+}
+function goPhotoPage(p){S.photoPage=p;renderTab();}
+function viewPhotoDetail(id){
+  var p=S.photographers.find(function(x){return x.id===id;});if(!p)return;
+  openModal('<div class="flex justify-between items-center mb-6"><h3 class="font-display" style="font-size:20px;font-weight:700">تفاصيل المصور</h3><button onclick="closeModal()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:4px"><i class="fas fa-xmark"></i></button></div>'+
+  '<div class="text-center mb-6"><div class="avatar-initial xl" style="background:var(--accent-glow);color:var(--accent);margin:0 auto 12px">'+p.name.charAt(0)+'</div><h4 class="font-display" style="font-size:18px;font-weight:700">'+p.name+'</h4><p style="color:var(--accent);font-size:14px">'+p.specialty+'</p>'+(p.featured?'<span class="badge badge-featured mt-2" style="font-size:11px"><i class="fas fa-star" style="font-size:9px"></i> مصور مميز</span>':'')+'</div>'+
+  '<div class="grid grid-2 gap-4 mb-6" style="grid-template-columns:1fr 1fr">'+
+  '<div style="padding:16px;border-radius:var(--radius-md);background:var(--bg2);border:1px solid var(--border);text-align:center"><div style="font-size:24px;font-weight:700" class="font-display">'+p.bookings+'</div><div class="text-dim" style="font-size:12px">حجز</div></div>'+
+  '<div style="padding:16px;border-radius:var(--radius-md);background:var(--bg2);border:1px solid var(--border);text-align:center"><div style="font-size:24px;font-weight:700" class="gradient-text">'+fmtMoney(p.revenue)+'</div><div class="text-dim" style="font-size:12px">إيرادات</div></div></div>'+
+  '<div class="space-y-3" style="font-size:13px"><div class="flex justify-between p-3 rounded-md" style="background:var(--bg2)"><span class="text-muted">المنطقة</span><span style="font-weight:600">'+p.region+'</span></div><div class="flex justify-between p-3 rounded-md" style="background:var(--bg2)"><span class="text-muted">التقييم</span><span>'+stars(p.rating)+' '+p.rating+'</span></div><div class="flex justify-between p-3 rounded-md" style="background:var(--bg2)"><span class="text-muted">الباقات</span><span style="font-weight:600">'+p.packages+'</span></div><div class="flex justify-between p-3 rounded-md" style="background:var(--bg2)"><span class="text-muted">تاريخ الانضمام</span><span>'+fmtDate(p.joined)+'</span></div><div class="flex justify-between p-3 rounded-md" style="background:var(--bg2)"><span class="text-muted">الحالة</span>'+statusBadge(p.status)+'</div></div>',true);
+}
+function togglePhotoStatus(id){
+  var p=S.photographers.find(function(x){return x.id===id;});if(!p)return;
+  p.status=p.status==='suspended'?'active':'suspended';
+  renderTab();showToast(p.status==='suspended'?'تم إيقاف المصور':'تم تفعيل المصور',p.status==='suspended'?'warning':'success');
+  addLog((p.status==='suspended'?'إيقاف':'تفعيل')+' مصور: '+p.name,S.admin.name,p.status==='suspended'?'danger':'success');
+}
+function exportPhotographers(){exportCSV('photographers.csv',['الاسم','التخصص','المنطقة','التقييم','الحجوزات','الإيرادات','الحالة','الباقات','تاريخ الانضمام'],S.photographers.map(function(p){return[p.name,p.specialty,p.region,p.rating,p.bookings,p.revenue,p.status,p.packages,p.joined];}));}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB: CONTENT
+   ═══════════════════════════════════════════════════════════════ */
+function renderContent(){
+  var c=S.content;
+  return'<div class="mb-6"><h2 class="font-display" style="font-size:26px;font-weight:700">إدارة المحتوى</h2><p class="text-muted mt-1" style="font-size:14px">تعديل نصوص ومحتوى الموقع</p></div>'+
+  '<form onsubmit="saveContent(event)" class="space-y-6">'+
+
+  '<div class="card p-6"><h3 class="font-display font-bold mb-5" style="font-size:17px"><i class="fas fa-home ml-2" style="color:var(--accent)"></i>الصفحة الرئيسية</h3>'+
+  '<div class="grid grid-2 gap-4 mb-4" style="grid-template-columns:1fr 1fr"><div><label>العنوان (عربي)</label><input class="input" id="ct-heroAr" value="'+c.heroTitleAr+'"></div><div><label>العنوان (إنجليزي)</label><input class="input" id="ct-heroEn" value="'+c.heroTitleEn+'" dir="ltr"></div></div>'+
+  '<div class="grid grid-2 gap-4" style="grid-template-columns:1fr 1fr"><div><label>الوصف (عربي)</label><textarea class="input" id="ct-descAr" rows="3">'+c.heroDescAr+'</textarea></div><div><label>الوصف (إنجليزي)</label><textarea class="input" id="ct-descEn" rows="3" dir="ltr">'+c.heroDescEn+'</textarea></div></div></div>'+
+
+  '<div class="card p-6"><h3 class="font-display font-bold mb-5" style="font-size:17px"><i class="fas fa-circle-info ml-2" style="color:var(--accent)"></i>الفوتر</h3>'+
+  '<div class="grid grid-2 gap-4" style="grid-template-columns:1fr 1fr"><div><label>نبذة (عربي)</label><textarea class="input" id="ct-footAr" rows="2">'+c.footerAboutAr+'</textarea></div><div><label>نبذة (إنجليزي)</label><textarea class="input" id="ct-footEn" rows="2" dir="ltr">'+c.footerAboutEn+'</textarea></div></div></div>'+
+
+  '<div class="card p-6"><h3 class="font-display font-bold mb-5" style="font-size:17px"><i class="fas fa-sliders ml-2" style="color:var(--accent)"></i>إعدادات النظام</h3>'+
+  '<div class="space-y-4">'+
+  '<div class="flex items-center justify-between p-4 rounded-md" style="background:var(--bg2)"><div><div style="font-size:14px;font-weight:600">وضع الصيانة</div><div class="text-dim" style="font-size:12px">إيقاف الموقع مؤقتاً للزوار</div></div><div class="toggle-track '+(c.maintenanceMode?'on':'')+'" onclick="this.classList.toggle(\'on\')"></div></div>'+
+  '<div class="flex items-center justify-between p-4 rounded-md" style="background:var(--bg2)"><div><div style="font-size:14px;font-weight:600">فتح التسجيل</div><div class="text-dim" style="font-size:12px">السماح بتسجيل مصورين جدد</div></div><div class="toggle-track '+(c.registrationOpen?'on':'')+'" onclick="this.classList.toggle(\'on\')"></div></div>'+
+  '<div class="grid grid-3 gap-4" style="grid-template-columns:1fr 1fr 1fr"><div><label>أقصى عدد باقات مجانية</label><input class="input" type="number" id="ct-maxPkg" value="'+c.maxFreePackages+'" min="1"></div><div><label>أيام التجربة</label><input class="input" type="number" id="ct-trial" value="'+c.trialDays+'" min="1"></div></div></div></div>'+
+
+  '<button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk"></i>حفظ جميع التعديلات</button></form>';
+}
+function saveContent(e){
+  e.preventDefault();S.content.heroTitleAr=document.getElementById('ct-heroAr').value;S.content.heroTitleEn=document.getElementById('ct-heroEn').value;
+  S.content.heroDescAr=document.getElementById('ct-descAr').value;S.content.heroDescEn=document.getElementById('ct-descEn').value;
+  S.content.footerAboutAr=document.getElementById('ct-footAr').value;S.content.footerAboutEn=document.getElementById('ct-footEn').value;
+  S.content.maxFreePackages=parseInt(document.getElementById('ct-maxPkg').value)||3;S.content.trialDays=parseInt(document.getElementById('ct-trial').value)||7;
+  showToast('تم حفظ المحتوى بنجاح','success');addLog('تحديث محتوى الموقع',S.admin.name,'info');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB: USERS
+   ═══════════════════════════════════════════════════════════════ */
+function renderUsers(){
+  if(!canDo('all'))return'<div class="empty-state"><i class="fas fa-lock"></i><h3>ليس لديك صلاحية</h3></div>';
+  return'<div class="flex flex-wrap items-center justify-between gap-4 mb-6">'+
+  '<div><h2 class="font-display" style="font-size:26px;font-weight:700">إدارة المسؤولين</h2><p class="text-muted mt-1" style="font-size:14px">'+S.admins.length+' مسؤول</p></div>'+
+  '<button class="btn btn-primary btn-sm" onclick="addAdminForm()"><i class="fas fa-plus"></i>إضافة مسؤول</button></div>'+
+
+  '<div class="grid grid-2 gap-5 stagger" style="grid-template-columns:repeat(2,1fr)">'+
+  S.admins.map(function(a){return'<div class="card p-5"><div class="flex items-start justify-between mb-4"><div class="flex items-center gap-3"><div class="avatar-initial md" style="background:linear-gradient(135deg,var(--accent-d),var(--accent-l));color:#fff">'+a.name.charAt(0)+'</div><div><div style="font-weight:600;font-size:14px">'+a.name+'</div><div class="text-muted" style="font-size:12px">'+a.email+'</div></div></div>'+roleBadge(a.role)+'</div>'+
+  '<div class="grid grid-2 gap-3 mb-4" style="grid-template-columns:1fr 1fr"><div style="font-size:12px"><span class="text-dim">آخر دخول:</span><br><span style="font-weight:600;font-size:11px">'+fmtDateTime(a.lastLogin)+'</span></div><div style="font-size:12px"><span class="text-dim">الحالة:</span><br>'+(a.active?'<span class="badge badge-active">نشط</span>':'<span class="badge badge-cancelled">معطل</span>')+'</div></div>'+
+  '<div class="flex gap-2">'+(a.id!==1?'<button class="btn btn-ghost btn-sm" onclick="editAdmin('+a.id+')"><i class="fas fa-pen" style="font-size:11px"></i> تعديل</button><button class="btn '+(a.active?'btn-danger':'btn-success')+' btn-xs" onclick="toggleAdmin('+a.id+')"><i class="fas '+(a.active?'fa-ban':'fa-check')+'"></i> '+(a.active?'تعطيل':'تفعيل')+'</button>':'<span class="text-dim" style="font-size:11px">الحساب الأساسي</span>')+'</div></div>';}).join('')+'</div>';
+}
+function addAdminForm(){
+  openModal('<div class="flex justify-between items-center mb-6"><h3 class="font-display" style="font-size:20px;font-weight:700">إضافة مسؤول</h3><button onclick="closeModal()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:4px"><i class="fas fa-xmark"></i></button></div>'+
+  '<form onsubmit="saveNewAdmin(event)" class="space-y-5">'+
+  '<div><label>الاسم</label><input class="input" id="na-name" required></div>'+
+  '<div><label>البريد الإلكتروني</label><input class="input" id="na-email" type="email" required></div>'+
+  '<div><label>كلمة المرور</label><input class="input" id="na-pass" type="password" required minlength="6"></div>'+
+  '<div><label>الصلاحية</label><select class="input" id="na-role"><option value="moderator">مراقب</option><option value="editor">محرر</option><option value="admin">مشرف عام</option></select></div>'+
+  '<div class="flex gap-3 pt-2"><button type="button" onclick="closeModal()" class="btn btn-secondary flex-1">إلغاء</button><button type="submit" class="btn btn-primary flex-1">إضافة</button></div></form>');
+}
+function saveNewAdmin(e){
+  e.preventDefault();var email=document.getElementById('na-email').value.trim();
+  if(S.admins.find(function(a){return a.email===email;})){showToast('البريد مسجل مسبقاً','error');return;}
+  S.admins.push({id:++S.nextId,name:document.getElementById('na-name').value,email:email,passHash:document.getElementById('na-pass').value,role:document.getElementById('na-role').value,active:true,createdAt:new Date().toISOString().split('T')[0],lastLogin:'-'});
+  closeModal();renderTab();showToast('تم إضافة المسؤول','success');addLog('إضافة مسؤول جديد: '+document.getElementById('na-name').value,S.admin.name,'success');
+}
+function editAdmin(id){
+  var a=S.admins.find(function(x){return x.id===id;});if(!a)return;
+  openModal('<div class="flex justify-between items-center mb-6"><h3 class="font-display" style="font-size:20px;font-weight:700">تعديل مسؤول</h3><button onclick="closeModal()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:4px"><i class="fas fa-xmark"></i></button></div>'+
+  '<form onsubmit="saveAdminEdit(event,'+id+')" class="space-y-5">'+
+  '<div><label>الاسم</label><input class="input" id="ea-name" value="'+a.name+'" required></div>'+
+  '<div><label>البريد</label><input class="input" id="ea-email" type="email" value="'+a.email+'" required></div>'+
+  '<div><label>كلمة المرور الجديدة (اتركها فارغة لعدم التغيير)</label><input class="input" id="ea-pass" type="password"></div>'+
+  '<div><label>الصلاحية</label><select class="input" id="ea-role"><option value="moderator" '+(a.role==='moderator'?'selected':'')+'>مراقب</option><option value="editor" '+(a.role==='editor'?'selected':'')+'>محرر</option><option value="admin" '+(a.role==='admin'?'selected':'')+'>مشرف عام</option></select></div>'+
+  '<div class="flex gap-3 pt-2"><button type="button" onclick="closeModal()" class="btn btn-secondary flex-1">إلغاء</button><button type="submit" class="btn btn-primary flex-1">حفظ</button></div></form>');
+}
+function saveAdminEdit(e,id){
+  e.preventDefault();var a=S.admins.find(function(x){return x.id===id;});if(!a)return;
+  a.name=document.getElementById('ea-name').value;a.email=document.getElementById('ea-email').value;
+  var np=document.getElementById('ea-pass').value;if(np)a.passHash=np;a.role=document.getElementById('ea-role').value;
+  closeModal();renderTab();showToast('تم تحديث بيانات المسؤول','success');addLog('تعديل بيانات مسؤول: '+a.name,S.admin.name,'warning');
+}
+function toggleAdmin(id){var a=S.admins.find(function(x){return x.id===id;});if(!a)return;a.active=!a.active;renderTab();showToast(a.active?'تم تفعيل المسؤول':'تم تعطيل المسؤول',a.active?'success':'warning');addLog((a.active?'تفعيل':'تعطيل')+' مسؤول: '+a.name,S.admin.name,a.active?'success':'danger');}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB: NOTIFICATIONS
+   ═══════════════════════════════════════════════════════════════ */
+function renderNotifications(){
+  var unread=S.notifications.filter(function(n){return!n.read;}).length;
+  return'<div class="flex flex-wrap items-center justify-between gap-4 mb-6">'+
+  '<div><h2 class="font-display" style="font-size:26px;font-weight:700">الإشعارات</h2><p class="text-muted mt-1" style="font-size:14px">'+unread+' غير مقروءة من '+S.notifications.length+'</p></div>'+
+  (unread>0?'<button class="btn btn-secondary btn-sm" onclick="markAllRead()"><i class="fas fa-check-double"></i>قراءة الكل</button>':'')+'</div>'+
+
+  '<div class="card overflow-hidden">'+S.notifications.map(function(n){
+    return'<div class="notification-item '+(n.read?'':'unread')+'" onclick="markRead('+n.id+')"><div class="log-icon '+n.iconClass+'"><i class="fas '+n.icon+'"></i></div><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span style="font-size:14px;font-weight:600">'+n.title+'</span>'+(n.read?'':'<span style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block"></span>')+'</div><p class="text-muted" style="font-size:13px">'+n.msg+'</p></div><div class="text-dim" style="font-size:11px;white-space:nowrap">'+timeAgo(n.time)+'</div></div>';
+  }).join('')+(S.notifications.length===0?'<div class="empty-state"><i class="fas fa-bell-slash"></i><h3>لا توجد إشعارات</h3></div>':'')+'</div>';
+}
+function markRead(id){var n=S.notifications.find(function(x){return x.id===id;});if(n)n.read=true;renderTab();updateNotifBadge();}
+function markAllRead(){S.notifications.forEach(function(n){n.read=true;});renderTab();updateNotifBadge();showToast('تم قراءة جميع الإشعارات','info');}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB: SETTINGS
+   ═══════════════════════════════════════════════════════════════ */
+function renderSettings(){
+  var adm=S.admin||S.admins[0];
+  return'<div class="mb-6"><h2 class="font-display" style="font-size:26px;font-weight:700">إعدادات النظام</h2><p class="text-muted mt-1" style="font-size:14px">إدارة بيانات الدخول والصلاحيات وإعدادات المنصة</p></div>'+
+
+  /* ══ حساب الدخول ══ */
+  '<div class="card p-6 mb-6"><h3 class="font-display font-bold mb-5" style="font-size:17px"><i class="fas fa-user-gear ml-2" style="color:var(--accent)"></i>حساب الدخول</h3>'+
+  '<div style="padding:20px;border-radius:var(--radius-md);background:var(--bg2);border:1px solid var(--border);margin-bottom:16px">'+
+  '<div class="flex items-center gap-4 mb-5">'+
+  '<div class="avatar-initial lg" style="background:linear-gradient(135deg,var(--accent-d),var(--accent-l));color:#fff">'+(adm.name.charAt(0))+'</div>'+
+  '<div><div style="font-size:16px;font-weight:700">'+adm.name+'</div><div style="font-size:13px;color:var(--accent)">'+(adm.role==='admin'?'مشرف عام':adm.role==='editor'?'محرر':'مراقب')+'</div></div>'+
+  '</div>'+
+  '<div class="grid grid-2 gap-4" style="grid-template-columns:1fr 1fr">'+
+  '<div><label>البريد الإلكتروني الحالي</label><input class="input" id="st-email" value="'+adm.email+'"></div>'+
+  '<div><label>الاسم الكامل</label><input class="input" id="st-name" value="'+adm.name+'"></div>'+
+  '</div></div>'+
+
+  /* تغيير كلمة المرور */
+  '<div style="padding:20px;border-radius:var(--radius-md);background:var(--bg2);border:1px solid var(--border);margin-bottom:16px">'+
+  '<div class="flex items-center gap-3 mb-4"><i class="fas fa-key" style="color:var(--accent);font-size:16px"></i><span style="font-size:15px;font-weight:700">تغيير كلمة المرور</span></div>'+
+  '<div class="space-y-4">'+
+  '<div><label>كلمة المرور الحالية</label><div class="relative"><i class="fas fa-lock absolute" style="right:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px"></i><input type="password" class="input" id="st-oldpass" style="padding-right:42px" placeholder="أدخل كلمة المرور الحالية"><button type="button" onclick="togglePassVis(\'st-oldpass\',this)" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;padding:4px" tabindex="-1"><i class="fas fa-eye"></i></button></div></div>'+
+  '<div class="grid grid-2 gap-4" style="grid-template-columns:1fr 1fr">'+
+  '<div><label>كلمة المرور الجديدة</label><div class="relative"><i class="fas fa-lock absolute" style="right:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px"></i><input type="password" class="input" id="st-newpass" style="padding-right:42px" placeholder="6 أحرف على الأقل" oninput="checkPasswordStrength(this.value)"><button type="button" onclick="togglePassVis(\'st-newpass\',this)" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;padding:4px" tabindex="-1"><i class="fas fa-eye"></i></button></div><div id="pass-strength" style="margin-top:8px"></div></div>'+
+  '<div><label>تأكيد كلمة المرور</label><div class="relative"><i class="fas fa-lock absolute" style="right:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px"></i><input type="password" class="input" id="st-confirmpass" style="padding-right:42px" placeholder="أعد كتابة كلمة المرور"><button type="button" onclick="togglePassVis(\'st-confirmpass\',this)" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;padding:4px" tabindex="-1"><i class="fas fa-eye"></i></button></div><div id="pass-match" style="margin-top:8px"></div></div>'+
+  '</div></div></div>'+
+
+  /* سياسة كلمات المرور */
+  '<div style="padding:16px;border-radius:var(--radius-md);background:var(--bg2);border:1px solid var(--border)">'+
+  '<div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--accent)"><i class="fas fa-shield-halved ml-1"></i> متطلبات كلمة المرور</div>'+
+  '<div class="space-y-3">'+
+  '<div class="flex items-center justify-between p-3 rounded" style="background:var(--bg3)"><div><div style="font-size:13px;font-weight:500">الحد الأدنى للأحرف</div></div><select class="input" id="st-minlen" style="width:auto;min-width:100px"><option value="6" '+(S.settings.passMinLen===6?'selected':'')+'>6 أحرف</option><option value="8" '+(S.settings.passMinLen===8?'selected':'')+'>8 أحرف</option><option value="10" '+(S.settings.passMinLen===10?'selected':'')+'>10 أحرف</option><option value="12" '+(S.settings.passMinLen===12?'selected':'')+'>12 حرف</option></select></div>'+
+  '<div class="flex items-center justify-between p-3 rounded" style="background:var(--bg3)"><div><div style="font-size:13px;font-weight:500">طلب رمز تحقق عند التغيير</div><div class="text-dim" style="font-size:11px">إرسال كود للبريد قبل التعديل</div></div><div class="toggle-track on" onclick="this.classList.toggle(\'on\')"></div></div>'+
+  '<div class="flex items-center justify-between p-3 rounded" style="background:var(--bg3)"><div><div style="font-size:13px;font-weight:500">منع إعادة استخدام كلمات المرور</div><div class="text-dim" style="font-size:11px">عدم السماح بآخر 5 كلمات</div></div><div class="toggle-track on" onclick="this.classList.toggle(\'on\')"></div></div>'+
+  '</div></div>'+
+
+  '<div class="flex gap-3 mt-5"><button class="btn btn-primary" onclick="saveLoginSettings()"><i class="fas fa-floppy-disk"></i>حفظ بيانات الدخول</button><button class="btn btn-secondary" onclick="resetPasswordForm()"><i class="fas fa-rotate-left"></i>إعادة تعيين</button></div></div>'+
+
+  /* ══ الإعدادات العامة ══ */
+  '<div class="grid grid-2 gap-6" style="grid-template-columns:1fr 1fr">'+
+
+  '<div class="card p-6"><h3 class="font-display font-bold mb-5" style="font-size:17px"><i class="fas fa-globe ml-2" style="color:var(--accent)"></i>عام</h3><div class="space-y-4">'+
+  '<div><label>اسم الموقع</label><input class="input" value="DOF STUDIOS" readonly style="opacity:.7"></div>'+
+  '<div><label>اللغة الافتراضية</label><select class="input"><option selected>العربية</option><option>English</option></select></div>'+
+  '<div><label>العملة</label><select class="input"><option selected>جنيه مصري (EGP)</option><option>ريال سعودي (SAR)</option><option>دولار (USD)</option></select></div></div></div>'+
+
+  '<div class="card p-6"><h3 class="font-display font-bold mb-5" style="font-size:17px"><i class="fas fa-shield-halved ml-2" style="color:var(--accent)"></i>الأمان</h3><div class="space-y-4">'+
+  '<div class="flex items-center justify-between p-4 rounded-md" style="background:var(--bg2)"><div><div style="font-size:14px;font-weight:600">المصادقة الثنائية</div><div class="text-dim" style="font-size:12px">حماية إضافية لحساب المشرف</div></div><div class="toggle-track" onclick="this.classList.toggle(\'on\');showToast(\'تم تحديث الإعداد\',\'info\')"></div></div>'+
+  '<div class="flex items-center justify-between p-4 rounded-md" style="background:var(--bg2)"><div><div style="font-size:14px;font-weight:600">تسجيل الخروج التلقائي</div><div class="text-dim" style="font-size:12px">بعد 30 دقيقة عدم نشاط</div></div><div class="toggle-track on" onclick="this.classList.toggle(\'on\');showToast(\'تم تحديث الإعداد\',\'info\')"></div></div>'+
+  '<div class="flex items-center justify-between p-4 rounded-md" style="background:var(--bg2)"><div><div style="font-size:14px;font-weight:600">تسجيل الدخول بالـ IP</div><div class="text-dim" style="font-size:12px">تسجيل عنوان IP عند كل دخول</div></div><div class="toggle-track on" onclick="this.classList.toggle(\'on\');showToast(\'تم تحديث الإعداد\',\'info\')"></div></div></div></div>'+
+
+  '<div class="card p-6"><h3 class="font-display font-bold mb-5" style="font-size:17px"><i class="fas fa-bell ml-2" style="color:var(--accent)"></i>إشعارات النظام</h3><div class="space-y-4">'+
+  '<div class="flex items-center justify-between p-4 rounded-md" style="background:var(--bg2)"><div><div style="font-size:14px;font-weight:600">إشعارات جديدة</div><div class="text-dim" style="font-size:12px">إشعار عند كل نشاط جديد</div></div><div class="toggle-track on" onclick="this.classList.toggle(\'on\')"></div></div>'+
+  '<div class="flex items-center justify-between p-4 rounded-md" style="background:var(--bg2)"><div><div style="font-size:14px;font-weight:600">إشعارات الدفع</div><div class="text-dim" style="font-size:12px">نجاح أو فشل عمليات الدفع</div></div><div class="toggle-track on" onclick="this.classList.toggle(\'on\')"></div></div>'+
+  '<div class="flex items-center justify-between p-4 rounded-md" style="background:var(--bg2)"><div><div style="font-size:14px;font-weight:600">تقارير أسبوعية</div><div class="text-dim" style="font-size:12px">إرسال تقرير بالبريد كل أسبوع</div></div><div class="toggle-track" onclick="this.classList.toggle(\'on\')"></div></div></div></div>'+
+
+  '<div class="card p-6"><h3 class="font-display font-bold mb-5" style="font-size:17px"><i class="fas fa-database ml-2" style="color:var(--accent)"></i>النسخ الاحتياطي</h3><div class="space-y-4">'+
+  '<div style="padding:16px;border-radius:var(--radius-md);background:var(--bg2);border:1px solid var(--border)"><div class="flex items-center justify-between mb-2"><span style="font-size:14px;font-weight:600">آخر نسخة</span><span class="badge badge-active">مكتمل</span></div><div class="text-dim" style="font-size:12px">2025-06-15 الساعة 03:00 ص</div><div class="progress-bar mt-3"><div class="progress-bar-fill" style="width:100%"></div></div></div>'+
+  '<button class="btn btn-primary w-full justify-center" onclick="showToast(\'تم بدء النسخ الاحتياطي...\',\'info\')"><i class="fas fa-download"></i>إنشاء نسخة احتياطية الآن</button>'+
+  '<div><label>جدولة النسخ اليومي</label><select class="input"><option selected>03:00 صباحاً</option><option>06:00 صباحاً</option><option>12:00 منتصف الليل</option></select></div></div></div></div>'+
+
+  '<div class="mt-6"><button class="btn btn-primary" onclick="showToast(\'تم حفظ الإعدادات بنجاح\',\'success\');addLog(\'تحديث إعدادات النظام\',S.admin.name,\'info\')"><i class="fas fa-floppy-disk"></i>حفظ جميع الإعدادات</button></div>';
+}
+
+/* ── Password Strength Checker ─────────────────────────────── */
+function checkPasswordStrength(val){
+  var el=document.getElementById('pass-strength');if(!el)return;
+  if(!val){el.innerHTML='';return;}
+  var score=0;
+  if(val.length>=6)score++;if(val.length>=8)score++;
+  if(/[A-Z]/.test(val))score++;if(/[0-9]/.test(val))score++;if(/[^A-Za-z0-9]/.test(val))score++;
+  var levels=[{label:'ضعيفة جداً',color:'var(--danger)',pct:10},{label:'ضعيفة',color:'var(--danger)',pct:25},{label:'متوسطة',color:'var(--warn)',pct:50},{label:'جيدة',color:'var(--info)',pct:70},{label:'قوية',color:'var(--success)',pct:85},{label:'قوية جداً',color:'var(--success)',pct:100}];
+  var lvl=levels[Math.min(score,levels.length-1)];
+  el.innerHTML='<div style="font-size:11px;font-weight:600;color:'+lvl.color+';margin-bottom:4px">'+lvl.label+'</div><div class="progress-bar" style="height:4px"><div class="progress-bar-fill" style="width:'+lvl.pct+'%;background:'+lvl.color+'"></div></div>';
+  /* Check confirm match */
+  var confEl=document.getElementById('pass-match');
+  var confVal=document.getElementById('st-confirmpass')?document.getElementById('st-confirmpass').value:'';
+  if(confEl&&confVal){
+    if(confVal===val){confEl.innerHTML='<span style="font-size:11px;color:var(--success);font-weight:600"><i class="fas fa-check" style="font-size:10px"></i> متطابقة</span>';}
+    else{confEl.innerHTML='<span style="font-size:11px;color:var(--danger);font-weight:600"><i class="fas fa-xmark" style="font-size:10px"></i> غير متطابقة</span>';}
+  }
+}
+
+/* ── Save Login Settings ───────────────────────────────────── */
+function saveLoginSettings(){
+  var newEmail=document.getElementById('st-email').value.trim();
+  var newName=document.getElementById('st-name').value.trim();
+  var oldPass=document.getElementById('st-oldpass').value;
+  var newPass=document.getElementById('st-newpass').value;
+  var confirmPass=document.getElementById('st-confirmpass').value;
+  var minLen=parseInt(document.getElementById('st-minlen').value)||6;
+
+  if(!newEmail||!newName){showToast('البريد والاسم مطلوبان','error');return;}
+
+  /* Validate email format */
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)){showToast('صيغة البريد الإلكتروني غير صحيحة','error');return;}
+
+  /* If changing password */
+  if(oldPass||newPass||confirmPass){
+    if(!oldPass){showToast('أدخل كلمة المرور الحالية أولاً','error');return;}
+    if(oldPass!==S.admin.passHash){showToast('كلمة المرور الحالية غير صحيحة','error');return;}
+    if(newPass.length<minLen){showToast('كلمة المرور الجديدة يجب أن تكون '+minLen+' أحرف على الأقل','error');return;}
+    if(newPass!==confirmPass){showToast('كلمة المرور الجديدة غير متطابقة','error');return;}
+    S.admin.passHash=newPass;
+  }
+
+  /* Update admin info */
+  S.admin.email=newEmail;S.admin.name=newName;
+  document.getElementById('sb-name').textContent=newName;
+  document.getElementById('sb-avatar').textContent=newName.charAt(0);
+  S.settings.passMinLen=minLen;
+
+  showToast('تم حفظ بيانات الدخول بنجاح','success');
+  addLog('تحديث بيانات الدخول: '+newName,S.admin.name,'warning');
+}
+
+function resetPasswordForm(){
+  document.getElementById('st-oldpass').value='';
+  document.getElementById('st-newpass').value='';
+  document.getElementById('st-confirmpass').value='';
+  document.getElementById('pass-strength').innerHTML='';
+  document.getElementById('pass-match').innerHTML='';
+  showToast('تم إعادة تعيين النموذج','info');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB: LOGS
+   ═══════════════════════════════════════════════════════════════ */
+function renderLogs(){
+  var pg=paginate(S.logs,S.logPage,15);
+  var typeMap={success:'lg-success',warning:'lg-warning',danger:'lg-danger',info:'lg-info'};
+  var iconMap={success:'fa-check',warning:'fa-exclamation',danger:'fa-xmark',info:'fa-info'};
+  return'<div class="flex flex-wrap items-center justify-between gap-4 mb-6">'+
+  '<div><h2 class="font-display" style="font-size:26px;font-weight:700">سجل النشاط</h2><p class="text-muted mt-1" style="font-size:14px">'+S.logs.length+' سجل</p></div>'+
+  '<button class="btn btn-primary btn-sm" onclick="exportLogs()"><i class="fas fa-download"></i>تصدير</button></div>'+
+
+  '<div class="card overflow-hidden"><div style="max-height:600px;overflow-y:auto">'+
+  S.logs.map(function(l){return'<div class="log-item"><div class="log-icon '+typeMap[l.type]+'"><i class="fas '+iconMap[l.type]+'"></i></div><div class="flex-1"><div style="font-size:13px">'+l.action+'</div><div class="text-dim" style="font-size:11px">'+l.user+'</div></div><div class="log-time">'+timeAgo(l.time)+'</div></div>';}).join('')+
+  '</div></div>'+paginationHTML(pg.page,pg.total,'goLogPage');
+}
+function goLogPage(p){S.logPage=p;renderTab();}
+function exportLogs(){exportCSV('activity_logs.csv',['الإجراء','المستخدم','النوع','الوقت'],S.logs.map(function(l){return[l.action,l.user,l.type,l.time];}));}
+
+/* ═══════════════════════════════════════════════════════════════
+   PARTICLES — Enhanced Floating Background
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+  var canvas=document.createElement('canvas');
+  canvas.style.cssText='position:fixed;inset:0;z-index:0;pointer-events:none';
+  canvas.setAttribute('aria-hidden','true');
+  document.body.prepend(canvas);
+  var ctx=canvas.getContext('2d'),w,h,pts=[];
+  var reduced=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  function resize(){w=canvas.width=window.innerWidth;h=canvas.height=window.innerHeight;}
+  resize();window.addEventListener('resize',resize);
+
+  /* Create particles with varying sizes and opacities */
+  for(var i=0;i<30;i++){
+    pts.push({
+      x:Math.random()*w,y:Math.random()*h,
+      r:Math.random()*1.5+.3,
+      dx:(Math.random()-.5)*.15,
+      dy:(Math.random()-.5)*.15,
+      o:Math.random()*.15+.03,
+      pulse:Math.random()*Math.PI*2,
+      pulseSpeed:Math.random()*.01+.005
+    });
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    for(var i=0;i<pts.length;i++){
+      var p=pts[i];
+
+      /* Subtle pulse animation */
+      p.pulse+=p.pulseSpeed;
+      var currentO=p.o+Math.sin(p.pulse)*.03;
+
+      ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.1,p.r),0,Math.PI*2);
+      ctx.fillStyle='rgba(196,145,92,'+currentO+')';ctx.fill();
+
+      p.x+=p.dx;p.y+=p.dy;
+      if(p.x<-10)p.x=w+10;if(p.x>w+10)p.x=-10;
+      if(p.y<-10)p.y=h+10;if(p.y>h+10)p.y=-10;
+
+      /* Connection lines */
+      for(var j=i+1;j<pts.length;j++){
+        var dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);
+        if(d<140){
+          ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);
+          ctx.strokeStyle='rgba(196,145,92,'+(0.03*(1-d/140))+')';
+          ctx.lineWidth=.5;ctx.stroke();
+        }
+      }
+    }
+    if(!reduced)requestAnimationFrame(draw);
+  }
+  if(!reduced)draw();
+})();
+
+/* Enter key on login */
+document.getElementById('admin-pass').addEventListener('keydown',function(e){if(e.key==='Enter')document.querySelector('#login-screen form').dispatchEvent(new Event('submit'));});
+
+/* Initialize mobile check */
+checkMobile();
+</script>
+<script src="assets/js/admin.js"></script>
+</body>
+</html>

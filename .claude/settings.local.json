@@ -6,7 +6,13 @@
       "Bash(node server.js)",
       "Bash(curl -s http://localhost:3000/api/health)",
       "Bash(kill %1)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(grep -E \"\\\\.\\(html|js|json\\)$\")",
+      "Bash(grep -E \"\\\\.\\(sql|js\\)$\")",
+      "Bash(node --check /home/phantom/siko/assets/js/app.js)",
+      "Bash(node --check /home/phantom/siko/api/\\\\[...path\\\\].js)"
     ]
   }
 }

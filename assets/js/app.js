@@ -262,6 +262,21 @@ async function refreshWorkingHours(){
     return {dayOfWeek:row.day_of_week,startTime:String(row.start_time||'08:00').slice(0,5),endTime:String(row.end_time||'14:00').slice(0,5),enabled:row.enabled!==false};
   });
 }
+async function hydrateSiteContent(){
+  try{
+    var data=await apiRequest('/api/content');
+    var c=data.content||{};
+    if(c.heroTitle1En)T.en.heroTitle1=c.heroTitle1En;
+    if(c.heroTitle2En)T.en.heroTitle2=c.heroTitle2En;
+    if(c.heroDescEn)T.en.heroDesc=c.heroDescEn;
+    if(c.footerAboutEn)T.en.footerAbout=c.footerAboutEn;
+    if(c.heroTitle1Ar)T.ar.heroTitle1=c.heroTitle1Ar;
+    if(c.heroTitle2Ar)T.ar.heroTitle2=c.heroTitle2Ar;
+    if(c.heroDescAr)T.ar.heroDesc=c.heroDescAr;
+    if(c.footerAboutAr)T.ar.footerAbout=c.footerAboutAr;
+    S.siteSettings=data.settings||S.siteSettings||{};
+  }catch(e){}
+}
 async function hydrateAuthenticatedState(){
   if(!apiToken())return;
   try{
@@ -286,12 +301,13 @@ async function hydrateAuthenticatedState(){
 }
 function recomputeTrial(){
   if(!S.user||S.user.role!=='photographer')return;
+  var trialDays=(S.siteSettings&&Number(S.siteSettings.trialDays))||7;
   if(S.user.isSubscribed){S.trialDaysLeft=0;return;}
-  if(!S.user.createdAt){S.trialDaysLeft=7;return;}
+  if(!S.user.createdAt){S.trialDaysLeft=trialDays;return;}
   var created=new Date(S.user.createdAt).getTime();
-  if(isNaN(created)){S.trialDaysLeft=7;return;}
+  if(isNaN(created)){S.trialDaysLeft=trialDays;return;}
   var daysSince=Math.floor((Date.now()-created)/(1000*60*60*24));
-  S.trialDaysLeft=Math.max(0,7-daysSince);
+  S.trialDaysLeft=Math.max(0,trialDays-daysSince);
 }
 function saveFrontendSession(){
   try{
@@ -371,7 +387,7 @@ function checkSubscriptionStatus(){
 }
 function gf(p,f){return S.lang==='ar'?(p[f+'Ar']||p[f]):p[f];}
 function fmtD(ds){if(!ds)return'';var d=new Date(ds+'T00:00:00');return S.lang==='ar'?d.toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'}):d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});}
-function statusBadge(st){var m={pending:'badge-pending',confirmed:'badge-confirmed',cancelled:'badge-cancelled'};var l={pending:t('pending'),confirmed:t('confirmed'),cancelledStatus:t('cancelledStatus')};return'<span class="badge '+m[st]+'">'+(l[st]||st)+'</span>';}
+function statusBadge(st){var m={pending:'badge-pending',confirmed:'badge-confirmed',cancelled:'badge-cancelled',completed:'badge-confirmed'};var l={pending:t('pending'),confirmed:t('confirmed'),cancelled:t('cancelledStatus'),completed:S.lang==='ar'?'مكتمل':'Completed'};return'<span class="badge '+(m[st]||'badge-pending')+'">'+(l[st]||st)+'</span>';}
 var TIME_SLOTS_CACHE=null;
 function timeSlots(){
   if(TIME_SLOTS_CACHE){return TIME_SLOTS_CACHE.slice();}
@@ -2239,7 +2255,7 @@ async function handlePublicBooking(e){
   }catch(err){showToast(err.message||'فشل الحجز','error');return;}
   var conf=document.getElementById('pub-booking-confirmation');
   if(conf){
-    conf.innerHTML='<div class="font-semibold text-[var(--success)] mb-1">'+(S.lang==='ar'?'تم تأكيد الحجز بنجاح':'Booking confirmed successfully')+'</div>'+
+    conf.innerHTML='<div class="font-semibold text-[var(--success)] mb-1">'+(S.lang==='ar'?'تم إرسال طلب الحجز':'Booking request sent')+'</div>'+
     '<div class="text-sm text-[var(--text2)]">'+(S.lang==='ar'?'الخدمة: ':'Service: ')+newBooking.service+' • '+(S.lang==='ar'?'السعر: ':'Price: ')+'<span class="font-bold">'+formatMoney(newBooking.servicePrice)+'</span></div>'+
     '<button type="button" class="btn-secondary btn-sm mt-3" onclick="startAnotherBooking(\''+newBooking.serviceId+'\')">'+(S.lang==='ar'?'احجز موعد آخر':'Book Another Appointment')+'</button>';
     conf.classList.remove('hidden');
@@ -3033,11 +3049,13 @@ function loadDemoPhotographer(){
 }
 async function initializeCurrentPage(){
   restoreFrontendSession();
+  await hydrateSiteContent();
   if(apiToken())await hydrateAuthenticatedState();
   else{
     var storedProfile=readApiProfile();
     if(storedProfile)S.user=normalizeProfile(storedProfile);
   }
+  applyTranslations();
   var view=getPageView();
   S.view=view;
   if(view==='explore')loadExploreFilterFromUrl();
@@ -3048,11 +3066,11 @@ async function initializeCurrentPage(){
 
 /* ===== INITIALIZATION ===== */
 function applyTranslations(){
-  document.documentElement.lang='ar';
-  document.documentElement.dir='rtl';
+  document.documentElement.lang=S.lang;
+  document.documentElement.dir=S.lang==='ar'?'rtl':'ltr';
   document.querySelectorAll('[data-t]').forEach(function(el){
     var k=el.getAttribute('data-t');
-    if(T.ar[k])el.textContent=T.ar[k];
+    if(T[S.lang][k])el.textContent=T[S.lang][k];
   });
 }
 document.addEventListener('DOMContentLoaded',function(){

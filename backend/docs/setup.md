@@ -14,7 +14,7 @@ Then open SQL Editor and run:
 
 ```sql
 -- Supabase SQL editor
--- Paste and run backend/supabase/migrations/001_initial_schema.sql
+-- Paste and run every file in backend/supabase/migrations/ in numeric order.
 ```
 
 The migration creates:
@@ -25,6 +25,7 @@ The migration creates:
 - Working hours and instant booking logic
 - Chat tables
 - Paymob subscription tables
+- Admin console content/settings/notifications/audit tables
 - Storage buckets for portfolio/package files
 
 ## 2. Configure Environment
@@ -135,6 +136,14 @@ update public.profiles
 set role = 'admin'
 where email = 'your@email.com';
 ```
+
+Then open:
+
+```text
+http://localhost:3000/admin.html
+```
+
+Admin account creation is intentionally manual for now. The admin console uses the normal Supabase login session and accepts only profiles with `role = 'admin'`.
 
 ## 6. Free Portfolio Limit
 
