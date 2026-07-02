@@ -417,6 +417,31 @@ function checkSubscriptionStatus(){
 }
 function gf(p,f){return S.lang==='ar'?(p[f+'Ar']||p[f]):p[f];}
 function fmtD(ds){if(!ds)return'';var d=new Date(ds+'T00:00:00');return S.lang==='ar'?d.toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'}):d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});}
+function formatClock(value){
+  var raw=String(value||'').trim();
+  if(!raw)return'';
+  var ampm=raw.match(/^(\d{1,2}):(\d{2})\s*([ap]m)$/i);
+  if(ampm){
+    return parseInt(ampm[1],10)+':'+ampm[2]+' '+ampm[3].toUpperCase();
+  }
+  var m=raw.match(/^(\d{1,2}):(\d{2})/);
+  if(m){
+    var h=parseInt(m[1],10),min=m[2];
+    if(isFinite(h)){
+      var suffix=h>=12?'PM':'AM';
+      var hour=h%12||12;
+      return hour+':'+min+' '+suffix;
+    }
+  }
+  var d=new Date(raw);
+  if(!isNaN(d.getTime())){
+    return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+  }
+  return raw;
+}
+function formatTimeRange(start,end){
+  return formatClock(start)+' - '+formatClock(end);
+}
 function todayLocalISO(){
   var d=new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -805,7 +830,7 @@ function renderClientBookingsPanel(){
       '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">'+
       '<div><span class="text-[var(--text2)]">'+(S.lang==='ar'?'اليوم: ':'Day: ')+'</span><span class="font-semibold">'+formatBookingDay(b.date)+'</span></div>'+
       '<div><span class="text-[var(--text2)]">'+(S.lang==='ar'?'التاريخ: ':'Date: ')+'</span><span class="font-semibold">'+fmtD(b.date)+'</span></div>'+
-      '<div><span class="text-[var(--text2)]">'+(S.lang==='ar'?'الوقت: ':'Time: ')+'</span><span class="font-semibold">'+(b.time||'-')+'</span></div>'+
+      '<div><span class="text-[var(--text2)]">'+(S.lang==='ar'?'الوقت: ':'Time: ')+'</span><span class="font-semibold">'+(formatClock(b.time)||'-')+'</span></div>'+
       '<div><span class="text-[var(--text2)]">'+(S.lang==='ar'?'المصور: ':'Photographer: ')+'</span><span class="font-semibold">'+(b.photographerName||'-')+'</span></div>'+
       '</div>'+(cancelBtn?'<div class="mt-3">'+cancelBtn+'</div>':'')+'</div>';
   }).join('')+'</div>';
@@ -902,7 +927,7 @@ function renderOverview(){
   '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">'+
   '<div class="card p-6"><div class="flex justify-between items-center mb-5"><h3 class="font-bold text-lg">'+t('upcomingAppointments')+'</h3><button onclick="openAptModal()" class="btn-primary btn-sm"><i class="fas fa-plus mr-1"></i>'+t('addNew')+'</button></div>'+
   (S.appointments.length===0?'<p class="text-[var(--text2)] text-sm py-8 text-center">'+t('noAppointments')+'</p>':
-  '<div class="space-y-3">'+S.appointments.map(function(a){return'<div class="flex items-center justify-between p-3 rounded-lg bg-[var(--bg2)] border border-[var(--border)]"><div><div class="text-sm font-semibold">'+a.client+'</div><div class="text-xs text-[var(--text2)]">'+a.service+'</div></div><div class="text-right"><div class="text-sm font-semibold">'+a.time+'</div><div class="text-xs text-[var(--text2)]">'+fmtD(a.date)+'</div></div></div>';}).join('')+'</div>')+'</div>'+
+  '<div class="space-y-3">'+S.appointments.map(function(a){return'<div class="flex items-center justify-between p-3 rounded-lg bg-[var(--bg2)] border border-[var(--border)]"><div><div class="text-sm font-semibold">'+a.client+'</div><div class="text-xs text-[var(--text2)]">'+a.service+'</div></div><div class="text-right"><div class="text-sm font-semibold">'+formatClock(a.time)+'</div><div class="text-xs text-[var(--text2)]">'+fmtD(a.date)+'</div></div></div>';}).join('')+'</div>')+'</div>'+
   '<div class="card p-6"><h3 class="font-bold text-lg mb-5">'+t('recentBookings')+'</h3>'+
   (S.bookings.length===0?'<p class="text-[var(--text2)] text-sm py-8 text-center">'+t('noBookings')+'</p>':
   '<div class="space-y-3">'+S.bookings.slice(-5).reverse().map(function(b){return'<div class="p-3 rounded-lg bg-[var(--bg2)] border border-[var(--border)]"><div class="flex items-start justify-between gap-3"><div class="flex items-center gap-3"><img src="'+(b.photographerAvatar||S.user.avatar||'https://picsum.photos/seed/booking/120/120')+'" class="w-10 h-10 rounded-lg object-cover border border-[var(--border)]" alt=""><div><div class="text-sm font-semibold">'+b.clientName+'</div><div class="text-xs text-[var(--text2)]">'+b.service+' • '+formatMoney(b.servicePrice)+'</div></div></div>'+statusBadge(b.status)+'</div></div>';}).join('')+'</div>')+'</div></div>';
@@ -1499,7 +1524,7 @@ function renderCalendar(){
   '<div class="grid grid-cols-7 gap-1">'+days+'</div></div>'+
   '<div class="card p-6"><h3 class="font-bold mb-4">'+(S.selectedDate?fmtD(S.selectedDate):t('selectDay'))+'</h3>'+
   (sa.length===0?'<p class="text-[var(--text2)] text-sm">'+t('noAptForDay')+'</p>':
-  '<div class="space-y-3">'+sa.map(function(a){return'<div class="p-3 rounded-lg bg-[var(--bg2)] border border-[var(--border)]"><div class="flex justify-between items-center mb-1"><span class="text-sm font-bold text-[var(--accent)]">'+a.time+'</span>'+statusBadge(a.status)+'</div><div class="text-sm font-semibold">'+a.client+'</div><div class="text-xs text-[var(--text2)]">'+a.service+'</div>'+(a.notes?'<div class="text-xs text-[var(--text2)] mt-1 italic">'+a.notes+'</div>':'')+'</div>';}).join('')+'</div>')+
+  '<div class="space-y-3">'+sa.map(function(a){return'<div class="p-3 rounded-lg bg-[var(--bg2)] border border-[var(--border)]"><div class="flex justify-between items-center mb-1"><span class="text-sm font-bold text-[var(--accent)]">'+formatClock(a.time)+'</span>'+statusBadge(a.status)+'</div><div class="text-sm font-semibold">'+a.client+'</div><div class="text-xs text-[var(--text2)]">'+a.service+'</div>'+(a.notes?'<div class="text-xs text-[var(--text2)] mt-1 italic">'+a.notes+'</div>':'')+'</div>';}).join('')+'</div>')+
   (S.selectedDate?'<button onclick="openAptModal()" class="btn-primary btn-sm w-full mt-4"><i class="fas fa-plus mr-1"></i>'+t('addAptForDay')+'</button>':'')+
   '</div></div>';
 }
@@ -1891,7 +1916,7 @@ function buildPhotographerWhatsAppText(booking){
     +'العميل: '+booking.clientName+'\n'
     +'الهاتف: '+(booking.clientPhone||'-')+'\n'
     +'التاريخ: '+booking.date+'\n'
-    +'الوقت: '+booking.time+'\n'
+    +'الوقت: '+formatClock(booking.time)+'\n'
     +'الخدمة: '+booking.service+'\n'
     +'رقم الحجز: #'+booking.id;
   }
@@ -1899,7 +1924,7 @@ function buildPhotographerWhatsAppText(booking){
   +'Client: '+booking.clientName+'\n'
   +'Phone: '+(booking.clientPhone||'-')+'\n'
   +'Date: '+booking.date+'\n'
-  +'Time: '+booking.time+'\n'
+  +'Time: '+formatClock(booking.time)+'\n'
   +'Service: '+booking.service+'\n'
   +'Booking ID: #'+booking.id;
 }
@@ -2279,11 +2304,14 @@ function renderPublicProfile(){
   var avatarEl=u.avatar
     ?'<button type="button" class="pub-avatar-btn" onclick="openPubAvatarPreview()" aria-label="Open profile image"><img src="'+u.avatar+'" class="pub-avatar w-32 h-32 rounded-2xl object-cover border-4 border-[var(--bg)] shadow-xl" alt=""></button>'
     :'<div class="pub-avatar w-32 h-32 rounded-2xl border-4 border-[var(--bg)] shadow-xl bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-4xl" style="color:var(--border)"></i></div>';
+  var profileActions=!(S.user&&S.user.role==='photographer')
+    ?'<div class="profile-actions ml-auto flex items-center gap-2 mb-2"><button class="btn-secondary btn-sm" style="border-radius:10px;" onclick="event.stopPropagation();startChatWithPhotographer(\''+jsString(u.id)+'\',\''+jsString(u.customLink||u.custom_link||'')+'\')"><i class="fas fa-comment-dots mr-1"></i>'+(S.lang==='ar'?'رسالة':'Message')+'</button></div>'
+    :'';
   var publicCoverPosition=normalizeCoverPosition(u.coverPosition);
   var html='<div class="pt-14">'+reviewBanner+'<div class="pub-cover" style="background-image:url(\''+u.cover+'\');background-position:'+publicCoverPosition+';"></div>'+
   '<div class="max-w-5xl mx-auto px-6 -mt-24 relative z-10">'+
   '<div class="profile-header-inner flex items-end gap-6 mb-6">'+avatarEl+'<div class="pb-2"><h1 class="text-3xl font-bold">'+nm+'</h1><p class="text-[var(--accent)] font-semibold">'+sp+'</p><div class="flex items-center gap-4 mt-2 text-sm text-[var(--text2)]"><span><i class="fas fa-map-marker-alt mr-1"></i>'+rg+'</span><span class="stars">'+starsHTML(u.rating||0)+'</span></div></div>'+
-  '<div class="profile-actions ml-auto flex items-center gap-2 mb-2"><button class="btn-secondary btn-sm" style="border-radius:10px;" onclick="event.stopPropagation();startChatWithPhotographer(\''+jsString(u.id)+'\')"><i class="fas fa-comment-dots mr-1"></i>'+(S.lang==='ar'?'رسالة':'Message')+'</button><div class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</div></div></div>'+
+  profileActions+'</div>'+
   (bi?'<p class="bio-text text-[var(--text2)] mb-6 max-w-2xl leading-relaxed">'+bi+'</p>':'')+
   (u.social?'<div class="social-icons-wrapper flex flex-wrap gap-3 mb-10">'+(u.social.facebook?'<a href="'+u.social.facebook+'" target="_blank" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-facebook"></i></a>':'')+(u.social.instagram?'<a href="'+u.social.instagram+'" target="_blank" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-instagram"></i></a>':'')+'</div>':'')+
   
@@ -2336,7 +2364,7 @@ function renderPublicProfile(){
       var label=dayNames[i];
       var isOpen=!!(h&&(h.enabled!==false&&h.enabled!=='false')&&(h.start_time||h.startTime)&&(h.end_time||h.endTime));
       var val=isOpen
-        ? ((h.start_time||h.startTime||'').slice(0,5)+' - '+(h.end_time||h.endTime||'').slice(0,5))
+        ? formatTimeRange((h.start_time||h.startTime||'').slice(0,5),(h.end_time||h.endTime||'').slice(0,5))
         : '<span class="text-[var(--text2)]">مغلق</span>';
       rows+='<div class="flex justify-between py-2 border-b border-[var(--border)] last:border-b-0"><span class="text-sm">'+label+'</span><span class="text-sm font-semibold" dir="ltr">'+val+'</span></div>';
     }
@@ -2367,7 +2395,6 @@ function renderPublicProfile(){
   '<div><label class="block text-sm font-semibold mb-2"><i class="fas fa-calendar-alt ml-2 text-[var(--accent)]"></i>'+t('selectDate')+'</label><input type="date" class="input" required id="pub-date" min="'+todayLocalISO()+'" onchange="onPubDateChange()"></div>'+
   '<div id="pub-time-area" class="hidden"><label class="block text-sm font-semibold mb-3"><i class="fas fa-clock ml-2 text-[var(--accent)]"></i>'+t('selectTime')+'</label><div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="pub-time-slots"></div></div>'+
   '</div>'+
-  '<div class="flex items-center gap-3 text-xs text-[var(--text2)]"><span class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</span></div>'+
   ((S.user&&S.user.role==='client')
     ?'<button type="submit" class="btn-primary text-lg w-full py-4 mt-2"><i class="fas fa-calendar-check ml-2"></i>'+t('submitBooking')+'</button>'
     :'<button type="button" onclick="promptLoginToBook()" class="btn-primary text-lg w-full py-4 mt-2"><i class="fas fa-sign-in-alt ml-2"></i>'+(S.lang==='ar'?'سجّل الدخول للحجز':'Sign in to book')+'</button>')+
@@ -2398,14 +2425,14 @@ async function onPubDateChange(){
       var data=await apiRequest('/api/photographers/'+phFor.id+'/available-slots?date='+encodeURIComponent(dv)+'&packageId='+encodeURIComponent(selectedPkg.id));
       var slots=data.slots||[];
       if(slots.length===0){sd.innerHTML='<p class="text-sm text-[var(--text2)] col-span-full">'+t('noTimes')+'</p>';return;}
-      sd.innerHTML=slots.map(function(slot){return'<div class="time-slot" onclick="selectPubTime(this,\''+slot.startTime+'\')">'+slot.startTime+' - '+slot.endTime+'</div>';}).join('');
+      sd.innerHTML=slots.map(function(slot){return'<div class="time-slot" onclick="selectPubTime(this,\''+slot.startTime+'\')">'+formatTimeRange(slot.startTime,slot.endTime)+'</div>';}).join('');
       return;
     }catch(err){
       sd.innerHTML='<p class="text-sm text-[var(--danger)] col-span-full">'+(err.message||t('noTimes'))+'</p>';
       return;
     }
   }
-  sd.innerHTML=timeSlots().map(function(s){return'<div class="time-slot" onclick="selectPubTime(this,\''+s+'\')">'+s+'</div>';}).join('');
+  sd.innerHTML=timeSlots().map(function(s){return'<div class="time-slot" onclick="selectPubTime(this,\''+s+'\')">'+formatClock(s)+'</div>';}).join('');
 }
 function selectPubTime(el,time){
   document.querySelectorAll('#pub-time-slots .time-slot').forEach(function(s){s.classList.remove('selected');});
@@ -2919,7 +2946,7 @@ async function renderChatMessages(){
       return'<div class="chat-msg '+(m.sender==='photographer'?'photographer':'client')+'"><div class="bubble" style="opacity:0.4;font-style:italic;font-size:11px;"><i class="fas fa-trash-alt mr-1"></i>'+t('chatMsgDeleted')+'</div></div>';
     }
     var isMine=(isClient&&m.sender==='client')||(!isClient&&m.sender==='photographer');
-    var timeStr=new Date(m.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    var timeStr=formatClock(m.timestamp);
     return'<div class="chat-msg '+(m.sender==='photographer'?'photographer':'client')+'">'+
     '<div class="bubble">'+
     (isMine?'<div class="chat-msg-actions"><button onclick="deleteChatMessage(\''+m.id+'\')" title="'+t('chatDeleteMsg')+'"><i class="fas fa-trash-alt"></i></button></div>':'')+
@@ -2999,6 +3026,7 @@ async function sendChatMessage(){
   updateChatConvListPreview();
 }
 async function findOrCreateConversation(photographerId){
+  photographerId=await resolvePhotographerIdForChat(photographerId);
   if(!photographerId)return null;
   if(apiToken()){
     var data=await apiRequest('/api/conversations',{method:'POST',body:{photographerId:photographerId}});
@@ -3019,9 +3047,33 @@ async function findOrCreateConversation(photographerId){
   persistChatData();
   return conv;
 }
+async function resolvePhotographerIdForChat(photographerId,photographerLink){
+  var id=String(photographerId||'').trim();
+  if(id)return id;
+  var current=S.viewedPhotographer||{};
+  id=String(current.id||'').trim();
+  if(id)return id;
+  var link=String(photographerLink||current.customLink||current.custom_link||'').trim();
+  if(!link)return'';
+  var data=await apiRequest('/api/photographers/'+encodeURIComponent(link));
+  if(!data||!data.photographer)return'';
+  var profile=normalizeDirectoryPhotographer(data.photographer);
+  profile.role='photographer';
+  S.viewedPhotographer=profile;
+  S.viewedPackages=(data.packages||[]).map(normalizePackage);
+  S.viewedWorkingHours=data.workingHours||[];
+  S.viewedCollections=(data.collections||[]).map(function(col){
+    return{id:col.id,name:col.title||col.name||'',cover:col.cover_url||'',
+      photos:(col.portfolio_photos||[]).map(function(ph){return{id:ph.id,url:ph.url,title:ph.title||''};})};
+  });
+  S.viewedPortfolio=[];
+  S.viewedCollections.forEach(function(col){col.photos.forEach(function(ph){S.viewedPortfolio.push(ph);});});
+  saveFrontendSession();
+  return String(profile.id||'').trim();
+}
 function stashPendingChatIntent(photographerId){
   var phFor=S.viewedPhotographer||S.user||{};
-  var intent={photographerId:photographerId,photographerLink:phFor.customLink||'',savedAt:Date.now()};
+  var intent={photographerId:photographerId||phFor.id||'',photographerLink:phFor.customLink||phFor.custom_link||'',savedAt:Date.now()};
   try{sessionStorage.setItem('dof_pending_chat_intent',JSON.stringify(intent));}catch(e){}
 }
 function restorePendingChatIntent(){
@@ -3032,10 +3084,10 @@ function restorePendingChatIntent(){
   try{sessionStorage.removeItem('dof_pending_chat_intent');}catch(e){}
   if(!intent||!intent.savedAt||Date.now()-intent.savedAt>30*60*1000)return false;
   if(!intent.photographerId)return false;
-  setTimeout(function(){startChatWithPhotographer(intent.photographerId);},80);
+  setTimeout(function(){startChatWithPhotographer(intent.photographerId,intent.photographerLink);},80);
   return true;
 }
-async function startChatWithPhotographer(photographerId){
+async function startChatWithPhotographer(photographerId,photographerLink){
   if(!S.user||!apiToken()){
     stashPendingChatIntent(photographerId);
     setAuthRole('client');
@@ -3048,8 +3100,15 @@ async function startChatWithPhotographer(photographerId){
     showToast(S.lang==='ar'?'الرسائل من صفحة المصور متاحة لحسابات العملاء فقط':'Please sign in as a client to message photographers','error');
     return;
   }
+  var targetId;
+  try{targetId=await resolvePhotographerIdForChat(photographerId,photographerLink);}
+  catch(err){showToast(err.message||'Could not identify photographer','error');return;}
+  if(!targetId){
+    showToast(S.lang==='ar'?'تعذر تحديد المصور لبدء المحادثة':'Could not identify the photographer to message','error');
+    return;
+  }
   var conv;
-  try{conv=await findOrCreateConversation(photographerId);}catch(err){showToast(err.message||'Could not start conversation','error');return;}
+  try{conv=await findOrCreateConversation(targetId);}catch(err){showToast(err.message||'Could not start conversation','error');return;}
   if(!conv){showToast('تعذر فتح المحادثة','error');return;}
   if(S.view==='public'||S.view==='landing'){
     var panel=document.getElementById('chat-panel');
@@ -3264,7 +3323,7 @@ function renderChatModalMessages(msgs){
     var content=m.deleted?'<span class="text-[var(--text2)] italic text-sm">'+t('chatMsgDeleted')+'</span>':escapeHtml(m.content);
     var align=isMine?'items-end':'items-start';
     var bubble=isMine?'bg-[var(--accent)] text-white':'bg-[var(--bg2)] text-[var(--text)]';
-    var time=m.timestamp?new Date(m.timestamp).toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'}):'';
+    var time=m.timestamp?formatClock(m.timestamp):'';
     return'<div class="flex flex-col '+align+'">'+
       '<div class="'+bubble+' rounded-2xl px-4 py-2 max-w-[70%] text-sm leading-relaxed">'+content+'</div>'+
       '<div class="text-xs text-[var(--text2)] mt-1 px-1">'+time+'</div>'+

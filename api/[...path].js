@@ -63,6 +63,15 @@ function cleanPosition(value) {
   return '50% 50%';
 }
 
+function formatClock(value) {
+  const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return String(value || '');
+  const hour24 = Number.parseInt(match[1], 10);
+  const suffix = hour24 >= 12 ? 'PM' : 'AM';
+  const hour12 = hour24 % 12 || 12;
+  return `${hour12}:${match[2]} ${suffix}`;
+}
+
 function pageParams(req, defaultPageSize = 25) {
   const page = Math.max(1, asInt(param(req, 'page') || 1));
   const requested = asInt(param(req, 'pageSize') || defaultPageSize);
@@ -820,7 +829,7 @@ async function confirmBooking(req, res, id) {
     if (conv) {
       conversationId = conv.id;
       const pkgName = booking.packages?.name || '';
-      const msgText = `📅 تم قبول حجزك!\nالخدمة: ${pkgName}\nالتاريخ: ${booking.booking_date}\nالوقت: ${(booking.start_time || '').slice(0, 5)}`;
+      const msgText = `📅 تم قبول حجزك!\nالخدمة: ${pkgName}\nالتاريخ: ${booking.booking_date}\nالوقت: ${formatClock(booking.start_time)}`;
       await sb.from('messages').insert({
         conversation_id: conv.id,
         sender_id: profile.id,
@@ -863,14 +872,25 @@ async function listConversations(req, res) {
 
 async function createConversation(req, res) {
   const { profile } = await requireUser(req);
-  requireRole(profile, 'client');
+  if (profile.role !== 'client') throw fail(403, 'Only clients can start conversations with photographers');
   const body = await readJson(req);
-  required(body, ['photographerId']);
+  const photographerId = cleanString(body.photographerId);
+  if (!photographerId) throw fail(422, 'Could not identify the photographer to message');
+  assertUuid(photographerId, 'photographerId');
   const sb = supabaseService();
+  const { data: photographer, error: photographerError } = await sb
+    .from('photographer_directory')
+    .select('id')
+    .eq('id', photographerId)
+    .eq('is_published', true)
+    .eq('is_suspended', false)
+    .maybeSingle();
+  if (photographerError) throw fail(422, photographerError.message);
+  if (!photographer) throw fail(404, 'Photographer not found');
   const { data, error } = await sb
     .from('conversations')
     .upsert(
-      { client_id: profile.id, photographer_id: body.photographerId },
+      { client_id: profile.id, photographer_id: photographerId },
       { onConflict: 'client_id,photographer_id' }
     )
     .select('*')
