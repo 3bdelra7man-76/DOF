@@ -728,6 +728,78 @@ function toggleLang(){
 
 /* ===== NAVIGATION ===== */
 var PAGE_URLS={landing:'index.html',explore:'explore.html',dashboard:'photographerdashboard.html',public:'publicprofile.html'};
+function publicProfileLinkFromState(){
+  var u=S.viewedPhotographer||{};
+  return String(u.customLink||u.custom_link||'').trim();
+}
+function publicProfileLinkFromUrl(){
+  try{
+    var params=new URLSearchParams(window.location.search);
+    return String(params.get('photographer')||params.get('profile')||params.get('link')||'').trim();
+  }catch(e){return'';}
+}
+function rememberPublicPhotographerLink(link){
+  link=String(link||'').trim();
+  if(!link)return;
+  try{sessionStorage.setItem('dof_public_photographer_link',link);}catch(e){}
+  try{localStorage.setItem('dof_public_photographer_link',link);}catch(e){}
+}
+function rememberedPublicPhotographerLink(){
+  try{
+    var sessionLink=sessionStorage.getItem('dof_public_photographer_link')||'';
+    if(sessionLink)return sessionLink;
+  }catch(e){}
+  try{return localStorage.getItem('dof_public_photographer_link')||'';}catch(e){return'';}
+}
+function syncPublicProfileUrl(link){
+  link=String(link||'').trim();
+  if(!link||!hasPageContainer('public'))return;
+  try{
+    var params=new URLSearchParams(window.location.search);
+    if(params.get('photographer')===link&&!params.get('profile')&&!params.get('link'))return;
+    params.set('photographer',link);
+    params.delete('profile');params.delete('link');
+    history.replaceState({},'',window.location.pathname+'?'+params.toString());
+  }catch(e){}
+}
+function mapApiCollections(data){
+  return (data.collections||[]).map(function(col){
+    return{id:col.id,name:col.title||col.name||'',cover:col.cover_url||'',
+      photos:(col.portfolio_photos||[]).map(function(ph){return{id:ph.id,url:ph.url,title:ph.title||''};})};
+  });
+}
+function setViewedPhotographerFromApi(data){
+  if(!data||!data.photographer)return false;
+  var profile=normalizeDirectoryPhotographer(data.photographer);
+  profile.role='photographer';
+  S.viewedPhotographer=profile;
+  S.viewedCollections=mapApiCollections(data);
+  S.viewedPortfolio=[];
+  S.viewedCollections.forEach(function(col){col.photos.forEach(function(ph){S.viewedPortfolio.push(ph);});});
+  S.viewedPackages=(data.packages||[]).map(normalizePackage);
+  S.viewedWorkingHours=(data.workingHours||[]);
+  var link=publicProfileLinkFromState();
+  if(link){rememberPublicPhotographerLink(link);syncPublicProfileUrl(link);}
+  saveFrontendSession();
+  return true;
+}
+async function hydrateViewedPhotographerFromLink(link){
+  link=String(link||'').trim();
+  if(!link)return false;
+  var data=await apiRequest('/api/photographers/'+encodeURIComponent(link));
+  return setViewedPhotographerFromApi(data);
+}
+async function ensurePublicProfileHydrated(){
+  var stateLink=publicProfileLinkFromState();
+  if(S.viewedPhotographer&&(S.viewedPhotographer.id||stateLink)){
+    if(stateLink){rememberPublicPhotographerLink(stateLink);syncPublicProfileUrl(stateLink);}
+    return true;
+  }
+  var link=publicProfileLinkFromUrl()||rememberedPublicPhotographerLink();
+  if(!link)return false;
+  try{return await hydrateViewedPhotographerFromLink(link);}
+  catch(e){return false;}
+}
 function getPageView(){
   return (document.body&&document.body.dataset&&document.body.dataset.page)||'landing';
 }
@@ -737,8 +809,14 @@ function hasPageContainer(v){
 }
 function goToPage(v){
   var url=PAGE_URLS[v]||'homepage.html';
+  if(v==='public'){
+    var link=publicProfileLinkFromState()||rememberedPublicPhotographerLink();
+    if(link)url+='?photographer='+encodeURIComponent(link);
+  }
   saveFrontendSession();
-  if(location.pathname.split('/').pop()!==url){window.location.href=url;}
+  var current=(location.pathname.split('/').pop()||'index.html');
+  var target=url.split('?')[0];
+  if(current!==target||window.location.search!==url.slice(target.length)){window.location.href=url;}
 }
 function updateNavBar(){
   var u=S.user;
@@ -778,6 +856,10 @@ function navigate(v){
   checkSubscriptionStatus();
   if(!hasPageContainer(v)){goToPage(v);return;}
   S.view=v;
+  if(v==='public'){
+    var publicLink=publicProfileLinkFromState();
+    if(publicLink){rememberPublicPhotographerLink(publicLink);syncPublicProfileUrl(publicLink);}
+  }
   var landing=document.getElementById('landing-page');
   var explore=document.getElementById('explore-page');
   var dashboard=document.getElementById('dashboard-page');
@@ -1621,7 +1703,14 @@ function toggleAptServiceMode(){
   if(end){end.required=!usePackage;end.readOnly=usePackage;}
   if(usePackage)fillAptPackageDetails();
 }
-function openAptModal(){
+function applyAptClientSelection(clientId){
+  if(!clientId)return;
+  var select=document.getElementById('apt-client-account');
+  if(!select)return;
+  select.value=String(clientId);
+  if(select.value===String(clientId))fillAptClientFromSelect();
+}
+function openAptModal(preselectClientId){
   var today = todayLocalISO();
   var form=document.querySelector('#apt-modal form');
   if(form)form.reset();
@@ -1636,8 +1725,12 @@ function openAptModal(){
   if(mode)mode.value=(S.packages||[]).length?'package':'custom';
   toggleAptServiceMode();
   populateAptClientOptions();
+  applyAptClientSelection(preselectClientId);
   if(apiToken()&&S.user&&S.user.role==='photographer'){
-    refreshConversations().then(populateAptClientOptions).catch(function(){});
+    refreshConversations().then(function(){
+      populateAptClientOptions();
+      applyAptClientSelection(preselectClientId);
+    }).catch(function(){});
   }
   openModal('apt-modal');
 }
@@ -2284,17 +2377,7 @@ async function viewPhotographerProfile(id){
   showToast(S.lang==='ar'?'جاري التحميل...':'Loading...','info');
   try{
     var data=await apiRequest('/api/photographers/'+encodeURIComponent(p.customLink||p.custom_link||id));
-    var profile=normalizeDirectoryPhotographer(data.photographer);
-    profile.role='photographer';
-    S.viewedPhotographer=profile;
-    S.viewedCollections=(data.collections||[]).map(function(col){
-      return{id:col.id,name:col.title||col.name||'',cover:col.cover_url||'',
-        photos:(col.portfolio_photos||[]).map(function(ph){return{id:ph.id,url:ph.url,title:ph.title||''};})};
-    });
-    S.viewedPortfolio=[];
-    S.viewedCollections.forEach(function(col){col.photos.forEach(function(ph){S.viewedPortfolio.push(ph);});});
-    S.viewedPackages=(data.packages||[]).map(normalizePackage);
-    S.viewedWorkingHours=(data.workingHours||[]);
+    setViewedPhotographerFromApi(data);
   }catch(e){
     var fallback=JSON.parse(JSON.stringify(p));fallback.role='photographer';
     S.viewedPhotographer=fallback;
@@ -2302,6 +2385,8 @@ async function viewPhotographerProfile(id){
     S.viewedPortfolio=p.portfolio||[];
     S.viewedPackages=JSON.parse(JSON.stringify(p.packages||[]));
     S.viewedWorkingHours=[];
+    if(fallback.customLink||fallback.custom_link)rememberPublicPhotographerLink(fallback.customLink||fallback.custom_link);
+    saveFrontendSession();
   }
   S.pubViewCollection=null;S.pubLightboxIdx=null;S.pubAvatarPreview=false;syncPublicMediaOverlay();
   navigate('public');
@@ -2431,6 +2516,17 @@ async function recoverViewedWorkingHours(){
 /* ===== PUBLIC PROFILE (with enhanced package display & booking) ===== */
 function renderPublicProfile(){
   var isViewing=!!S.viewedPhotographer;
+  if(!isViewing&&(!S.user||S.user.role!=='photographer')){
+    var missingHtml='<div class="pt-24 min-h-screen"><div class="max-w-3xl mx-auto px-6"><div class="card p-8 text-center">'+
+      '<div class="w-16 h-16 rounded-full bg-[rgba(196,145,92,0.12)] flex items-center justify-center mx-auto mb-4"><i class="fas fa-user-circle text-[var(--accent)] text-2xl"></i></div>'+
+      '<h2 class="text-2xl font-bold mb-2">'+(S.lang==='ar'?'اختر مصوراً أولاً':'Open a photographer first')+'</h2>'+
+      '<p class="text-[var(--text2)] mb-5">'+(S.lang==='ar'?'افتح ملف مصور من صفحة الاستكشاف حتى تبدأ محادثة أو حجز.':'Open a photographer from Explore before starting a message or booking.')+'</p>'+
+      '<button class="btn-primary" onclick="navigate(\'explore\')">'+(S.lang==='ar'?'استكشف المصورين':'Explore photographers')+'</button>'+
+    '</div></div></div>';
+    var missingContainer=document.getElementById('public-content');
+    if(missingContainer){missingContainer.innerHTML=missingHtml;}
+    return missingHtml;
+  }
   var u=isViewing?S.viewedPhotographer:S.user;if(!u)return'';
   if(isViewing&&!Array.isArray(S.viewedWorkingHours))recoverViewedWorkingHours();
   var pubPackages=isViewing?S.viewedPackages:S.packages;
@@ -2701,11 +2797,7 @@ function restorePendingBookingIntent(){
   if(!intent.photographerLink){return;}
   /* Navigate back to the same photographer profile and rehydrate the form */
   apiRequest('/api/photographers/'+encodeURIComponent(intent.photographerLink)).then(function(data){
-    if(!data||!data.photographer)return;
-    S.viewedPhotographer=normalizeDirectoryPhotographer(data.photographer);
-    S.viewedPackages=(data.packages||[]).map(normalizePackage);
-    S.viewedPortfolio=data.photos||[];
-    S.viewedWorkingHours=(data.workingHours||[]);
+    if(!setViewedPhotographerFromApi(data))return;
     navigate('public');
     setTimeout(function(){
       var svc=document.getElementById('pub-service');
@@ -3177,6 +3269,21 @@ function openChatConversation(convId){
       status.className='chat-header-status online';status.innerHTML='<i class="fas fa-circle" style="font-size:6px;"></i><span>'+t('chatOnline')+'</span>';
     }
   }
+  var actions=document.querySelector('#chat-conv-header .chat-conv-actions');
+  if(actions){
+    var bookingAction=document.getElementById('chat-conv-booking-btn');
+    if(!bookingAction){
+      bookingAction=document.createElement('button');
+      bookingAction.id='chat-conv-booking-btn';
+      bookingAction.className='report-btn';
+      bookingAction.type='button';
+      bookingAction.onclick=openBookingForActiveChat;
+      bookingAction.innerHTML='<i class="fas fa-calendar-plus mr-1"></i>'+(S.lang==='ar'?'حجز':'Book');
+      actions.insertBefore(bookingAction,actions.firstChild);
+    }
+    var au=authUser();
+    bookingAction.classList.toggle('hidden',!(au&&au.role==='photographer'&&conv.clientId));
+  }
   renderChatMessages();
   updateChatBadge();
 }
@@ -3213,8 +3320,8 @@ async function sendChatMessage(){
   updateChatConvListPreview();
 }
 async function findOrCreateConversation(photographerId,photographerLink){
-  photographerId=await resolvePhotographerIdForChat(photographerId,photographerLink);
-  var link=String(photographerLink||(S.viewedPhotographer&&S.viewedPhotographer.customLink)||'').trim();
+  var link=String(photographerLink||publicProfileLinkFromState()||publicProfileLinkFromUrl()||rememberedPublicPhotographerLink()||'').trim();
+  photographerId=await resolvePhotographerIdForChat(photographerId,link);
   if(!photographerId&&!link)return null;
   if(apiToken()){
     var body={};
@@ -3241,7 +3348,7 @@ async function findOrCreateConversation(photographerId,photographerLink){
 async function resolvePhotographerIdForChat(photographerId,photographerLink){
   var id=String(photographerId||'').trim();
   var current=S.viewedPhotographer||{};
-  var link=String(photographerLink||current.customLink||current.custom_link||'').trim();
+  var link=String(photographerLink||current.customLink||current.custom_link||publicProfileLinkFromUrl()||rememberedPublicPhotographerLink()||'').trim();
   if(S.user&&S.user.role==='client'&&id&&String(id)===String(S.user.id))id='';
   if(id&&(!apiToken()||isUuidLike(id)))return id;
   if(id&&apiToken()&&!isUuidLike(id)&&!link)return'';
@@ -3251,35 +3358,25 @@ async function resolvePhotographerIdForChat(photographerId,photographerLink){
   if(id&&apiToken()&&!isUuidLike(id)&&!link)return'';
   if(!link)return'';
   var data=await apiRequest('/api/photographers/'+encodeURIComponent(link));
-  if(!data||!data.photographer)return'';
-  var profile=normalizeDirectoryPhotographer(data.photographer);
-  profile.role='photographer';
-  S.viewedPhotographer=profile;
-  S.viewedPackages=(data.packages||[]).map(normalizePackage);
-  S.viewedWorkingHours=data.workingHours||[];
-  S.viewedCollections=(data.collections||[]).map(function(col){
-    return{id:col.id,name:col.title||col.name||'',cover:col.cover_url||'',
-      photos:(col.portfolio_photos||[]).map(function(ph){return{id:ph.id,url:ph.url,title:ph.title||''};})};
-  });
-  S.viewedPortfolio=[];
-  S.viewedCollections.forEach(function(col){col.photos.forEach(function(ph){S.viewedPortfolio.push(ph);});});
-  saveFrontendSession();
-  return String(profile.id||'').trim();
+  if(!setViewedPhotographerFromApi(data))return'';
+  return String((S.viewedPhotographer||{}).id||'').trim();
 }
 async function ensurePublicProfileChatTarget(btn){
   var current=S.viewedPhotographer||{};
   var id=btn&&btn.dataset?btn.dataset.photographerId:'';
   var link=btn&&btn.dataset?btn.dataset.photographerLink:'';
   id=id||current.id||'';
-  link=link||current.customLink||current.custom_link||'';
+  link=link||current.customLink||current.custom_link||publicProfileLinkFromUrl()||rememberedPublicPhotographerLink()||'';
   if(S.user&&S.user.role==='client'&&String(id)===String(S.user.id))id='';
-  if(id||link)return{id:id,link:link};
-  try{
-    var params=new URLSearchParams(window.location.search);
-    link=params.get('photographer')||params.get('profile')||params.get('link')||'';
-  }catch(e){}
-  if(link)return{id:'',link:link};
-  return{id:'',link:''};
+  if(link&&!id){
+    await hydrateViewedPhotographerFromLink(link).catch(function(){});
+    current=S.viewedPhotographer||{};
+    id=current.id||'';
+    link=current.customLink||current.custom_link||link;
+    if(S.user&&S.user.role==='client'&&String(id)===String(S.user.id))id='';
+  }
+  if(link)return{id:id,link:link};
+  return{id:id,link:link};
 }
 async function startChatWithCurrentPhotographer(btn){
   var target=await ensurePublicProfileChatTarget(btn);
@@ -3290,8 +3387,12 @@ async function startChatWithCurrentPhotographer(btn){
   startChatWithPhotographer(target.id,target.link);
 }
 function stashPendingChatIntent(photographerId,photographerLink){
-  var phFor=S.viewedPhotographer||S.user||{};
-  var intent={photographerId:photographerId||phFor.id||'',photographerLink:photographerLink||phFor.customLink||phFor.custom_link||'',savedAt:Date.now()};
+  var phFor=S.viewedPhotographer||{};
+  var id=photographerId||phFor.id||'';
+  if(S.user&&S.user.role==='client'&&String(id)===String(S.user.id))id='';
+  var link=photographerLink||phFor.customLink||phFor.custom_link||publicProfileLinkFromUrl()||rememberedPublicPhotographerLink()||'';
+  if(link)rememberPublicPhotographerLink(link);
+  var intent={photographerId:id,photographerLink:link,savedAt:Date.now()};
   try{sessionStorage.setItem('dof_pending_chat_intent',JSON.stringify(intent));}catch(e){}
 }
 function restorePendingChatIntent(){
@@ -3319,14 +3420,15 @@ async function startChatWithPhotographer(photographerId,photographerLink){
     return;
   }
   var targetId;
-  try{targetId=await resolvePhotographerIdForChat(photographerId,photographerLink);}
+  var targetLink=String(photographerLink||publicProfileLinkFromState()||publicProfileLinkFromUrl()||rememberedPublicPhotographerLink()||'').trim();
+  try{targetId=await resolvePhotographerIdForChat(photographerId,targetLink);}
   catch(err){showToast(err.message||'Could not identify photographer','error');return;}
-  if(!targetId){
+  if(!targetId&&!targetLink){
     showToast(S.lang==='ar'?'تعذر تحديد المصور لبدء المحادثة':'Could not identify the photographer to message','error');
     return;
   }
   var conv;
-  try{conv=await findOrCreateConversation(targetId,photographerLink);}catch(err){showToast(err.message||'Could not start conversation','error');return;}
+  try{conv=await findOrCreateConversation(targetId,targetLink);}catch(err){showToast(err.message||'Could not start conversation','error');return;}
   if(!conv){showToast('تعذر فتح المحادثة','error');return;}
   if(S.view==='public'||S.view==='landing'){
     var panel=document.getElementById('chat-panel');
@@ -3510,8 +3612,13 @@ async function openChatModal(convId){
   var peer=getConversationPeer(conv);
   var avatarEl=document.getElementById('chat-modal-avatar');
   var nameEl=document.getElementById('chat-modal-name');
+  var bookingBtn=document.getElementById('chat-modal-booking-btn');
   if(avatarEl){avatarEl.src=peer.avatar||'https://picsum.photos/seed/chat/80/80';}
   if(nameEl){nameEl.textContent=peer.name;}
+  if(bookingBtn){
+    var au=authUser();
+    bookingBtn.classList.toggle('hidden',!(au&&au.role==='photographer'&&conv.clientId));
+  }
   modal.classList.remove('hidden');
   document.body.style.overflow='hidden';
   try{
@@ -3529,6 +3636,15 @@ function closeChatModal(){
 }
 function handleChatModalBackdrop(e){
   if(e.target===document.getElementById('chat-modal'))closeChatModal();
+}
+function openBookingForActiveChat(){
+  var conv=S.conversations.find(function(c){return String(c.id)===String(S.chatActiveConv);});
+  if(!conv||!conv.clientId){
+    showToast(S.lang==='ar'?'هذه المحادثة غير مرتبطة بحساب عميل':'This conversation is not linked to a client account','error');
+    return;
+  }
+  closeChatModal();
+  openAptModal(conv.clientId);
 }
 function renderChatModalMessages(msgs){
   var area=document.getElementById('chat-modal-messages');
@@ -3683,8 +3799,9 @@ async function initializeCurrentPage(){
   var view=getPageView();
   S.view=view;
   if(view==='explore')loadExploreFilterFromUrl();
+  if(view==='public')await ensurePublicProfileHydrated();
   if(view==='dashboard'&&apiToken()&&(!S.user||S.user.role!=='photographer')){navigate('landing');return;}
-  if(view==='dashboard'||view==='public'){loadDemoPhotographer();}
+  if(view==='dashboard'||(view==='public'&&!S.viewedPhotographer)){loadDemoPhotographer();}
   navigate(view);
 }
 

@@ -1061,8 +1061,10 @@ async function enrichConversation(sb, conversation) {
 async function createConversation(req, res) {
   const { profile } = await requireUser(req);
   const body = await readJson(req);
-  if (profile.role === 'photographer' && body.bookingId) {
-    return createConversationFromBookingBody(profile, body, res);
+  if (profile.role === 'photographer') {
+    if (body.bookingId) return createConversationFromBookingBody(profile, body, res);
+    if (body.clientId) return createConversationForLinkedClient(profile, body, res);
+    throw fail(422, 'Choose a linked booking or client to start this conversation');
   }
   if (profile.role !== 'client') throw fail(403, 'Only clients can start conversations with photographers');
   const sb = supabaseService();
@@ -1094,6 +1096,35 @@ async function createConversation(req, res) {
     .from('conversations')
     .upsert(
       { client_id: profile.id, photographer_id: photographerId },
+      { onConflict: 'client_id,photographer_id' }
+    )
+    .select('*')
+    .single();
+  if (error) throw fail(422, error.message);
+  created(res, { conversation: await enrichConversation(sb, data) });
+}
+
+async function createConversationForLinkedClient(profile, body, res) {
+  const clientId = cleanString(body.clientId);
+  if (!clientId) throw fail(422, 'Missing clientId');
+  assertUuid(clientId, 'clientId');
+  const sb = supabaseService();
+  const [{ data: client, error: clientError }, { data: bookings, error: bookingError }, { data: conversations, error: conversationError }] = await Promise.all([
+    sb.from('profiles').select('id, role').eq('id', clientId).maybeSingle(),
+    sb.from('bookings').select('id').eq('photographer_id', profile.id).eq('client_id', clientId).limit(1),
+    sb.from('conversations').select('id').eq('photographer_id', profile.id).eq('client_id', clientId).limit(1)
+  ]);
+  const linkError = clientError || bookingError || conversationError;
+  if (linkError) throw fail(422, linkError.message);
+  if (!client || client.role !== 'client') throw fail(404, 'Client not found');
+  if ((!bookings || bookings.length === 0) && (!conversations || conversations.length === 0)) {
+    throw fail(403, 'Client is not linked to this photographer');
+  }
+
+  const { data, error } = await sb
+    .from('conversations')
+    .upsert(
+      { client_id: clientId, photographer_id: profile.id },
       { onConflict: 'client_id,photographer_id' }
     )
     .select('*')
