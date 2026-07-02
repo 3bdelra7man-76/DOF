@@ -54,6 +54,15 @@ function cleanString(value) {
   return String(value || '').trim();
 }
 
+function cleanPosition(value) {
+  const raw = cleanString(value);
+  if (/^\d{1,3}% \d{1,3}%$/.test(raw)) {
+    const [x, y] = raw.split(' ').map((part) => Math.max(0, Math.min(100, Number.parseInt(part, 10))));
+    return `${x}% ${y}%`;
+  }
+  return '50% 50%';
+}
+
 function pageParams(req, defaultPageSize = 25) {
   const page = Math.max(1, asInt(param(req, 'page') || 1));
   const requested = asInt(param(req, 'pageSize') || defaultPageSize);
@@ -264,10 +273,10 @@ async function updateMe(req, res) {
 
   if (profile.role === 'photographer') {
     const photographerPatch = {};
-    ['specialty', 'region', 'customLink', 'bio', 'coverUrl', 'socialLinks', 'isPublished'].forEach((key) => {
+    ['specialty', 'region', 'customLink', 'bio', 'coverUrl', 'coverPosition', 'socialLinks', 'isPublished'].forEach((key) => {
       if (body[key] !== undefined) {
-        const dbKey = { customLink: 'custom_link', coverUrl: 'cover_url', socialLinks: 'social_links', isPublished: 'is_published' }[key] || key;
-        photographerPatch[dbKey] = body[key];
+        const dbKey = { customLink: 'custom_link', coverUrl: 'cover_url', coverPosition: 'cover_position', socialLinks: 'social_links', isPublished: 'is_published' }[key] || key;
+        photographerPatch[dbKey] = key === 'coverPosition' ? cleanPosition(body[key]) : body[key];
       }
     });
     if (Object.keys(photographerPatch).length) {
@@ -597,6 +606,52 @@ async function getAvailableSlots(req, res, photographerId) {
   ok(res, { slots });
 }
 
+function isMissingPendingBookingRpc(error) {
+  const msg = String(error?.message || '');
+  return error?.code === 'PGRST202' || (msg.includes('create_pending_booking') && msg.includes('schema cache'));
+}
+
+async function createPendingBookingFallback({ sb, body, pkg, startTime, endTime, clientId }) {
+  const [{ data: workingHours, error: hoursError }, { data: bookings, error: bookingError }, { data: blocks, error: blockError }] = await Promise.all([
+    sb.from('working_hours').select('*').eq('photographer_id', body.photographerId),
+    sb.from('bookings').select('start_time,end_time').eq('photographer_id', body.photographerId).eq('booking_date', body.date).in('status', ['confirmed', 'pending']),
+    sb.from('availability_blocks').select('start_time,end_time').eq('photographer_id', body.photographerId).eq('block_date', body.date)
+  ]);
+  const dataError = hoursError || bookingError || blockError;
+  if (dataError) throw fail(422, dataError.message);
+
+  const slots = generateSlots({
+    date: body.date,
+    durationMinutes: pkg.duration_minutes,
+    workingHours: workingHours || [],
+    bookings: bookings || [],
+    blocks: blocks || []
+  });
+  const available = slots.some((slot) => slot.startTime === startTime && slot.endTime === endTime);
+  if (!available) throw fail(409, 'Time slot is no longer available');
+
+  const { data, error } = await sb
+    .from('bookings')
+    .insert({
+      client_id: clientId,
+      photographer_id: body.photographerId,
+      package_id: body.packageId,
+      booking_date: body.date,
+      start_time: startTime,
+      end_time: endTime,
+      client_name: cleanString(body.clientName),
+      client_email: cleanString(body.clientEmail),
+      client_phone: cleanString(body.clientPhone),
+      notes: cleanString(body.notes),
+      price_cents: pkg.price_cents,
+      status: 'pending'
+    })
+    .select('*')
+    .single();
+  if (error) throw fail(409, error.message || 'Time slot is no longer available');
+  return data;
+}
+
 async function createBooking(req, res) {
   const body = await readJson(req);
   required(body, ['photographerId', 'packageId', 'date', 'startTime', 'clientName', 'clientPhone']);
@@ -629,7 +684,8 @@ async function createBooking(req, res) {
     .single();
   if (pkgError || !pkg) throw fail(404, 'Package not found');
 
-  const endTime = addMinutes(body.startTime, pkg.duration_minutes);
+  const startTime = addMinutes(cleanString(body.startTime).slice(0, 5), 0);
+  const endTime = addMinutes(startTime, pkg.duration_minutes);
   const clientId = tokenUser.profile.id;
 
   /* Atomic conflict check + insert via advisory-locked RPC */
@@ -638,7 +694,7 @@ async function createBooking(req, res) {
     p_photographer_id: body.photographerId,
     p_package_id: body.packageId,
     p_booking_date: body.date,
-    p_start_time: body.startTime,
+    p_start_time: startTime,
     p_end_time: endTime,
     p_client_name: cleanString(body.clientName),
     p_client_email: cleanString(body.clientEmail),
@@ -646,10 +702,16 @@ async function createBooking(req, res) {
     p_notes: cleanString(body.notes),
     p_price_cents: pkg.price_cents
   });
-  if (rpcErr) throw fail(409, rpcErr.message || 'Time slot is no longer available');
+  let bookingRow = rpcRow;
+  if (rpcErr) {
+    if (!isMissingPendingBookingRpc(rpcErr)) {
+      throw fail(409, rpcErr.message || 'Time slot is no longer available');
+    }
+    bookingRow = await createPendingBookingFallback({ sb, body, pkg, startTime, endTime, clientId });
+  }
 
   /* RPC returns the bookings row directly; fetch the package join for the client */
-  const bookingId = rpcRow?.id;
+  const bookingId = bookingRow?.id;
   const { data, error } = await sb
     .from('bookings')
     .select('*, packages(name, duration_minutes)')
@@ -804,7 +866,8 @@ async function createConversation(req, res) {
   requireRole(profile, 'client');
   const body = await readJson(req);
   required(body, ['photographerId']);
-  const { data, error } = await supabaseService()
+  const sb = supabaseService();
+  const { data, error } = await sb
     .from('conversations')
     .upsert(
       { client_id: profile.id, photographer_id: body.photographerId },
@@ -813,7 +876,20 @@ async function createConversation(req, res) {
     .select('*')
     .single();
   if (error) throw fail(422, error.message);
-  created(res, { conversation: data });
+  const { data: people } = await sb
+    .from('profiles')
+    .select('id, display_name, avatar_url')
+    .in('id', [data.client_id, data.photographer_id]);
+  const peopleById = Object.fromEntries((people || []).map((person) => [person.id, person]));
+  created(res, {
+    conversation: {
+      ...data,
+      client_name: peopleById[data.client_id]?.display_name || 'Client',
+      client_avatar: peopleById[data.client_id]?.avatar_url || null,
+      photographer_name: peopleById[data.photographer_id]?.display_name || 'Photographer',
+      photographer_avatar: peopleById[data.photographer_id]?.avatar_url || null
+    }
+  });
 }
 
 async function updateConversationState(req, res, conversationId, action) {

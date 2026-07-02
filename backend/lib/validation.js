@@ -29,6 +29,7 @@ export function publicProfileSelect() {
       custom_link,
       bio,
       cover_url,
+      cover_position,
       social_links,
       is_published,
       is_suspended,

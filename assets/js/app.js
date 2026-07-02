@@ -166,6 +166,7 @@ function normalizeProfile(profile){
     bio:pp?(pp.bio||''):(profile.bio||''),
     bioAr:pp?(pp.bio||''):(profile.bioAr||''),
     cover:pp?(pp.cover_url||''):(profile.cover||''),
+    coverPosition:normalizeCoverPosition(pp?(pp.cover_position||profile.coverPosition):(profile.cover_position||profile.coverPosition)),
     social:pp?(pp.social_links||{}):(profile.social||{}),
     rating:profile.rating||0,bookings:profile.booking_count||0,
     subscriptionDueAt:pp?pp.subscription_due_at:null,
@@ -182,9 +183,18 @@ function normalizeDirectoryPhotographer(row){
     region:row.region||'',regionAr:row.region||'',customLink:row.custom_link,
     avatar:row.avatar_url||'',
     cover:row.cover_url||'',
+    coverPosition:normalizeCoverPosition(row.cover_position||row.coverPosition),
     bio:row.bio||'',bioAr:row.bio||'',social:row.social_links||{},
     rating:row.rating||0,bookings:row.booking_count||0,packages:[],portfolio:[]
   };
+}
+function normalizeCoverPosition(value){
+  var raw=String(value||'').trim();
+  var match=raw.match(/^(\d{1,3})%\s+(\d{1,3})%$/);
+  if(!match)return'50% 50%';
+  var x=Math.max(0,Math.min(100,parseInt(match[1],10)));
+  var y=Math.max(0,Math.min(100,parseInt(match[2],10)));
+  return x+'% '+y+'%';
 }
 function normalizePackage(pkg){
   var minutes=Number(pkg.duration_minutes||pkg.durationMinutes||60);
@@ -480,6 +490,8 @@ document.querySelectorAll('.modal-overlay').forEach(function(ov){
 });
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape'){
+    var coverModal=document.getElementById('cover-position-modal');
+    if(coverModal&&coverModal.classList.contains('active')){closeCoverPositionModal();return;}
     document.querySelectorAll('.modal-overlay.active').forEach(function(m){m.classList.remove('active');document.body.style.overflow='';});
     var cm=document.getElementById('chat-modal');
     if(cm&&!cm.classList.contains('hidden')){closeChatModal();}
@@ -534,12 +546,22 @@ function switchAuthTab(tab){
     btn.classList.toggle('text-[var(--text2)]',!act);
   });
 }
-function selectRole(role,el){
+function setAuthRole(role){
   S.regRole=role;
-  document.querySelectorAll('.role-option').forEach(function(e){e.classList.remove('selected');});
-  el.classList.add('selected');
-  document.getElementById('photo-fields').classList.toggle('hidden',role!=='photographer');
-  document.getElementById('client-fields').classList.toggle('hidden',role!=='client');
+  document.querySelectorAll('.role-option').forEach(function(e,i){
+    e.classList.toggle('selected',(role==='photographer'&&i===0)||(role==='client'&&i===1));
+  });
+  var photoFields=document.getElementById('photo-fields');
+  var clientFields=document.getElementById('client-fields');
+  if(photoFields)photoFields.classList.toggle('hidden',role!=='photographer');
+  if(clientFields)clientFields.classList.toggle('hidden',role!=='client');
+}
+function selectRole(role,el){
+  setAuthRole(role);
+  if(el){
+    document.querySelectorAll('.role-option').forEach(function(e){e.classList.remove('selected');});
+    el.classList.add('selected');
+  }
 }
 function togglePassVis(id,btn){
   var inp=document.getElementById(id);
@@ -575,9 +597,10 @@ async function handleLogin(e){
     } else {
       await refreshMyBookings().catch(function(){});
       closeModal('auth-modal');
-      var hadIntent=false;try{hadIntent=!!sessionStorage.getItem('dof_pending_booking_intent');}catch(e){}
-      if(hadIntent){restorePendingBookingIntent();}
-      else{navigate('landing');}
+      var hadBookingIntent=false;try{hadBookingIntent=!!sessionStorage.getItem('dof_pending_booking_intent');}catch(e){}
+      var restoredChat=restorePendingChatIntent();
+      if(hadBookingIntent){restorePendingBookingIntent();}
+      else if(!restoredChat){navigate('landing');}
     }
     showToast(t('welcomeBack'),'success');
   }catch(err){
@@ -615,9 +638,10 @@ async function handleRegister(e){
     if(S.user.role==='photographer'){S.appointments=[];S.bookings=[];S.portfolio=[];S.packages=[];S.portfolioPublished=[];navigate('dashboard');}
     else{
       S.bookings=[];
-      var hadIntent=false;try{hadIntent=!!sessionStorage.getItem('dof_pending_booking_intent');}catch(e){}
-      if(hadIntent){restorePendingBookingIntent();}
-      else{navigate('landing');}
+      var hadBookingIntent=false;try{hadBookingIntent=!!sessionStorage.getItem('dof_pending_booking_intent');}catch(e){}
+      var restoredChat=restorePendingChatIntent();
+      if(hadBookingIntent){restorePendingBookingIntent();}
+      else if(!restoredChat){navigate('landing');}
     }
   }catch(err){
     showToast(err.message||'فشل إنشاء الحساب','error');
@@ -1661,8 +1685,8 @@ function renderSettings(){
   (u.avatar?'<img src="'+u.avatar+'" class="w-16 h-16 rounded-full border-2 border-[var(--border)] object-cover" alt="">':'<div class="w-16 h-16 rounded-full border-2 border-dashed border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center cursor-pointer shrink-0" onclick="openMediaPicker(\'avatar\')"><i class="fas fa-camera text-xl text-[var(--text2)]"></i></div>')+
   '<div class="flex-1"><div class="text-sm font-semibold mb-1">صورة البروفايل</div><button type="button" onclick="openMediaPicker(\'avatar\')" class="btn-secondary btn-sm">تغيير صورة البروفايل</button><input id="s-avatar-input" type="file" accept="image/*" onchange="handleMediaFile(\'avatar\',this)" class="hidden"></div></div>'+
   '<div><div class="text-sm font-semibold mb-2">صورة البانر</div><div class="rounded-xl overflow-hidden border border-[var(--border)] mb-2">'+
-  (u.cover?'<img src="'+u.cover+'" class="w-full h-28 object-cover" alt="">':'<div class="w-full h-28 bg-[var(--bg2)] border border-dashed border-[var(--border)] rounded-xl flex items-center justify-center cursor-pointer" onclick="openMediaPicker(\'cover\')"><i class="fas fa-image text-3xl text-[var(--border)]"></i></div>')+
-  '</div><button type="button" onclick="openMediaPicker(\'cover\')" class="btn-secondary btn-sm">تغيير صورة البانر</button><input id="s-cover-input" type="file" accept="image/*" onchange="handleMediaFile(\'cover\',this)" class="hidden"></div>'+
+  (u.cover?'<img src="'+u.cover+'" class="w-full h-28 object-cover" style="object-position:'+normalizeCoverPosition(u.coverPosition)+';" alt="">':'<div class="w-full h-28 bg-[var(--bg2)] border border-dashed border-[var(--border)] rounded-xl flex items-center justify-center cursor-pointer" onclick="openMediaPicker(\'cover\')"><i class="fas fa-image text-3xl text-[var(--border)]"></i></div>')+
+  '</div><div class="flex flex-wrap gap-2"><button type="button" onclick="openMediaPicker(\'cover\')" class="btn-secondary btn-sm">تغيير صورة البانر</button>'+(u.cover?'<button type="button" onclick="openCoverPositionModal()" class="btn-secondary btn-sm">ضبط موضع البانر</button>':'')+'</div><input id="s-cover-input" type="file" accept="image/*" onchange="handleMediaFile(\'cover\',this)" class="hidden"></div>'+
   '</div>'+
   '<div><label class="block text-sm text-[var(--text2)] mb-1">الاسم الكامل</label><input class="input" id="s-nameAr" value="'+(u.nameAr||u.name||'')+'"></div>'+
   '<div><label class="block text-sm text-[var(--text2)] mb-1">التخصص</label><input class="input" id="s-specAr" value="'+(u.specialtyAr||u.specialty||'')+'"></div>'+
@@ -1727,19 +1751,23 @@ function handleMediaFile(type,input){
   input.value='';
   var reader=new FileReader();
   reader.onload=function(e){
+    if(type==='cover'){
+      openCoverPositionModal(e.target.result,file);
+      return;
+    }
     applyMediaUpdate(type,e.target.result);
     uploadMediaFile(type,file);
   };
   reader.readAsDataURL(file);
 }
-async function uploadMediaFile(type,file){
+async function uploadMediaFile(type,file,coverPosition){
   try{
     var sign=await apiRequest('/api/uploads/sign',{method:'POST',body:{kind:'portfolio',filename:file.name}});
     var res=await fetch(sign.signedUrl,{method:'PUT',headers:{'Content-Type':file.type},body:file});
     if(!res.ok)throw new Error('Upload failed');
-    var patch=type==='cover'?{coverUrl:sign.publicUrl}:{avatarUrl:sign.publicUrl};
+    var patch=type==='cover'?{coverUrl:sign.publicUrl,coverPosition:normalizeCoverPosition(coverPosition||S.user.coverPosition)}:{avatarUrl:sign.publicUrl};
     await apiRequest('/api/me/profile',{method:'PATCH',body:patch});
-    applyMediaUpdate(type,sign.publicUrl);
+    applyMediaUpdate(type,sign.publicUrl,coverPosition);
     saveFrontendSession();
     showToast(type==='cover'?(S.lang==='ar'?'تم تحديث صورة البانر':'Banner updated'):(S.lang==='ar'?'تم تحديث صورة البروفايل':'Profile photo updated'),'success');
   }catch(err){
@@ -1747,19 +1775,100 @@ async function uploadMediaFile(type,file){
     showToast(S.lang==='ar'?'تم الحفظ مؤقتاً — فشل الرفع':'Saved locally — upload failed','warning');
   }
 }
-function applyMediaUpdate(type,dataUrl){
+function applyMediaUpdate(type,dataUrl,coverPosition){
   if(!S.user)return;
-  if(type==='cover'){S.user.cover=dataUrl;}
+  if(type==='cover'){S.user.cover=dataUrl;S.user.coverPosition=normalizeCoverPosition(coverPosition||S.user.coverPosition);}
   else{S.user.avatar=dataUrl;}
   var dirPhoto=S.photographers.find(function(p){return p.id===S.user.id;});
   if(dirPhoto){
-    if(type==='cover'){dirPhoto.cover=S.user.cover;}
+    if(type==='cover'){dirPhoto.cover=S.user.cover;dirPhoto.coverPosition=S.user.coverPosition;}
     else{dirPhoto.avatar=S.user.avatar;}
   }
   if(S.view==='public'||S.isPortfolioPreview){renderPublicProfile();}
   if(S.view==='dashboard'){renderTab();}
   updateSidebarUser();
   showToast(type==='cover'?(S.lang==='ar'?'تم تحديث صورة البانر':'Banner image updated'):(S.lang==='ar'?'تم تحديث صورة البروفايل':'Profile photo updated'),'success');
+}
+function ensureCoverPositionModal(){
+  var modal=document.getElementById('cover-position-modal');
+  if(modal)return modal;
+  modal=document.createElement('div');
+  modal.id='cover-position-modal';
+  modal.className='modal-overlay cover-position-modal';
+  modal.innerHTML='<div class="modal-box lg cover-position-box">'+
+    '<div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold">'+(S.lang==='ar'?'موضع البانر':'Cover Position')+'</h3>'+
+    '<button onclick="closeCoverPositionModal()" class="text-[var(--text2)] hover:text-[var(--text)] text-xl"><i class="fas fa-times"></i></button></div>'+
+    '<div class="cover-position-frame" id="cover-position-frame"><img id="cover-position-img" alt=""></div>'+
+    '<div class="cover-position-actions">'+
+    '<button type="button" class="btn-secondary btn-sm" onclick="setCoverPositionDraft(50,20)">'+(S.lang==='ar'?'أعلى':'Top')+'</button>'+
+    '<button type="button" class="btn-secondary btn-sm" onclick="setCoverPositionDraft(50,50)">'+(S.lang==='ar'?'وسط':'Center')+'</button>'+
+    '<button type="button" class="btn-secondary btn-sm" onclick="setCoverPositionDraft(50,80)">'+(S.lang==='ar'?'أسفل':'Bottom')+'</button>'+
+    '<button type="button" class="btn-primary btn-sm" onclick="confirmCoverPosition()">'+(S.lang==='ar'?'حفظ':'Save')+'</button>'+
+    '</div></div>';
+  document.body.appendChild(modal);
+  return modal;
+}
+function openCoverPositionModal(src,file){
+  if(!S.user)return;
+  var imageSrc=src||S.user.cover;
+  if(!imageSrc){openMediaPicker('cover');return;}
+  S.coverPositionDraft={src:imageSrc,file:file||null,position:normalizeCoverPosition(S.user.coverPosition)};
+  var modal=ensureCoverPositionModal();
+  var img=document.getElementById('cover-position-img');
+  if(img){img.src=imageSrc;img.style.objectPosition=S.coverPositionDraft.position;}
+  modal.classList.add('active');
+  document.body.style.overflow='hidden';
+  bindCoverPositionDrag();
+}
+function closeCoverPositionModal(){
+  var modal=document.getElementById('cover-position-modal');
+  if(modal)modal.classList.remove('active');
+  document.body.style.overflow='';
+  S.coverPositionDraft=null;
+}
+function setCoverPositionDraft(x,y){
+  if(!S.coverPositionDraft)return;
+  x=Math.max(0,Math.min(100,Math.round(x)));
+  y=Math.max(0,Math.min(100,Math.round(y)));
+  S.coverPositionDraft.position=x+'% '+y+'%';
+  var img=document.getElementById('cover-position-img');
+  if(img)img.style.objectPosition=S.coverPositionDraft.position;
+}
+function bindCoverPositionDrag(){
+  var frame=document.getElementById('cover-position-frame');
+  if(!frame||frame.dataset.bound==='1')return;
+  frame.dataset.bound='1';
+  var dragging=false;
+  function updateFromEvent(e){
+    var point=e.touches&&e.touches[0]?e.touches[0]:e;
+    var rect=frame.getBoundingClientRect();
+    setCoverPositionDraft(((point.clientX-rect.left)/rect.width)*100,((point.clientY-rect.top)/rect.height)*100);
+  }
+  frame.addEventListener('mousedown',function(e){dragging=true;updateFromEvent(e);});
+  window.addEventListener('mousemove',function(e){if(dragging)updateFromEvent(e);});
+  window.addEventListener('mouseup',function(){dragging=false;});
+  frame.addEventListener('touchstart',function(e){dragging=true;updateFromEvent(e);},{passive:true});
+  frame.addEventListener('touchmove',function(e){if(dragging)updateFromEvent(e);},{passive:true});
+  frame.addEventListener('touchend',function(){dragging=false;});
+}
+async function confirmCoverPosition(){
+  if(!S.coverPositionDraft||!S.user)return;
+  var draft=S.coverPositionDraft;
+  var position=normalizeCoverPosition(draft.position);
+  closeCoverPositionModal();
+  applyMediaUpdate('cover',draft.src,position);
+  if(draft.file){
+    uploadMediaFile('cover',draft.file,position);
+    return;
+  }
+  try{
+    await apiRequest('/api/me/profile',{method:'PATCH',body:{coverPosition:position}});
+    saveFrontendSession();
+    showToast(S.lang==='ar'?'تم تحديث موضع البانر':'Cover position updated','success');
+  }catch(err){
+    saveFrontendSession();
+    showToast(err.message||'تعذر حفظ موضع البانر','error');
+  }
 }
 async function handleSubscribe(){
   try{
@@ -1857,7 +1966,8 @@ function photographerLowestPrice(p){
 }
 function renderExploreCard(p,compact){
   var lowestPrice=photographerLowestPrice(p);
-  var coverEl=p.cover?'<img src="'+p.cover+'" alt="'+escapeHtml(gf(p,'name'))+'" loading="lazy">':'<div style="position:absolute;inset:0;background:linear-gradient(135deg,var(--bg2),var(--bg));display:flex;align-items:center;justify-content:center;"><i class="fas fa-camera" style="font-size:2.5rem;color:var(--border);"></i></div>';
+  var coverPos=normalizeCoverPosition(p.coverPosition);
+  var coverEl=p.cover?'<img src="'+p.cover+'" class="photo-card-cover" style="object-position:'+coverPos+';" alt="'+escapeHtml(gf(p,'name'))+'" loading="lazy">':'<div class="photo-card-cover photo-card-cover-empty"><i class="fas fa-camera" style="font-size:2.5rem;color:var(--border);"></i></div>';
   var avatarEl=p.avatar?'<img src="'+p.avatar+'" class="photo-card-avatar" alt="">':'<div class="photo-card-avatar" style="background:var(--bg2);display:flex;align-items:center;justify-content:center;"><i class="fas fa-user" style="color:var(--border);font-size:1.2rem;"></i></div>';
   if(compact){
     return'<div class="photo-card explore-mini-card"><div class="photo-card-header" style="position:relative;">'+coverEl+avatarEl+'</div>'+
@@ -2148,10 +2258,11 @@ function renderPublicProfile(){
   var avatarEl=u.avatar
     ?'<button type="button" class="pub-avatar-btn" onclick="openPubAvatarPreview()" aria-label="Open profile image"><img src="'+u.avatar+'" class="pub-avatar w-32 h-32 rounded-2xl object-cover border-4 border-[var(--bg)] shadow-xl" alt=""></button>'
     :'<div class="pub-avatar w-32 h-32 rounded-2xl border-4 border-[var(--bg)] shadow-xl bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-4xl" style="color:var(--border)"></i></div>';
-  var html='<div class="pt-14">'+reviewBanner+'<div class="pub-cover" style="background-image:url(\''+u.cover+'\')"></div>'+
+  var publicCoverPosition=normalizeCoverPosition(u.coverPosition);
+  var html='<div class="pt-14">'+reviewBanner+'<div class="pub-cover" style="background-image:url(\''+u.cover+'\');background-position:'+publicCoverPosition+';"></div>'+
   '<div class="max-w-5xl mx-auto px-6 -mt-24 relative z-10">'+
   '<div class="profile-header-inner flex items-end gap-6 mb-6">'+avatarEl+'<div class="pb-2"><h1 class="text-3xl font-bold">'+nm+'</h1><p class="text-[var(--accent)] font-semibold">'+sp+'</p><div class="flex items-center gap-4 mt-2 text-sm text-[var(--text2)]"><span><i class="fas fa-map-marker-alt mr-1"></i>'+rg+'</span><span class="stars">'+starsHTML(u.rating||0)+'</span></div></div>'+
-  '<div class="profile-actions ml-auto flex items-center gap-2 mb-2"><button class="btn-secondary btn-sm" style="border-radius:10px;" onclick="event.stopPropagation();startChatWithPhotographer('+u.id+')"><i class="fas fa-comment-dots mr-1"></i>'+(S.lang==='ar'?'رسالة':'Message')+'</button><div class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</div></div></div>'+
+  '<div class="profile-actions ml-auto flex items-center gap-2 mb-2"><button class="btn-secondary btn-sm" style="border-radius:10px;" onclick="event.stopPropagation();startChatWithPhotographer(\''+jsString(u.id)+'\')"><i class="fas fa-comment-dots mr-1"></i>'+(S.lang==='ar'?'رسالة':'Message')+'</button><div class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</div></div></div>'+
   (bi?'<p class="bio-text text-[var(--text2)] mb-6 max-w-2xl leading-relaxed">'+bi+'</p>':'')+
   (u.social?'<div class="social-icons-wrapper flex flex-wrap gap-3 mb-10">'+(u.social.facebook?'<a href="'+u.social.facebook+'" target="_blank" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-facebook"></i></a>':'')+(u.social.instagram?'<a href="'+u.social.instagram+'" target="_blank" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-instagram"></i></a>':'')+'</div>':'')+
   
@@ -2202,8 +2313,9 @@ function renderPublicProfile(){
     for(var i=0;i<7;i++){
       var h=byDay[i];
       var label=dayNames[i];
-      var val=(h&&(h.is_closed===false||h.isClosed===false||(h.is_closed===undefined&&h.isClosed===undefined&&h.start_time)))
-        ? ((h.start_time||h.startTime||'')+' — '+(h.end_time||h.endTime||''))
+      var isOpen=!!(h&&(h.enabled!==false&&h.enabled!=='false')&&(h.start_time||h.startTime)&&(h.end_time||h.endTime));
+      var val=isOpen
+        ? ((h.start_time||h.startTime||'').slice(0,5)+' - '+(h.end_time||h.endTime||'').slice(0,5))
         : '<span class="text-[var(--text2)]">مغلق</span>';
       rows+='<div class="flex justify-between py-2 border-b border-[var(--border)] last:border-b-0"><span class="text-sm">'+label+'</span><span class="text-sm font-semibold" dir="ltr">'+val+'</span></div>';
     }
@@ -2666,6 +2778,20 @@ function updateChatBadge(){
     else{sb.classList.add('hidden');}
   }
 }
+function getConversationPeer(conv){
+  var au=authUser();
+  var asPhotographer=au&&au.role==='photographer'&&conv.photographerId===au.id;
+  if(asPhotographer){
+    return {
+      name:conv.clientName||'Client',
+      avatar:conv.clientAvatar||'https://picsum.photos/seed/client/80/80'
+    };
+  }
+  return {
+    name:conv.photographerName||'Photographer',
+    avatar:conv.photographerAvatar||'https://picsum.photos/seed/conv/80/80'
+  };
+}
 function toggleChatPanel(){
   var panel=document.getElementById('chat-panel');
   var fab=document.getElementById('chat-fab');
@@ -2700,9 +2826,10 @@ async function renderChatConvList(){
   var convs=S.conversations||[];
   var au=authUser();
   var pId=au&&au.role==='photographer'?au.id:null;
+  var cId=au&&au.role==='client'?au.id:getClientId();
   var filtered=convs.filter(function(c){
     if(pId){return c.photographerId===pId;}
-    return c.clientId===getClientId();
+    return c.clientId===cId;
   });
   filtered.sort(function(a,b){return new Date(b.lastMessageAt)-new Date(a.lastMessageAt);});
   var title=document.getElementById('chat-panel-title');
@@ -2715,9 +2842,10 @@ async function renderChatConvList(){
     var isBlocked=S.blockedUsers.indexOf(c.clientId)>-1;
     var isBlockedByPhoto=S.blockedUsers.indexOf('photo_'+c.photographerId)>-1;
     var blockedLabel=isBlocked||isBlockedByPhoto?'<span class="badge badge-cancelled" style="font-size:9px;padding:1px 6px;">'+t('chatBlocked')+'</span>':'';
+    var peer=getConversationPeer(c);
     return'<div class="chat-conv-item'+(c.id===S.chatActiveConv?' selected':'')+'" onclick="openChatConversation(\''+c.id+'\')">'+
-    '<img class="conv-avatar" src="'+(c.photographerAvatar||'https://picsum.photos/seed/conv/80/80')+'" alt="">'+
-    '<div class="info"><div class="name">'+c.clientName+blockedLabel+'</div>'+
+    '<img class="conv-avatar" src="'+peer.avatar+'" alt="">'+
+    '<div class="info"><div class="name">'+peer.name+blockedLabel+'</div>'+
     '<div class="preview">'+(isBlocked?t('chatBlocked'):(isBlockedByPhoto?t('chatBlockedByUser'):(c.lastMessage||'')))+'</div></div>'+
     '<div class="meta">'+
     (c.unread>0?'<div class="unread-badge">'+(c.unread>99?'99+':c.unread)+'</div>':'')+
@@ -2796,13 +2924,14 @@ function openChatConversation(convId){
   var container=document.getElementById('chat-conv-list');
   var convView=document.getElementById('chat-conv-view');
   var title=document.getElementById('chat-panel-title');
+  var peer=getConversationPeer(conv);
   if(container){container.style.display='none';container.classList.add('hidden');}
   if(convView){convView.style.display='flex';convView.classList.remove('hidden');}
-  if(title){title.textContent=t('convWith')+' '+conv.clientName;}
+  if(title){title.textContent=t('convWith')+' '+peer.name;}
   var avatar=document.getElementById('chat-conv-avatar');
-  if(avatar){avatar.src=conv.photographerAvatar||'https://picsum.photos/seed/conv/80/80';}
+  if(avatar){avatar.src=peer.avatar;}
   var name=document.getElementById('chat-conv-name');
-  if(name){name.textContent=conv.clientName;}
+  if(name){name.textContent=peer.name;}
   var status=document.getElementById('chat-conv-status');
   if(status){
     var isBlocked=S.blockedUsers.indexOf(conv.clientId)>-1;
@@ -2864,30 +2993,52 @@ async function findOrCreateConversation(photographerId){
   if(existing)return existing;
   var photo=S.photographers.find(function(p){return p.id===photographerId;});
   if(!photo)return null;
-  var conv={id:Date.now(),photographerId:photographerId,clientId:clientId,clientName:S.user?S.user.name||'Guest':'Guest',clientEmail:S.user?S.user.email:'',photographerAvatar:photo.avatar||'https://picsum.photos/seed/conv/80/80',lastMessage:'',lastMessageAt:new Date().toISOString(),unread:0,status:'active',createdAt:new Date().toISOString(),blockedBy:null};
+  var conv={id:Date.now(),photographerId:photographerId,clientId:clientId,clientName:S.user?S.user.name||'Guest':'Guest',clientEmail:S.user?S.user.email:'',photographerName:gf(photo,'name')||'Photographer',photographerAvatar:photo.avatar||'https://picsum.photos/seed/conv/80/80',lastMessage:'',lastMessageAt:new Date().toISOString(),unread:0,status:'active',createdAt:new Date().toISOString(),blockedBy:null};
   S.conversations.push(conv);
   persistChatData();
   return conv;
 }
+function stashPendingChatIntent(photographerId){
+  var phFor=S.viewedPhotographer||S.user||{};
+  var intent={photographerId:photographerId,photographerLink:phFor.customLink||'',savedAt:Date.now()};
+  try{sessionStorage.setItem('dof_pending_chat_intent',JSON.stringify(intent));}catch(e){}
+}
+function restorePendingChatIntent(){
+  if(!S.user||S.user.role!=='client')return false;
+  var raw='';try{raw=sessionStorage.getItem('dof_pending_chat_intent')||'';}catch(e){return false;}
+  if(!raw)return false;
+  var intent;try{intent=JSON.parse(raw);}catch(e){return false;}
+  try{sessionStorage.removeItem('dof_pending_chat_intent');}catch(e){}
+  if(!intent||!intent.savedAt||Date.now()-intent.savedAt>30*60*1000)return false;
+  if(!intent.photographerId)return false;
+  setTimeout(function(){startChatWithPhotographer(intent.photographerId);},80);
+  return true;
+}
 async function startChatWithPhotographer(photographerId){
-  if(!S.user){
+  if(!S.user||!apiToken()){
+    stashPendingChatIntent(photographerId);
+    setAuthRole('client');
+    switchAuthTab('login');
     openModal('auth-modal');
     showToast(S.lang==='ar'?'يرجى تسجيل الدخول أولاً':'Please login first','info');
+    return;
+  }
+  if(S.user.role!=='client'){
+    showToast(S.lang==='ar'?'الرسائل من صفحة المصور متاحة لحسابات العملاء فقط':'Please sign in as a client to message photographers','error');
     return;
   }
   var conv;
   try{conv=await findOrCreateConversation(photographerId);}catch(err){showToast(err.message||'Could not start conversation','error');return;}
   if(!conv){showToast('تعذر فتح المحادثة','error');return;}
-  openChatConversation(conv.id);
   if(S.view==='public'||S.view==='landing'){
     var panel=document.getElementById('chat-panel');
     if(panel){
-      renderChatConvList();
       panel.classList.add('open');
     }
     var fab=document.getElementById('chat-fab');
     if(fab)fab.style.display='none';
   }
+  openChatConversation(conv.id);
 }
 function renderChatDashboard(){
   var convs=S.conversations||[];
@@ -2913,15 +3064,16 @@ function renderChatDashboard(){
   
   html+='<div class="space-y-3">'+filtered.map(function(c){
     var isBlocked=S.blockedUsers.indexOf(c.clientId)>-1;
+    var peer=getConversationPeer(c);
     var msgs=getConvMessages(c.id);
     var lastMsg=msgs.length>0?msgs[msgs.length-1]:null;
     var lastContent=lastMsg&&!lastMsg.deleted?lastMsg.content:(c.lastMessage||(S.lang==='ar'?'بدون رسائل':'No messages'));
     var lastTime=lastMsg?timeAgo(lastMsg.timestamp):timeAgo(c.lastMessageAt);
     var isOnline=Math.random()>0.5;
     return'<div class="card p-4 hover:border-[var(--accent)] cursor-pointer" onclick="openChatByConv(\''+c.id+'\')">'+
-    '<div class="flex items-start gap-3"><img src="'+(c.photographerAvatar||'https://picsum.photos/seed/conv/80/80')+'" class="w-12 h-12 rounded-xl object-cover border border-[var(--border)]" alt="">'+
+    '<div class="flex items-start gap-3"><img src="'+peer.avatar+'" class="w-12 h-12 rounded-xl object-cover border border-[var(--border)]" alt="">'+
     '<div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-2"><div class="font-semibold flex items-center gap-2">'+
-    c.clientName+
+    peer.name+
     (isBlocked?'<span class="badge badge-cancelled">'+t('chatBlocked')+'</span>':'')+
     '</div><div class="text-xs text-[var(--text2)] whitespace-nowrap">'+lastTime+'</div></div>'+
     '<div class="text-sm text-[var(--text2)] truncate mt-1">'+lastContent+'</div></div>'+
@@ -3056,14 +3208,11 @@ async function openChatModal(convId){
   S.chatActiveConv=convId;
   var modal=document.getElementById('chat-modal');
   if(!modal)return;
-  var au=authUser();
-  var isPhotographer=au&&au.role==='photographer';
-  var otherName=isPhotographer?conv.clientName:(conv.photographerName||'المصور');
-  var otherAvatar=isPhotographer?(conv.clientAvatar||''):(conv.photographerAvatar||'');
+  var peer=getConversationPeer(conv);
   var avatarEl=document.getElementById('chat-modal-avatar');
   var nameEl=document.getElementById('chat-modal-name');
-  if(avatarEl){avatarEl.src=otherAvatar||'https://picsum.photos/seed/chat/80/80';}
-  if(nameEl){nameEl.textContent=otherName;}
+  if(avatarEl){avatarEl.src=peer.avatar||'https://picsum.photos/seed/chat/80/80';}
+  if(nameEl){nameEl.textContent=peer.name;}
   modal.classList.remove('hidden');
   document.body.style.overflow='hidden';
   try{
@@ -3121,6 +3270,7 @@ async function sendChatModalMessage(){
   }catch(e){showToast(e.message||'فشل إرسال الرسالة','error');input.value=text;}
 }
 function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function jsString(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r/g,'').replace(/\n/g,'\\n');}
 /* ===== END CHAT MODAL ===== */
 
 function initChatSystem(){
