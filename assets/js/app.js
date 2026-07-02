@@ -1,7 +1,7 @@
 /* ===== TRANSLATION DICTIONARY (EN + AR) ===== */
 var T={
-en:{loginTab:'Sign In',registerTab:'Register',email:'Email',password:'Password',signIn:'Sign In',fullName:'Full Name',specialty:'Specialty',region:'Region',customLink:'Custom Link',phone:'Phone',createAccount:'Create Account',addAppointment:'Add Appointment',clientName:'Client Name',date:'Date',time:'Time',service:'Service',notes:'Notes',cancel:'Cancel',save:'Save',upgradeTitle:'Upgrade to Pro',upgradeDesc:'Unlock unlimited bookings and premium features.',subscribeNow:'Subscribe Now',maybeLater:'Maybe Later',navFeatures:'Features',navPhotographers:'Photographers',navPricing:'Pricing',getStarted:'Get Started',heroTitle1:'Where Photography',heroTitle2:'Meets Opportunity',heroDesc:'Connect with talented photographers, explore stunning portfolios, and book your perfect session.',joinNow:'Join Now — Free',browsePhotographers:'Browse Photographers',heroF1:'2,000+ photographers',heroF2:'Secure payments',featSectionTitle:'For Photographers & Clients',featSectionDesc:'A complete ecosystem for photography business management.',feat1Title:'Discover Photographers',feat1Desc:'Browse profiles, view portfolios, find the perfect photographer.',feat2Title:'Easy Booking',feat2Desc:'Book sessions directly through photographer profiles.',feat3Title:'Secure & Trusted',feat3Desc:'Verified profiles, secure payments, protected data.',feat4Title:'Portfolio Showcase',feat4Desc:'Display your best work in a stunning gallery.',feat5Title:'Bilingual Platform',feat5Desc:'Full Arabic and English support with RTL layouts.',feat6Title:'Social Integration',feat6Desc:'Connect Instagram, Facebook, WhatsApp to your profile.',howTitle:'How It Works',step1Title:'Create Account',step1Desc:'Sign up as photographer or client.',step2Title:'Explore & Connect',step2Desc:'Browse photographers or build your portfolio.',step3Title:'Book & Create',step3Desc:'Book sessions or receive bookings.',priceTitle:'Simple Pricing',planFree:'Free',planForever:'1 Week',planPro:'Professional',planPopular:'Popular',choosePlan:'Choose Plan',startFree:'Start Free',selectService:'Select Package',shootType:'Photography Type',selectShootType:'Select Photography Type',pricePerSession:'/ session',startingFrom:'Starting from',total:'Total',budget:'Budget',discount:'Discount',tax:'Tax',subtotal:'Subtotal',grandTotal:'Grand Total',confirmPrice:'Price confirmed',perSession:'per session',includes:'Includes',delivery:'Delivery',editedPhotos:'Edited photos',onlineGallery:'Online gallery',album:'Photo album',droneFootage:'Drone footage',retouching:'Retouching',commercialLicense:'Commercial license',packagePrice:'Price',packageDuration:'Duration',packageFeatures:'What is included',filesUploaded:'files attached',maxFileSize:'Max file size: 10MB',dragFiles:'Drag files here or click to upload',detectLocation:'Detect my location',locationDetected:'Location detected',locationFailed:'Could not detect location',selectRegionManually:'Or select manually',egyptRegions:'Saudi Arabia Regions',nearbyPhotographers:'Photographers near you',searchingLocation:'Detecting your location...',enableLocation:'Enable location services',allowLocationAccess:'Allow location access to find photographers in your area',foundRegion:'Your Region:',notFoundRegion:'Could not detect',useMyLocation:'Use My Location',locationPermission:'Location Permission',locationDenied:'Location access denied',locationError:'Location error',retryLocation:'Try Again',photographerRegion:'Photographer Region',filterByRegion:'Filter by Region',allRegions:'All Regions',footerAbout:'The complete platform for photographers and clients.',footerPlatform:'Platform',footerPhotographers:'Photographers',footerPricing:'Pricing',footerSupport:'Support',footerHelp:'Help Center',footerContact:'Contact',footerConnect:'Connect',loginBtn:'Login',navOverview:'Overview',navPortfolio:'Portfolio',navCalendar:'Calendar',navBookings:'Bookings',navSettings:'Settings',navLogout:'Log Out',totalBookings:'Total Bookings',thisMonth:'This Month',revenue:'Revenue',upcomingAppointments:'Upcoming',recentBookings:'Recent Bookings',noAppointments:'No upcoming appointments',addNew:'Add New',uploadPhoto:'Upload Photo',removePhoto:'Remove',selectDay:'Select a day',noAptForDay:'No appointments',addAptForDay:'Add Appointment',all:'All',pending:'Pending',confirmed:'Confirmed',cancelledStatus:'Cancelled',confirmBooking:'Confirm',cancelBooking:'Cancel',noBookings:'No bookings found',profileSettings:'Profile Settings',updateProfile:'Update Profile',socialLinks:'Social Links',yourBookingLink:'Your Booking Link',copyLink:'Copy Link',welcomeBack:'Welcome back',viewPublicProfile:'View Public Profile',yourPortfolio:'Portfolio',yourServices:'Services',bookNow:'Book Now',selectDate:'Select Date',selectTime:'Select Time',selectService:'Select Service',yourName:'Your Name',yourEmail:'Your Email',yourPhone:'Your Phone',submitBooking:'Submit Booking',bookingSuccess:'Booking submitted! Photographer will confirm shortly.',photographer:'Photographer',client:'Client',photoDesc:'Showcase work & get bookings',clientDesc:'Find & book photographers',exploreTitle:'Explore Photographers',exploreDesc:'Discover talented photographers near you',searchPlaceholder:'Search by name or specialty...',filterAll:'All',filterByRegion:'Region',filterBySpecialty:'Specialty',viewProfile:'View Profile',instagram:'Instagram',facebook:'Facebook',whatsapp:'WhatsApp',freeTrial:'Free Trial',daysRemaining:'days remaining',upgradeNow:'Upgrade Now',preferences:'Preferences',language:'Language',emailNotifs:'Email Notifications',smsNotifs:'SMS Notifications',linkUpdated:'Link updated',noTimes:'No available times.',viewAll:'View All',linkAvailable:'Available',passwordHint:'8+ chars with numbers & symbols',termsAgree:'I agree to the Terms & Privacy Policy',secureReg:'256-bit encrypted',addPackage:'Add Package',editPackage:'Edit Package',packageName:'Package Name',packageDesc:'Description',packagePrice:'Price',packageDuration:'Duration',packageFeatures:'Features',packageStatus:'Status',packageAttachments:'Attachments',savePackage:'Save Package',deletePackage:'Delete Package',featuredPackage:'Featured',activePackage:'Active',draftPackage:'Draft',noPackages:'No packages yet',noPackagesDesc:'Create your first package to start receiving bookings.',sortByName:'Name',sortByPrice:'Price',sortByNewest:'Newest',perSession:'per session',includes:'Includes',filesUploaded:'files uploaded',maxFileSize:'Max file size: 10MB',dragFiles:'Drag files here or click to upload',navChat:'Messages',chatTitle:'Messages',chatInput:'Type a message...',chatSend:'Send',chatEncrypted:'End-to-end encrypted &bull; Your messages are private',chatEmpty:'Start a conversation',chatEmptyDesc:'Send a message to the photographer to begin',chatNoConvs:'No conversations yet',chatBlocked:'Blocked',chatBlockedDesc:'You have blocked this user',chatReported:'Reported',chatReportSuccess:'Report submitted. Our team will review it.',chatBlockSuccess:'User blocked successfully',chatUnblock:'Unblock',chatDeleteMsg:'Delete message',chatMsgDeleted:'Message deleted',chatOnline:'Online',chatOffline:'Offline',chatTyping:'typing...',chatNewMsg:'New message',convWith:'Conversation with',chatDeleteAll:'Delete All',chatReport:'Report',chatBlock:'Block',chatArchive:'Archive',chatUnarchive:'Unarchive',chatNoMsg:'No messages yet. Say hello!',chatDeleteConfirm:'This will remove the message for everyone.',blockUser:'Block User',unblockUser:'Unblock User',chatBlockedByUser:'You are blocked by this user'},
-ar:{loginTab:'تسجيل الدخول',registerTab:'إنشاء حساب',email:'البريد الإلكتروني',password:'كلمة المرور',signIn:'تسجيل الدخول',fullName:'الاسم الكامل',specialty:'التخصص',region:'المنطقة',customLink:'رابط مخصص',phone:'الهاتف',createAccount:'إنشاء حساب',addAppointment:'إضافة موعد',clientName:'اسم العميل',date:'التاريخ',time:'الوقت',service:'الخدمة',notes:'ملاحظات',cancel:'إلغاء',save:'حفظ',upgradeTitle:'ترقية للاحترافي',upgradeDesc:'افتح الحجوزات غير المحدودة والميزات المميزة.',subscribeNow:'اشترك الآن',maybeLater:'لاحقاً',navFeatures:'المميزات',navPhotographers:'المصورون',navPricing:'الأسعار',getStarted:'ابدأ الآن',heroTitle1:'حيث يلتقي التصوير',heroTitle2:'بالفرصة',heroDesc:'تواصل مع مصورين موهوبين واستكشف معارض مذهلة واحجز جلستك المثالية.',joinNow:'انضم مجاناً',browsePhotographers:'تصفح المصورين',heroF1:'+2,000 مصور',heroF2:'مدفوعات آمنة',featSectionTitle:'للمصورين والعملاء',featSectionDesc:'نظام متكامل لإدارة أعمال التصوير واكتشاف العملاء.',feat1Title:'اكتشف المصورين',feat1Desc:'تصفح الملفات وشاهد المعارض واعثر على المصور المثالي.',feat2Title:'حجز سهل',feat2Desc:'احجز الجلسات مباشرة من خلال ملفات المصورين.',feat3Title:'آمن وموثوق',feat3Desc:'ملفات موثقة ومدفوعات آمنة وبيانات محمية.',feat4Title:'عرض المعرض',feat4Desc:'اعرض أفضل أعمالك في معرض مذهل.',feat5Title:'منصة ثنائية اللغة',feat5Desc:'دعم كامل بالعربية والإنجليزية مع تخطيطات RTL.',feat6Title:'تكامل اجتماعي',feat6Desc:'اربط إنستغرام وفيسبوك وواتساب.',howTitle:'كيف يعمل',step1Title:'أنشئ حساباً',step1Desc:'سجل كمصور أو عميل.',step2Title:'استكشف وتواصل',step2Desc:'تصفح المصورين أو أنشئ معرضك.',step3Title:'احجز وأنشئ',step3Desc:'احجز الجلسات أو ابدأ باستقبال الحجوزات.',priceTitle:'تسعير بسيط',planFree:'مجاني',planForever:'أسبوع واحد',planPro:'احترافي',planPopular:'الأكثر شعبية',choosePlan:'اختر الخطة',startFree:'ابدأ مجاناً',selectService:'اختر الباقة',shootType:'نوع التصوير',selectShootType:'اختر نوع التصوير',navPortfolio:'المعرض',yourPortfolio:'معرضي',yourServices:'الخدمات',footerAbout:'المنصة المتكاملة',footerPlatform:'المنصة',footerPhotographers:'المصورون',footerPricing:'الأسعار',footerSupport:'الدعم',footerHelp:'مركز المساعدة',footerContact:'تواصل',footerConnect:'تواصل',loginBtn:'دخول',navOverview:'نظرة عامة',navPortfolio:'المعرض',navCalendar:'التقويم',navBookings:'الحجوزات',navSettings:'الإعدادات',navLogout:'تسجيل الخروج',totalBookings:'إجمالي الحجوزات',thisMonth:'هذا الشهر',revenue:'الإيرادات',upcomingAppointments:'القادمة',recentBookings:'الحجوزات الأخيرة',noAppointments:'لا توجد مواعيد',addNew:'إضافة',uploadPhoto:'رفع صورة',removePhoto:'إزالة',selectDay:'اختر يوماً',noAptForDay:'لا توجد مواعيد',addAptForDay:'إضافة موعد',all:'الكل',pending:'قيد الانتظار',confirmed:'مؤكد',cancelledStatus:'ملغي',confirmBooking:'تأكيد',cancelBooking:'إلغاء',noBookings:'لا توجد حجوزات',profileSettings:'إعدادات الملف',updateProfile:'تحديث الملف',socialLinks:'روابط التواصل',yourBookingLink:'رابط الحجز',copyLink:'نسخ الرابط',welcomeBack:'مرحباً بعودتك',viewPublicProfile:'عرض الملف العام',yourPortfolio:'المعرض',yourServices:'الخدمات',bookNow:'احجز الآن',selectDate:'اختر التاريخ',selectTime:'اختر الوقت',selectService:'اختر الخدمة',yourName:'اسمك',yourEmail:'بريدك',yourPhone:'هاتفك',submitBooking:'تأكيد الحجز',bookingSuccess:'تم إرسال الحجز! سيؤكد المصور قريباً.',photographer:'مصور',client:'عميل',photoDesc:'اعرض أعمالك واحصل على حجوزات',clientDesc:'اعثر على مصورين واحجز جلسات',exploreTitle:'استكشف المصورين',exploreDesc:'اكتشف مصورين موهوبين بالقرب منك',searchPlaceholder:'بحث بالاسم أو التخصص...',filterAll:'الكل',filterByRegion:'المنطقة',filterBySpecialty:'التخصص',viewProfile:'عرض الملف',instagram:'إنستغرام',facebook:'فيسبوك',whatsapp:'واتساب',freeTrial:'تجربة مجانية',daysRemaining:'أيام متبقية',upgradeNow:'رقّي الآن',preferences:'التفضيلات',language:'اللغة',emailNotifs:'إشعارات البريد',smsNotifs:'إشعارات الرسائل',linkUpdated:'تم تحديث الرابط',noTimes:'لا توجد أوقات متاحة.',viewAll:'عرض الكل',linkAvailable:'متاح',passwordHint:'8 أحرف مع أرقام ورموز',termsAgree:'أوافق على الشروط والخصوصية',secureReg:'محمي بتشفير 256-بت',addPackage:'إضافة باقة',editPackage:'تعديل الباقة',packageName:'اسم الباقة',packageDesc:'الوصف',packagePrice:'السعر',packageDuration:'المدة',packageFeatures:'المميزات',packageStatus:'الحالة',packageAttachments:'المرفقات',savePackage:'حفظ الباقة',deletePackage:'حذف الباقة',featuredPackage:'مميزة',activePackage:'نشطة',draftPackage:'مسودة',noPackages:'لا توجد باقات',noPackagesDesc:'أنشئ باقتك الأولى لبدء استقبال الحجوزات.',sortByName:'الاسم',sortByPrice:'السعر',sortByNewest:'الأحدث',perSession:'للجلسة',includes:'يشمل',filesUploaded:'ملفات مرفوعة',maxFileSize:'الحجم الأقصى: 10 ميجابايت',dragFiles:'اسحب الملفات هنا أو انقر للرفع',navChat:'الرسائل',chatTitle:'الرسائل',chatInput:'اكتب رسالة...',chatSend:'إرسال',chatEncrypted:'مشفر من البداية إلى النهاية • رسائلك خاصة',chatEmpty:'ابدأ محادثة',chatEmptyDesc:'أرسل رسالة إلى المصور لبدء المحادثة',chatNoConvs:'لا توجد محادثات بعد',chatBlocked:'محظور',chatBlockedDesc:'لقد قمت بحظر هذا المستخدم',chatReported:'تم الإبلاغ',chatReportSuccess:'تم تقديم البلاغ. سيراجعه فريقنا.',chatBlockSuccess:'تم حظر المستخدم بنجاح',chatUnblock:'إلغاء الحظر',chatDeleteMsg:'حذف الرسالة',chatMsgDeleted:'تم حذف الرسالة',chatOnline:'متصل',chatOffline:'غير متصل',chatTyping:'يكتب...',chatNewMsg:'رسالة جديدة',convWith:'محادثة مع',chatDeleteAll:'حذف الكل',chatReport:'إبلاغ',chatBlock:'حظر',chatArchive:'أرشفة',chatUnarchive:'إلغاء الأرشفة',chatNoMsg:'لا توجد رسائل بعد. يمكنك بدء المحادثة!',chatDeleteConfirm:'سيتم حذف هذه الرسالة للجميع.',blockUser:'حظر المستخدم',unblockUser:'إلغاء حظر المستخدم',chatBlockedByUser:'تم حظرك من قبل هذا المستخدم'}
+en:{loginTab:'Sign In',registerTab:'Register',email:'Email',password:'Password',signIn:'Sign In',fullName:'Full Name',specialty:'Specialty',region:'Region',customLink:'Custom Link',phone:'Phone',createAccount:'Create Account',addAppointment:'Add Appointment',clientName:'Client Name',date:'Date',time:'Time',service:'Service',notes:'Notes',cancel:'Cancel',save:'Save',upgradeTitle:'Upgrade to Pro',upgradeDesc:'Unlock unlimited bookings and premium features.',subscribeNow:'Subscribe Now',maybeLater:'Maybe Later',navFeatures:'Features',navPhotographers:'Photographers',navPricing:'Pricing',getStarted:'Get Started',heroTitle1:'Where Photography',heroTitle2:'Meets Opportunity',heroDesc:'Connect with talented photographers, explore stunning portfolios, and book your perfect session.',joinNow:'Join Now — Free',browsePhotographers:'Browse Photographers',heroF1:'2,000+ photographers',heroF2:'Secure payments',featSectionTitle:'For Photographers & Clients',featSectionDesc:'A complete ecosystem for photography business management.',feat1Title:'Discover Photographers',feat1Desc:'Browse profiles, view portfolios, find the perfect photographer.',feat2Title:'Easy Booking',feat2Desc:'Book sessions directly through photographer profiles.',feat3Title:'Secure & Trusted',feat3Desc:'Verified profiles, secure payments, protected data.',feat4Title:'Portfolio Showcase',feat4Desc:'Display your best work in a stunning gallery.',feat5Title:'Bilingual Platform',feat5Desc:'Full Arabic and English support with RTL layouts.',feat6Title:'Social Integration',feat6Desc:'Connect Instagram, Facebook, WhatsApp to your profile.',howTitle:'How It Works',step1Title:'Create Account',step1Desc:'Sign up as photographer or client.',step2Title:'Explore & Connect',step2Desc:'Browse photographers or build your portfolio.',step3Title:'Book & Create',step3Desc:'Book sessions or receive bookings.',priceTitle:'Simple Pricing',planFree:'Free',planForever:'1 Week',planPro:'Professional',planPopular:'Popular',choosePlan:'Choose Plan',startFree:'Start Free',selectService:'Select Package',shootType:'Photography Type',selectShootType:'Select Photography Type',pricePerSession:'/ session',startingFrom:'Starting from',total:'Total',budget:'Budget',discount:'Discount',tax:'Tax',subtotal:'Subtotal',grandTotal:'Grand Total',confirmPrice:'Price confirmed',perSession:'per session',includes:'Includes',delivery:'Delivery',editedPhotos:'Edited photos',onlineGallery:'Online gallery',album:'Photo album',droneFootage:'Drone footage',retouching:'Retouching',commercialLicense:'Commercial license',packagePrice:'Price',packageDuration:'Duration',packageFeatures:'What is included',filesUploaded:'files attached',maxFileSize:'Max file size: 10MB',dragFiles:'Drag files here or click to upload',detectLocation:'Detect my location',locationDetected:'Location detected',locationFailed:'Could not detect location',selectRegionManually:'Or select manually',egyptRegions:'Saudi Arabia Regions',nearbyPhotographers:'Photographers near you',searchingLocation:'Detecting your location...',enableLocation:'Enable location services',allowLocationAccess:'Allow location access to find photographers in your area',foundRegion:'Your Region:',notFoundRegion:'Could not detect',useMyLocation:'Use My Location',locationPermission:'Location Permission',locationDenied:'Location access denied',locationError:'Location error',retryLocation:'Try Again',photographerRegion:'Photographer Region',filterByRegion:'Filter by Region',allRegions:'All Regions',footerAbout:'The complete platform for photographers and clients.',footerPlatform:'Platform',footerPhotographers:'Photographers',footerPricing:'Pricing',footerSupport:'Support',footerHelp:'Help Center',footerContact:'Contact',footerConnect:'Connect',loginBtn:'Login',navOverview:'Overview',navPortfolio:'Portfolio',navCalendar:'Calendar',navBookings:'Bookings',navSettings:'Settings',navLogout:'Log Out',totalBookings:'Total Bookings',thisMonth:'This Month',revenue:'Revenue',upcomingAppointments:'Upcoming',recentBookings:'Recent Bookings',noAppointments:'No upcoming appointments',addNew:'Add New',uploadPhoto:'Upload Photo',removePhoto:'Remove',selectDay:'Select a day',noAptForDay:'No appointments',addAptForDay:'Add Appointment',all:'All',pending:'Pending',confirmed:'Confirmed',cancelledStatus:'Cancelled',confirmBooking:'Confirm',cancelBooking:'Cancel',noBookings:'No bookings found',profileSettings:'Profile Settings',updateProfile:'Update Profile',socialLinks:'Social Links',yourBookingLink:'Your Booking Link',copyLink:'Copy Link',welcomeBack:'Welcome back',viewPublicProfile:'View Public Profile',yourPortfolio:'Portfolio',yourServices:'Services',bookNow:'Book Now',selectDate:'Select Date',selectTime:'Select Time',selectService:'Select Service',yourName:'Your Name',yourEmail:'Your Email',yourPhone:'Your Phone',submitBooking:'Submit Booking',bookingSuccess:'Booking submitted! Photographer will confirm shortly.',photographer:'Photographer',client:'Client',photoDesc:'Showcase work & get bookings',clientDesc:'Find & book photographers',exploreTitle:'Explore Photographers',exploreDesc:'Discover talented photographers near you',searchPlaceholder:'Search by name or specialty...',filterAll:'All',filterByRegion:'Region',filterBySpecialty:'Specialty',viewProfile:'View Profile',instagram:'Instagram',facebook:'Facebook',whatsapp:'WhatsApp',freeTrial:'Free Trial',daysRemaining:'days remaining',upgradeNow:'Upgrade Now',preferences:'Preferences',language:'Language',emailNotifs:'Email Notifications',smsNotifs:'SMS Notifications',linkUpdated:'Link updated',noTimes:'No available times.',viewAll:'View All',linkAvailable:'Available',passwordHint:'8+ chars with numbers & symbols',termsAgree:'I agree to the Terms & Privacy Policy',addPackage:'Add Package',editPackage:'Edit Package',packageName:'Package Name',packageDesc:'Description',packagePrice:'Price',packageDuration:'Duration',packageFeatures:'Features',packageStatus:'Status',packageAttachments:'Attachments',savePackage:'Save Package',deletePackage:'Delete Package',featuredPackage:'Featured',activePackage:'Active',draftPackage:'Draft',noPackages:'No packages yet',noPackagesDesc:'Create your first package to start receiving bookings.',sortByName:'Name',sortByPrice:'Price',sortByNewest:'Newest',perSession:'per session',includes:'Includes',filesUploaded:'files uploaded',maxFileSize:'Max file size: 10MB',dragFiles:'Drag files here or click to upload',navChat:'Messages',chatTitle:'Messages',chatInput:'Type a message...',chatSend:'Send',chatEmpty:'Start a conversation',chatEmptyDesc:'Send a message to the photographer to begin',chatNoConvs:'No conversations yet',chatBlocked:'Blocked',chatBlockedDesc:'You have blocked this user',chatReported:'Reported',chatReportSuccess:'Report submitted. Our team will review it.',chatBlockSuccess:'User blocked successfully',chatUnblock:'Unblock',chatDeleteMsg:'Delete message',chatMsgDeleted:'Message deleted',chatOnline:'Online',chatOffline:'Offline',chatTyping:'typing...',chatNewMsg:'New message',convWith:'Conversation with',chatDeleteAll:'Delete All',chatReport:'Report',chatBlock:'Block',chatArchive:'Archive',chatUnarchive:'Unarchive',chatNoMsg:'No messages yet. Say hello!',chatDeleteConfirm:'This will remove the message for everyone.',blockUser:'Block User',unblockUser:'Unblock User',chatBlockedByUser:'You are blocked by this user'},
+ar:{loginTab:'تسجيل الدخول',registerTab:'إنشاء حساب',email:'البريد الإلكتروني',password:'كلمة المرور',signIn:'تسجيل الدخول',fullName:'الاسم الكامل',specialty:'التخصص',region:'المنطقة',customLink:'رابط مخصص',phone:'الهاتف',createAccount:'إنشاء حساب',addAppointment:'إضافة موعد',clientName:'اسم العميل',date:'التاريخ',time:'الوقت',service:'الخدمة',notes:'ملاحظات',cancel:'إلغاء',save:'حفظ',upgradeTitle:'ترقية للاحترافي',upgradeDesc:'افتح الحجوزات غير المحدودة والميزات المميزة.',subscribeNow:'اشترك الآن',maybeLater:'لاحقاً',navFeatures:'المميزات',navPhotographers:'المصورون',navPricing:'الأسعار',getStarted:'ابدأ الآن',heroTitle1:'حيث يلتقي التصوير',heroTitle2:'بالفرصة',heroDesc:'تواصل مع مصورين موهوبين واستكشف معارض مذهلة واحجز جلستك المثالية.',joinNow:'انضم مجاناً',browsePhotographers:'تصفح المصورين',heroF1:'+2,000 مصور',heroF2:'مدفوعات آمنة',featSectionTitle:'للمصورين والعملاء',featSectionDesc:'نظام متكامل لإدارة أعمال التصوير واكتشاف العملاء.',feat1Title:'اكتشف المصورين',feat1Desc:'تصفح الملفات وشاهد المعارض واعثر على المصور المثالي.',feat2Title:'حجز سهل',feat2Desc:'احجز الجلسات مباشرة من خلال ملفات المصورين.',feat3Title:'آمن وموثوق',feat3Desc:'ملفات موثقة ومدفوعات آمنة وبيانات محمية.',feat4Title:'عرض المعرض',feat4Desc:'اعرض أفضل أعمالك في معرض مذهل.',feat5Title:'منصة ثنائية اللغة',feat5Desc:'دعم كامل بالعربية والإنجليزية مع تخطيطات RTL.',feat6Title:'تكامل اجتماعي',feat6Desc:'اربط إنستغرام وفيسبوك وواتساب.',howTitle:'كيف يعمل',step1Title:'أنشئ حساباً',step1Desc:'سجل كمصور أو عميل.',step2Title:'استكشف وتواصل',step2Desc:'تصفح المصورين أو أنشئ معرضك.',step3Title:'احجز وأنشئ',step3Desc:'احجز الجلسات أو ابدأ باستقبال الحجوزات.',priceTitle:'تسعير بسيط',planFree:'مجاني',planForever:'أسبوع واحد',planPro:'احترافي',planPopular:'الأكثر شعبية',choosePlan:'اختر الخطة',startFree:'ابدأ مجاناً',selectService:'اختر الباقة',shootType:'نوع التصوير',selectShootType:'اختر نوع التصوير',navPortfolio:'المعرض',yourPortfolio:'معرضي',yourServices:'الخدمات',footerAbout:'المنصة المتكاملة',footerPlatform:'المنصة',footerPhotographers:'المصورون',footerPricing:'الأسعار',footerSupport:'الدعم',footerHelp:'مركز المساعدة',footerContact:'تواصل',footerConnect:'تواصل',loginBtn:'دخول',navOverview:'نظرة عامة',navPortfolio:'المعرض',navCalendar:'التقويم',navBookings:'الحجوزات',navSettings:'الإعدادات',navLogout:'تسجيل الخروج',totalBookings:'إجمالي الحجوزات',thisMonth:'هذا الشهر',revenue:'الإيرادات',upcomingAppointments:'القادمة',recentBookings:'الحجوزات الأخيرة',noAppointments:'لا توجد مواعيد',addNew:'إضافة',uploadPhoto:'رفع صورة',removePhoto:'إزالة',selectDay:'اختر يوماً',noAptForDay:'لا توجد مواعيد',addAptForDay:'إضافة موعد',all:'الكل',pending:'قيد الانتظار',confirmed:'مؤكد',cancelledStatus:'ملغي',confirmBooking:'تأكيد',cancelBooking:'إلغاء',noBookings:'لا توجد حجوزات',profileSettings:'إعدادات الملف',updateProfile:'تحديث الملف',socialLinks:'روابط التواصل',yourBookingLink:'رابط الحجز',copyLink:'نسخ الرابط',welcomeBack:'مرحباً بعودتك',viewPublicProfile:'عرض الملف العام',yourPortfolio:'المعرض',yourServices:'الخدمات',bookNow:'احجز الآن',selectDate:'اختر التاريخ',selectTime:'اختر الوقت',selectService:'اختر الخدمة',yourName:'اسمك',yourEmail:'بريدك',yourPhone:'هاتفك',submitBooking:'تأكيد الحجز',bookingSuccess:'تم إرسال الحجز! سيؤكد المصور قريباً.',photographer:'مصور',client:'عميل',photoDesc:'اعرض أعمالك واحصل على حجوزات',clientDesc:'اعثر على مصورين واحجز جلسات',exploreTitle:'استكشف المصورين',exploreDesc:'اكتشف مصورين موهوبين بالقرب منك',searchPlaceholder:'بحث بالاسم أو التخصص...',filterAll:'الكل',filterByRegion:'المنطقة',filterBySpecialty:'التخصص',viewProfile:'عرض الملف',instagram:'إنستغرام',facebook:'فيسبوك',whatsapp:'واتساب',freeTrial:'تجربة مجانية',daysRemaining:'أيام متبقية',upgradeNow:'رقّي الآن',preferences:'التفضيلات',language:'اللغة',emailNotifs:'إشعارات البريد',smsNotifs:'إشعارات الرسائل',linkUpdated:'تم تحديث الرابط',noTimes:'لا توجد أوقات متاحة.',viewAll:'عرض الكل',linkAvailable:'متاح',passwordHint:'8 أحرف مع أرقام ورموز',termsAgree:'أوافق على الشروط والخصوصية',addPackage:'إضافة باقة',editPackage:'تعديل الباقة',packageName:'اسم الباقة',packageDesc:'الوصف',packagePrice:'السعر',packageDuration:'المدة',packageFeatures:'المميزات',packageStatus:'الحالة',packageAttachments:'المرفقات',savePackage:'حفظ الباقة',deletePackage:'حذف الباقة',featuredPackage:'مميزة',activePackage:'نشطة',draftPackage:'مسودة',noPackages:'لا توجد باقات',noPackagesDesc:'أنشئ باقتك الأولى لبدء استقبال الحجوزات.',sortByName:'الاسم',sortByPrice:'السعر',sortByNewest:'الأحدث',perSession:'للجلسة',includes:'يشمل',filesUploaded:'ملفات مرفوعة',maxFileSize:'الحجم الأقصى: 10 ميجابايت',dragFiles:'اسحب الملفات هنا أو انقر للرفع',navChat:'الرسائل',chatTitle:'الرسائل',chatInput:'اكتب رسالة...',chatSend:'إرسال',chatEmpty:'ابدأ محادثة',chatEmptyDesc:'أرسل رسالة إلى المصور لبدء المحادثة',chatNoConvs:'لا توجد محادثات بعد',chatBlocked:'محظور',chatBlockedDesc:'لقد قمت بحظر هذا المستخدم',chatReported:'تم الإبلاغ',chatReportSuccess:'تم تقديم البلاغ. سيراجعه فريقنا.',chatBlockSuccess:'تم حظر المستخدم بنجاح',chatUnblock:'إلغاء الحظر',chatDeleteMsg:'حذف الرسالة',chatMsgDeleted:'تم حذف الرسالة',chatOnline:'متصل',chatOffline:'غير متصل',chatTyping:'يكتب...',chatNewMsg:'رسالة جديدة',convWith:'محادثة مع',chatDeleteAll:'حذف الكل',chatReport:'إبلاغ',chatBlock:'حظر',chatArchive:'أرشفة',chatUnarchive:'إلغاء الأرشفة',chatNoMsg:'لا توجد رسائل بعد. يمكنك بدء المحادثة!',chatDeleteConfirm:'سيتم حذف هذه الرسالة للجميع.',blockUser:'حظر المستخدم',unblockUser:'إلغاء حظر المستخدم',chatBlockedByUser:'تم حظرك من قبل هذا المستخدم'}
 };
 
 /* ===== APPLICATION STATE ===== */
@@ -17,7 +17,7 @@ var S={lang:'ar',view:'landing',tab:'overview',
   portfolioPublished:[],portfolioDirty:false,isPortfolioPreview:false,
   collections:[],openCollectionId:null,editCollectionId:null,pendingColId:null,
   viewedPhotographer:null,viewedPortfolio:null,viewedPackages:null,viewedCollections:[],
-  pubViewCollection:null,pubLightboxIdx:null,
+  pubViewCollection:null,pubLightboxIdx:null,pubAvatarPreview:false,
   selectedShootType:null,
   selectedRegion:null,detectedLocation:null,isDetectingLocation:false,
   customerVault:[],
@@ -187,21 +187,25 @@ function normalizeDirectoryPhotographer(row){
   };
 }
 function normalizePackage(pkg){
+  var minutes=Number(pkg.duration_minutes||pkg.durationMinutes||60);
+  if(!isFinite(minutes)||minutes<=0)minutes=60;
   return {
     id:pkg.id,name:pkg.name,nameAr:pkg.name,description:pkg.description||'',descriptionAr:pkg.description||'',
-    price:Math.round(Number(pkg.price_cents||0)/100),duration:String(pkg.duration_minutes||60)+' minutes',
-    durationAr:String(pkg.duration_minutes||60)+' دقيقة',durationMinutes:pkg.duration_minutes||60,
+    price:Math.round(Number(pkg.price_cents||0)/100),duration:formatDurationHours(minutes,'en'),
+    durationAr:formatDurationHours(minutes,'ar'),durationMinutes:minutes,durationHours:minutes/60,
     features:Array.isArray(pkg.features)?pkg.features:[],featuresAr:Array.isArray(pkg.features)?pkg.features:[],
     files:Array.isArray(pkg.attachments)?pkg.attachments:[],status:pkg.status||'active',featured:pkg.featured===true
   };
 }
 function normalizeBooking(b){
   var pkg=b.packages||{};
+  var durationMinutes=Number(pkg.duration_minutes||60);
+  if(!isFinite(durationMinutes)||durationMinutes<=0)durationMinutes=60;
   return {
     id:b.id,clientId:b.client_id||null,clientName:b.client_name||'',clientEmail:b.client_email||'',clientPhone:b.client_phone||'',
     date:b.booking_date,time:(b.start_time||'').slice(0,5),endTime:(b.end_time||'').slice(0,5),
     serviceId:b.package_id,service:pkg.name||b.service||'',servicePrice:Math.round(Number(b.price_cents||0)/100),
-    serviceDuration:String(pkg.duration_minutes||'')+' minutes',status:b.status||'pending',
+    serviceDuration:formatDurationHours(durationMinutes,S.lang),status:b.status||'pending',
     photographerName:b.photographer_name||b.photographerName||'',photographerAvatar:b.photographer_avatar||b.photographerAvatar||''
   };
 }
@@ -219,13 +223,27 @@ function normalizeMessage(m,conv){
   var sender=m.sender_id===conv.photographerId?'photographer':'client';
   return {id:m.id,conversationId:m.conversation_id,sender:sender,content:m.content,timestamp:m.created_at,deleted:m.is_deleted===true};
 }
+function formatDurationHours(minutes,lang){
+  var total=Number(minutes||60);
+  if(!isFinite(total)||total<=0)total=60;
+  var hours=total/60;
+  var label=(Math.round(hours*10)/10).toString().replace(/\.0$/,'');
+  if(lang==='ar')return label+' '+(Number(label)===1?'ساعة':'ساعات');
+  return label+' '+(Number(label)===1?'hour':'hours');
+}
 function durationToMinutes(value){
   if(!value)return 60;
   var s=String(value).toLowerCase();
   var n=parseFloat(s);
   if(!n||isNaN(n))return 60;
-  if(s.indexOf('hour')>-1||s.indexOf('ساعة')>-1||s.indexOf('ساع')>-1)return Math.round(n*60);
-  return Math.round(n);
+  if(s.indexOf('minute')>-1||s.indexOf('min')>-1||s.indexOf('دقيقة')>-1||s.indexOf('دقائق')>-1)return Math.round(n);
+  return Math.round(n*60);
+}
+function packageDurationHoursValue(pkg){
+  var minutes=Number(pkg&&pkg.durationMinutes);
+  if(!minutes||!isFinite(minutes))minutes=durationToMinutes((pkg&&pkg.durationAr)||(pkg&&pkg.duration)||'');
+  var hours=minutes/60;
+  return (Math.round(hours*10)/10).toString().replace(/\.0$/,'');
 }
 async function refreshMyPackages(){
   if(!apiToken()||!S.user||S.user.role!=='photographer')return;
@@ -387,6 +405,10 @@ function checkSubscriptionStatus(){
 }
 function gf(p,f){return S.lang==='ar'?(p[f+'Ar']||p[f]):p[f];}
 function fmtD(ds){if(!ds)return'';var d=new Date(ds+'T00:00:00');return S.lang==='ar'?d.toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'}):d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});}
+function todayLocalISO(){
+  var d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function statusBadge(st){var m={pending:'badge-pending',confirmed:'badge-confirmed',cancelled:'badge-cancelled',completed:'badge-confirmed'};var l={pending:t('pending'),confirmed:t('confirmed'),cancelled:t('cancelledStatus'),completed:S.lang==='ar'?'مكتمل':'Completed'};return'<span class="badge '+(m[st]||'badge-pending')+'">'+(l[st]||st)+'</span>';}
 var TIME_SLOTS_CACHE=null;
 function timeSlots(){
@@ -461,6 +483,12 @@ document.addEventListener('keydown',function(e){
     document.querySelectorAll('.modal-overlay.active').forEach(function(m){m.classList.remove('active');document.body.style.overflow='';});
     var cm=document.getElementById('chat-modal');
     if(cm&&!cm.classList.contains('hidden')){closeChatModal();}
+    if(S.pubAvatarPreview){closePubAvatarPreview();}
+    else if(S.pubViewCollection!==null&&S.pubViewCollection!==undefined){closePubLightbox();}
+  }
+  if(S.view==='public'&&S.pubViewCollection!==null&&S.pubViewCollection!==undefined){
+    if(e.key==='ArrowLeft'){movePubLightbox(-1);}
+    if(e.key==='ArrowRight'){movePubLightbox(1);}
   }
 });
 
@@ -692,7 +720,7 @@ function updateNavBar(){
   if(btnOutPub){btnOutPub.classList.toggle('hidden',!u);if(userNamePub&&u)userNamePub.textContent=u.name||'';}
 }
 function navigate(v){
-  if(v!=='public'){S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;S.viewedCollections=[];S.pubViewCollection=null;S.pubLightboxIdx=null;saveFrontendSession();}
+  if(v!=='public'){S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;S.viewedCollections=[];S.pubViewCollection=null;S.pubLightboxIdx=null;S.pubAvatarPreview=false;syncPublicMediaOverlay();saveFrontendSession();}
   checkSubscriptionStatus();
   if(!hasPageContainer(v)){goToPage(v);return;}
   S.view=v;
@@ -707,6 +735,7 @@ function navigate(v){
   if(v==='explore')renderExplorePage();
   else if(v==='dashboard'){renderTab();updateSidebarUser();}
   else if(v==='public')renderPublicProfile();
+  syncPublicMediaOverlay();
   updateNavBar();
   setupChatFAB();updateChatBadge();
   window.scrollTo(0,0);
@@ -807,7 +836,7 @@ function renderTab(){
 
 /* ===== DASHBOARD: OVERVIEW ===== */
 function renderOverview(){
-  var u=S.user,link=u.customLink||u.email.split('@')[0];
+  var u=S.user;
   var activePackages=(S.packages||[]).filter(function(p){return p.status==='active';}).length;
   var publishBanner=(u.isPublished===false)?
     '<div class="card p-4 mb-6 border border-[var(--accent)] bg-[rgba(196,145,92,0.08)] flex flex-wrap items-center justify-between gap-3">'+
@@ -844,9 +873,6 @@ function renderOverview(){
   '<div class="stat-card"><div class="text-[var(--text2)] text-sm mb-2">Active Packages</div><div class="text-3xl font-bold">'+activePackages+'</div></div>'+
   '<div class="stat-card"><div class="text-[var(--text2)] text-sm mb-2">Rating</div><div class="text-3xl font-bold">'+(u.rating||'N/A')+'</div></div>'+
   '<div class="stat-card"><div class="text-[var(--text2)] text-sm mb-2">'+t('freeTrial')+'</div><div class="text-3xl font-bold">'+S.trialDaysLeft+' <span class="text-base text-[var(--text2)]">'+t('daysRemaining')+'</span></div></div></div>'+
-  '<div class="card p-6 mb-6"><div class="flex justify-between items-center mb-3"><h3 class="font-bold">'+t('yourBookingLink')+'</h3><button onclick="navigate(\'public\')" class="btn-secondary btn-sm"><i class="fas fa-external-link-alt mr-1"></i>'+t('viewPublicProfile')+'</button></div>'+
-  '<div class="link-input-group"><span class="link-prefix">dof.eg/</span><input type="text" class="input" value="'+link+'" readonly><button onclick="copyLink(\'https://dof.eg/'+link+'\')" class="btn-primary btn-sm"><i class="fas fa-copy mr-1"></i>'+t('copyLink')+'</button></div>'+
-  '<div class="flex items-center gap-2 mt-2"><span class="security-badge"><i class="fas fa-lock"></i> HTTPS</span><span class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</span></div></div>'+
   '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">'+
   '<div class="card p-6"><div class="flex justify-between items-center mb-5"><h3 class="font-bold text-lg">'+t('upcomingAppointments')+'</h3><button onclick="openAptModal()" class="btn-primary btn-sm"><i class="fas fa-plus mr-1"></i>'+t('addNew')+'</button></div>'+
   (S.appointments.length===0?'<p class="text-[var(--text2)] text-sm py-8 text-center">'+t('noAppointments')+'</p>':
@@ -965,19 +991,28 @@ function addPhotoToCollection(colId){
   if(input)input.click();
 }
 function handleColPhotoUpload(input){
-  var file=input&&input.files&&input.files[0];
-  if(!file){return;}
-  if(!/^image\//.test(file.type)){showToast('يرجى اختيار صورة','error');input.value='';return;}
-  if(file.size>10*1024*1024){showToast('الحجم الأقصى 10 ميجابايت','error');input.value='';return;}
+  var files=Array.prototype.slice.call((input&&input.files)||[]);
+  if(!files.length){return;}
   var colId=S.pendingColId;
   var col=S.collections.find(function(c){return String(c.id)===String(colId);});
   if(!col){input.value='';return;}
   input.value='';S.pendingColId=null;
+  if(!col.photos)col.photos=[];
+  var available=Math.max(0,10-col.photos.length);
+  if(available<=0){showToast('الحد الأقصى 10 صور للمجموعة','error');return;}
+  var accepted=files.slice(0,available);
+  if(files.length>available)showToast('تم اختيار أول '+available+' صور فقط بسبب حد المجموعة','warning');
+  accepted.forEach(function(file){
+    if(!/^image\//.test(file.type)){showToast(file.name+' ليس صورة صالحة','error');return;}
+    if(file.size>10*1024*1024){showToast(file.name+' يتجاوز 10 ميجابايت','error');return;}
+    previewAndUploadCollectionPhoto(col,colId,file);
+  });
+}
+function previewAndUploadCollectionPhoto(col,colId,file){
   var reader=new FileReader();
   reader.onload=function(e){
     var dataUrl=e.target.result;
     var title=file.name.replace(/\.[^.]+$/,'')||'صورة جديدة';
-    if(!col.photos)col.photos=[];
     var tempId=++S.nextId;
     col.photos.push({id:tempId,url:dataUrl,title:title});
     if(!col.cover)col.cover=dataUrl;
@@ -988,16 +1023,26 @@ function handleColPhotoUpload(input){
   reader.onerror=function(){showToast('فشل قراءة الصورة','error');};
   reader.readAsDataURL(file);
 }
+function findCollectionForPhoto(colId,tempId){
+  return S.collections.find(function(c){return String(c.id)===String(colId);})||
+    S.collections.find(function(c){return (c.photos||[]).some(function(p){return String(p.id)===String(tempId);});});
+}
+async function ensureCollectionPersisted(col){
+  if(isNaN(Number(col.id)))return col.id;
+  if(col._persistPromise)return col._persistPromise;
+  var oldId=col.id;
+  col._persistPromise=apiRequest('/api/portfolio/collections',{method:'POST',body:{title:col.name||'مجموعة'}}).then(function(colData){
+    col.id=colData.collection.id;
+    if(String(S.openCollectionId)===String(oldId))S.openCollectionId=col.id;
+    return col.id;
+  }).finally(function(){delete col._persistPromise;});
+  return col._persistPromise;
+}
 async function uploadColPhoto(colId,tempId,file,title){
   try{
-    var col=S.collections.find(function(c){return String(c.id)===String(colId);});
+    var col=findCollectionForPhoto(colId,tempId);
     if(!col)return;
-    var dbColId=colId;
-    if(!isNaN(Number(colId))){
-      var colData=await apiRequest('/api/portfolio/collections',{method:'POST',body:{title:col.name||'مجموعة'}});
-      dbColId=colData.collection.id;
-      col.id=dbColId;
-    }
+    var dbColId=await ensureCollectionPersisted(col);
     var sign=await apiRequest('/api/uploads/sign',{method:'POST',body:{kind:'portfolio',filename:file.name}});
     var res=await fetch(sign.signedUrl,{method:'PUT',headers:{'Content-Type':file.type},body:file});
     if(!res.ok)throw new Error('Upload failed');
@@ -1144,7 +1189,7 @@ function openPackageModal(editId){
       document.getElementById('pkg-name').value=pkg.nameAr||pkg.name||'';
       document.getElementById('pkg-desc').value=pkg.descriptionAr||pkg.description||'';
       document.getElementById('pkg-price').value=pkg.price||'';
-      document.getElementById('pkg-duration').value=pkg.durationAr||pkg.duration||'';
+      document.getElementById('pkg-duration').value=packageDurationHoursValue(pkg);
       document.getElementById('pkg-status').value=pkg.status||'active';
       document.getElementById('pkg-featured').checked=pkg.featured||false;
       
@@ -1265,7 +1310,8 @@ function togglePackagePreview(){
     section.classList.remove('hidden');
     var name=document.getElementById('pkg-name').value||'اسم الباقة';
     var price=document.getElementById('pkg-price').value||'0';
-    var duration=document.getElementById('pkg-duration').value||'المدة';
+    var durationValue=document.getElementById('pkg-duration').value;
+    var duration=durationValue?formatDurationHours(durationToMinutes(durationValue),S.lang):'المدة';
     var desc=document.getElementById('pkg-desc').value||'';
     var features=S.tempPackageFeatures.map(function(f){return f.ar;});
     preview.innerHTML='<div class="text-center mb-4"><h4 class="text-xl font-bold">'+name+'</h4>'+
@@ -1304,8 +1350,9 @@ function validatePackageForm(){
   /* Duration validation */
   var duration=document.getElementById('pkg-duration');
   var durationMsg=document.getElementById('pkg-duration-msg');
-  if(!duration.value.trim()){
-    duration.classList.add('error');durationMsg.className='validation-msg error';durationMsg.textContent='المدة مطلوبة';
+  var durationHours=parseFloat(duration.value);
+  if(!duration.value.trim()||!isFinite(durationHours)||durationHours<=0){
+    duration.classList.add('error');durationMsg.className='validation-msg error';durationMsg.textContent='أدخل مدة صحيحة بالساعات';
     valid=false;
   } else {
     duration.classList.remove('error');durationMsg.className='validation-msg';durationMsg.textContent='';
@@ -1323,15 +1370,17 @@ async function handlePackageSubmit(e){
   var nameVal=document.getElementById('pkg-name').value.trim();
   var descVal=document.getElementById('pkg-desc').value.trim();
   var durationValue=document.getElementById('pkg-duration').value.trim();
+  var durationMinutes=durationToMinutes(durationValue);
   var pkgData={
     name:nameVal,
     nameAr:nameVal,
     description:descVal,
     descriptionAr:descVal,
     price:parseFloat(document.getElementById('pkg-price').value),
-    duration:durationValue,
-    durationAr:durationValue,
-    durationMinutes:durationToMinutes(durationValue),
+    duration:formatDurationHours(durationMinutes,'en'),
+    durationAr:formatDurationHours(durationMinutes,'ar'),
+    durationMinutes:durationMinutes,
+    durationHours:durationMinutes/60,
     features:S.tempPackageFeatures.map(function(f){return f.ar;}),
     featuresAr:S.tempPackageFeatures.map(function(f){return f.ar;}),
     status:document.getElementById('pkg-status').value,
@@ -1454,9 +1503,16 @@ async function saveWorkingHours(){
       endTime:(document.querySelector('.wh-end[data-day="'+day+'"]')||{}).value||'14:00'
     });
   });
-  S.workingHours=rows;
+  for(var i=0;i<rows.length;i++){
+    if(!rows[i].startTime||!rows[i].endTime||rows[i].startTime>=rows[i].endTime){
+      showToast(S.lang==='ar'?'وقت النهاية يجب أن يكون بعد وقت البداية':'End time must be after start time','error');
+      return;
+    }
+  }
   try{
     if(apiToken())await apiRequest('/api/availability/working-hours',{method:'PUT',body:{workingHours:rows}});
+    S.workingHours=rows;
+    renderTab();
     showToast(S.lang==='ar'?'تم حفظ ساعات العمل':'Working hours saved','success');
   }catch(err){showToast(err.message||'تعذر حفظ ساعات العمل','error');}
 }
@@ -1465,7 +1521,7 @@ function selectCalDate(ds){S.selectedDate=ds;renderTab();}
 function openAptModal(){
   document.getElementById('apt-time').innerHTML=timeSlots().map(function(s){return'<option value="'+s+'">'+s+'</option>';}).join('');
   document.getElementById('apt-service').innerHTML=S.packages.map(function(p){return'<option value="'+gf(p,'name')+'">'+gf(p,'name')+'</option>';}).join('');
-  var today = new Date().toISOString().split('T')[0];
+  var today = todayLocalISO();
   document.getElementById('apt-date').min = today;
   document.getElementById('apt-date').value = S.selectedDate || today;
   openModal('apt-modal');
@@ -1586,7 +1642,7 @@ function renderSubscriptions(){
 
 /* ===== DASHBOARD: SETTINGS ===== */
 function renderSettings(){
-  var u=S.user,link=u.customLink||u.email.split('@')[0];
+  var u=S.user;
   var pubOn=u.isPublished===true;
   var visCard='<div class="card p-6 mb-6 border '+(pubOn?'border-[var(--success)]':'border-[var(--accent)]')+'">'+
     '<div class="flex items-center justify-between gap-4 flex-wrap">'+
@@ -1618,13 +1674,7 @@ function renderSettings(){
   '<div class="flex items-center gap-3"><i class="fab fa-instagram text-lg text-[var(--text2)] w-6 text-center"></i><input class="input" id="s-instagram" placeholder="Instagram URL" value="'+(u.social?u.social.instagram:'')+'"></div>'+
   '<div class="flex items-center gap-3"><i class="fab fa-whatsapp text-lg text-[var(--text2)] w-6 text-center"></i><input class="input" id="s-whatsapp" placeholder="رقم واتساب (مثال: 01012345678)" dir="ltr" value="'+(u.social?u.social.whatsapp||'':'')+'"></div>'+
   '</div><button onclick="updateSocial()" class="btn-primary w-full mt-4">'+t('updateProfile')+'</button></div>'+
-  '<div class="card p-6"><h3 class="font-bold mb-4">'+t('preferences')+'</h3><div class="space-y-4">'+
-  '<div><label class="block text-sm text-[var(--text2)] mb-2">'+t('language')+'</label><div class="flex gap-2">'+
-  '<button onclick="if(S.lang!==\'en\')toggleLang()" class="flex-1 py-2.5 rounded-lg border text-sm font-semibold '+(S.lang==='en'?'border-[var(--accent)] bg-[rgba(196,145,92,0.15)] text-[var(--accent)]':'border-[var(--border)] text-[var(--text2)]')+'">English</button>'+
-  '<button onclick="if(S.lang!==\'ar\')toggleLang()" class="flex-1 py-2.5 rounded-lg border text-sm font-semibold '+(S.lang==='ar'?'border-[var(--accent)] bg-[rgba(196,145,92,0.15)] text-[var(--accent)]':'border-[var(--border)] text-[var(--text2)]')+'">العربية</button></div></div>'+
-  '<div class="flex items-center justify-between py-3 border-t border-[var(--border)]"><span class="text-sm">'+t('emailNotifs')+'</span><div class="toggle-track '+(S.emailNotifs?'on':'')+'" onclick="S.emailNotifs=!S.emailNotifs;this.classList.toggle(\'on\');"></div></div>'+
-  '<div class="flex items-center justify-between py-3 border-t border-[var(--border)]"><span class="text-sm">'+t('smsNotifs')+'</span><div class="toggle-track '+(S.smsNotifs?'on':'')+'" onclick="S.smsNotifs=!S.smsNotifs;this.classList.toggle(\'on\');"></div></div>'+
-  '</div></div></div></div>';
+  '</div></div>';
 }
 async function updateProfile(e){
   e.preventDefault();var u=S.user;
@@ -1742,8 +1792,8 @@ function buildPhotographerWhatsAppText(booking){
   +'Service: '+booking.service+'\n'
   +'Booking ID: #'+booking.id;
 }
-function notifyPhotographerWhatsApp(booking){
-  var photographerPhone=normalizePhoneToWa((S.user&&S.user.phone)||(S.user&&S.user.social&&S.user.social.whatsapp)||'');
+function notifyPhotographerWhatsApp(booking,photographer){
+  var photographerPhone=normalizePhoneToWa((photographer&&photographer.social&&photographer.social.whatsapp)||(photographer&&photographer.phone)||booking.photographerPhone||'');
   if(!photographerPhone){
     showToast(S.lang==='ar'?'لم يتم العثور على رقم واتساب للمصور':'Photographer WhatsApp number is missing','info');
     return;
@@ -1768,6 +1818,84 @@ function notifyPhotographerWhatsApp(booking){
 }
 
 /* ===== EXPLORE PHOTOGRAPHERS PAGE (with package pricing preview) ===== */
+function getSpecialtyOptions(){
+  return (S.photographyTypes||[]).map(function(type){return{id:type.id,ar:type.ar,en:type.en,icon:type.icon};});
+}
+function normalizeCategoryText(value){
+  return String(value||'').toLowerCase()
+    .replace(/photography/g,'')
+    .replace(/تصوير/g,'')
+    .replace(/[^\w\u0600-\u06FF]+/g,' ')
+    .trim();
+}
+function photographerCategoryIds(p){
+  var raw=[p.specialty,p.specialtyAr].join(' ');
+  var normalized=' '+normalizeCategoryText(raw)+' ';
+  var ids=[];
+  (S.photographyTypes||[]).forEach(function(type){
+    var terms=[type.id,type.en,type.ar,normalizeCategoryText(type.en),normalizeCategoryText(type.ar)];
+    var matched=terms.some(function(term){
+      var clean=normalizeCategoryText(term);
+      return clean&&normalized.indexOf(' '+clean+' ')>-1;
+    });
+    if(matched)ids.push(type.id);
+  });
+  if(ids.length===0&&p.specialty){
+    var s=normalizeCategoryText(p.specialty);
+    (S.photographyTypes||[]).forEach(function(type){
+      if(ids.indexOf(type.id)>-1)return;
+      var id=normalizeCategoryText(type.id);
+      var en=normalizeCategoryText(type.en).split(' ')[0];
+      if((id&&s.indexOf(id)>-1)||(en&&s.indexOf(en)>-1))ids.push(type.id);
+    });
+  }
+  return ids;
+}
+function photographerLowestPrice(p){
+  var activePkgs=(p.packages||[]).filter(function(pkg){return pkg.status==='active';});
+  return activePkgs.length>0?Math.min.apply(null,activePkgs.map(function(pkg){return pkg.price;})):null;
+}
+function renderExploreCard(p,compact){
+  var lowestPrice=photographerLowestPrice(p);
+  var coverEl=p.cover?'<img src="'+p.cover+'" alt="'+escapeHtml(gf(p,'name'))+'" loading="lazy">':'<div style="position:absolute;inset:0;background:linear-gradient(135deg,var(--bg2),var(--bg));display:flex;align-items:center;justify-content:center;"><i class="fas fa-camera" style="font-size:2.5rem;color:var(--border);"></i></div>';
+  var avatarEl=p.avatar?'<img src="'+p.avatar+'" class="photo-card-avatar" alt="">':'<div class="photo-card-avatar" style="background:var(--bg2);display:flex;align-items:center;justify-content:center;"><i class="fas fa-user" style="color:var(--border);font-size:1.2rem;"></i></div>';
+  if(compact){
+    return'<div class="photo-card explore-mini-card"><div class="photo-card-header" style="position:relative;">'+coverEl+avatarEl+'</div>'+
+    '<div class="photo-card-body"><div class="photo-card-name">'+gf(p,'name')+'</div><div class="photo-card-spec">'+gf(p,'specialty')+'</div>'+
+    '<div class="explore-mini-meta"><span><i class="fas fa-star"></i> '+(p.rating||'-')+'</span><span><i class="fas fa-bookmark"></i> '+(p.bookings||0)+'</span></div>'+
+    (lowestPrice!==null?'<div class="explore-mini-price">'+t('startingFrom')+' <strong>'+formatPrice(lowestPrice)+'</strong></div>':'')+
+    '<button onclick="viewPhotographerProfile(\''+p.id+'\')" class="btn-primary w-full btn-sm">'+t('viewProfile')+'</button></div></div>';
+  }
+  return'<div class="photo-card"><div class="photo-card-header" style="position:relative;">'+coverEl+avatarEl+'</div>'+
+  '<div class="photo-card-body"><div class="photo-card-name">'+gf(p,'name')+'</div><div class="photo-card-spec">'+gf(p,'specialty')+'</div>'+
+  '<div class="photo-card-region"><i class="fas fa-map-marker-alt"></i> '+gf(p,'region')+'</div>'+
+  '<div class="photo-card-stats"><div class="photo-card-stat"><div class="photo-card-stat-value">'+p.bookings+'</div><div class="photo-card-stat-label">'+(S.lang==='ar'?'حجوزات':' bookings')+'</div></div><div class="photo-card-stat"><div class="photo-card-stat-value"><span class="stars">'+starsHTML(p.rating)+'</span></div><div class="photo-card-stat-label">'+p.rating+'</div></div></div>'+
+  (lowestPrice!==null?'<div class="flex items-center gap-2 mb-3 text-sm"><i class="fas fa-tag text-[var(--accent)]"></i><span class="text-[var(--text2)]">'+t('startingFrom')+' </span><span class="font-bold gradient-text">'+formatPrice(lowestPrice)+'</span></div>':'')+
+  '<div class="photo-card-social">'+(p.social&&p.social.facebook?'<a href="'+p.social.facebook+'" target="_blank"><i class="fab fa-facebook"></i></a>':'')+(p.social&&p.social.instagram?'<a href="'+p.social.instagram+'" target="_blank"><i class="fab fa-instagram"></i></a>':'')+'</div>'+
+  '<button onclick="viewPhotographerProfile(\''+p.id+'\')" class="btn-primary w-full btn-sm">'+t('viewProfile')+'</button></div></div>';
+}
+function renderExploreMobileGroups(filtered){
+  var groups=[];
+  (S.photographyTypes||[]).forEach(function(type){
+    var items=filtered.filter(function(p){return photographerCategoryIds(p).indexOf(type.id)>-1;});
+    if(items.length>0)groups.push({type:type,items:items});
+  });
+  if(groups.length===0&&filtered.length>0){
+    groups.push({type:{id:'all',icon:'fa-camera',en:'Photographers',ar:'مصورون'},items:filtered});
+  }
+  if(groups.length===0)return'';
+  return'<div class="explore-mobile-results">'+groups.map(function(group){
+    var label=S.lang==='ar'?group.type.ar:group.type.en;
+    var count=group.items.length+' '+(S.lang==='ar'?'مصور':'photographers');
+    return'<section class="explore-category-row">'+
+    '<div class="explore-category-head"><div class="flex items-center gap-2"><span class="explore-category-icon"><i class="fas '+group.type.icon+'"></i></span><h2>'+label+'</h2></div><span>'+count+'</span></div>'+
+    '<div class="explore-category-strip">'+group.items.map(function(p){return renderExploreCard(p,true);}).join('')+'</div></section>';
+  }).join('')+'</div>';
+}
+function toggleExploreMobileFilters(){
+  var menu=document.getElementById('explore-mobile-filter-menu');
+  if(menu)menu.classList.toggle('open');
+}
 async function renderExplorePage(){
   if(!S.exploreLoading&&!S.exploreLoaded){
     S.exploreLoading=true;
@@ -1783,26 +1911,33 @@ async function renderExplorePage(){
   regions.forEach(function(r){rLabels[r.id]=S.lang==='ar'?r.nameAr:r.nameEn;});
   
   var filtered=S.photographers.filter(function(p){
-    var ms=!f.search||p.name.toLowerCase().includes(f.search.toLowerCase())||p.specialty.toLowerCase().includes(f.search.toLowerCase());
+    var searchText=[p.name,p.nameAr,p.specialty,p.specialtyAr].join(' ').toLowerCase();
+    var query=String(f.search||'').toLowerCase();
+    var ms=!query||searchText.indexOf(query)>-1;
     var mr=!f.region||p.region===f.region;
-    var msp=!f.specialty||(p.specialty||'').toLowerCase().indexOf(f.specialty.toLowerCase())>-1;
+    var cats=photographerCategoryIds(p);
+    var msp=!f.specialty||(p.specialty||'').toLowerCase().indexOf(f.specialty.toLowerCase())>-1||cats.indexOf(f.specialty)>-1;
     if(S.selectedRegion&&!f.region){
       return mr&&p.region===S.selectedRegion&&msp;
     }
     return ms&&mr&&msp;
   });
-  var specialtyOptions=[
-    {id:'wedding',ar:'حفل زفاف'},{id:'portrait',ar:'بورتريه'},{id:'event',ar:'مناسبات'},
-    {id:'fashion',ar:'أزياء'},{id:'newborn',ar:'مواليد'},{id:'product',ar:'منتجات'},
-    {id:'food',ar:'طعام'},{id:'realestate',ar:'عقارات'},{id:'sports',ar:'رياضة'},
-    {id:'drone',ar:'تصوير جوي'},{id:'cinematic',ar:'فيديو سينمائي'},{id:'maternity',ar:'حمل'},
-    {id:'corporate',ar:'شركات'},{id:'street',ar:'شارع'}
-  ];
+  var specialtyOptions=getSpecialtyOptions();
   
   var html='<div class="pt-14 pb-20"><div class="max-w-7xl mx-auto px-6">'+
   '<div class="explore-header text-center mb-10"><h1 class="text-4xl font-bold mb-3">'+t('exploreTitle')+'</h1><p class="text-[var(--text2)] max-w-xl mx-auto">'+t('exploreDesc')+'</p></div>'+
   '<div class="search-bar max-w-2xl mx-auto mb-5"><i class="fas fa-search"></i><input type="text" class="input" placeholder="'+t('searchPlaceholder')+'" value="'+f.search+'" oninput="debouncedExploreSearch(this.value)"></div>'+
-  '<div class="explore-filters flex flex-wrap gap-4 items-end justify-center mb-8">'+
+  '<div class="explore-mobile-filterbar">'+
+  '<button onclick="detectUserLocation()" class="btn-secondary btn-sm explore-location-btn'+(S.isDetectingLocation?' opacity-50':'')+'" '+(S.isDetectingLocation?'disabled':'')+'>'+
+  '<i class="fas fa-location-dot ml-1"></i>'+(S.isDetectingLocation?'جاري التحديد...':'استخدم موقعي')+'</button>'+
+  '<button type="button" class="explore-filter-toggle" onclick="toggleExploreMobileFilters()" aria-label="Filters"><i class="fas fa-filter"></i></button></div>'+
+  '<div id="explore-mobile-filter-menu" class="explore-mobile-filter-menu">'+
+  '<div><label><i class="fas fa-map-marker-alt"></i> المنطقة</label><select class="input" onchange="updateExploreFilter(\'region\',this.value)">'+
+  '<option value="">الكل</option>'+regions.map(function(r){return'<option value="'+r.id+'" '+(f.region===r.id?'selected':'')+'>'+r.nameAr+'</option>';}).join('')+'</select></div>'+
+  '<div><label><i class="fas fa-camera"></i> '+t('filterBySpecialty')+'</label><select class="input" onchange="updateExploreFilter(\'specialty\',this.value)">'+
+  '<option value="">الكل</option>'+specialtyOptions.map(function(o){return'<option value="'+o.id+'" '+(f.specialty===o.id?'selected':'')+'>'+(S.lang==='ar'?o.ar:o.en)+'</option>';}).join('')+'</select></div>'+
+  (S.selectedRegion?'<span class="badge badge-active"><i class="fas fa-map-marker-alt ml-1"></i>'+(S.egyptRegions.find(function(r){return r.id===S.selectedRegion;})||{}).nameAr+'</span>':'')+'</div>'+
+  '<div class="explore-filters explore-desktop-filters flex flex-wrap gap-4 items-end justify-center mb-8">'+
   '<div class="flex items-center gap-2">'+
   '<button onclick="detectUserLocation()" class="btn-secondary btn-sm'+(S.isDetectingLocation?' opacity-50':'')+'" '+(S.isDetectingLocation?'disabled':'')+'>'+
   '<i class="fas fa-location-dot ml-1"></i>'+(S.isDetectingLocation?'جاري التحديد...':'استخدم موقعي')+'</button>'+
@@ -1810,21 +1945,9 @@ async function renderExplorePage(){
   '<div><label class="block text-xs text-[var(--text2)] mb-1">المنطقة</label><select class="input" style="width:180px" onchange="updateExploreFilter(\'region\',this.value)">'+
   '<option value="">الكل</option>'+regions.map(function(r){return'<option value="'+r.id+'" '+(f.region===r.id?'selected':'')+'>'+r.nameAr+'</option>';}).join('')+'</select></div>'+
   '<div><label class="block text-xs text-[var(--text2)] mb-1">'+t('filterBySpecialty')+'</label><select class="input" style="width:180px" onchange="updateExploreFilter(\'specialty\',this.value)">'+
-  '<option value="">الكل</option>'+specialtyOptions.map(function(o){return'<option value="'+o.id+'" '+(f.specialty===o.id?'selected':'')+'>'+o.ar+'</option>';}).join('')+'</select></div></div>'+
-  '<div class="photo-grid">'+filtered.map(function(p){
-    /* Get active packages and find lowest price */
-    var activePkgs=(p.packages||[]).filter(function(pkg){return pkg.status==='active';});
-    var lowestPrice=activePkgs.length>0?Math.min.apply(null,activePkgs.map(function(pkg){return pkg.price;})):null;
-    var coverEl=p.cover?'<img src="'+p.cover+'" alt="'+gf(p,'name')+'" loading="lazy">':'<div style="position:absolute;inset:0;background:linear-gradient(135deg,var(--bg2),var(--bg));display:flex;align-items:center;justify-content:center;"><i class="fas fa-camera" style="font-size:2.5rem;color:var(--border);"></i></div>';
-    var avatarEl=p.avatar?'<img src="'+p.avatar+'" class="photo-card-avatar" alt="">':'<div class="photo-card-avatar" style="background:var(--bg2);display:flex;align-items:center;justify-content:center;"><i class="fas fa-user" style="color:var(--border);font-size:1.2rem;"></i></div>';
-    return'<div class="photo-card"><div class="photo-card-header" style="position:relative;">'+coverEl+avatarEl+'</div>'+
-    '<div class="photo-card-body"><div class="photo-card-name">'+gf(p,'name')+'</div><div class="photo-card-spec">'+gf(p,'specialty')+'</div>'+
-    '<div class="photo-card-region"><i class="fas fa-map-marker-alt"></i> '+gf(p,'region')+'</div>'+
-    '<div class="photo-card-stats"><div class="photo-card-stat"><div class="photo-card-stat-value">'+p.bookings+'</div><div class="photo-card-stat-label">'+(S.lang==='ar'?'حجوزات':' bookings')+'</div></div><div class="photo-card-stat"><div class="photo-card-stat-value"><span class="stars">'+starsHTML(p.rating)+'</span></div><div class="photo-card-stat-label">'+p.rating+'</div></div></div>'+
-    (activePkgs.length>0?'<div class="flex items-center gap-2 mb-3 text-sm"><i class="fas fa-tag text-[var(--accent)]"></i><span class="text-[var(--text2)]">'+t('startingFrom')+' </span><span class="font-bold gradient-text">'+formatPrice(lowestPrice)+'</span></div>':'')+
-    '<div class="photo-card-social">'+(p.social&&p.social.facebook?'<a href="'+p.social.facebook+'" target="_blank"><i class="fab fa-facebook"></i></a>':'')+(p.social&&p.social.instagram?'<a href="'+p.social.instagram+'" target="_blank"><i class="fab fa-instagram"></i></a>':'')+'</div>'+
-    '<button onclick="viewPhotographerProfile(\''+p.id+'\')" class="btn-primary w-full btn-sm">'+t('viewProfile')+'</button></div></div>';
-  }).join('')+'</div>'+
+  '<option value="">الكل</option>'+specialtyOptions.map(function(o){return'<option value="'+o.id+'" '+(f.specialty===o.id?'selected':'')+'>'+(S.lang==='ar'?o.ar:o.en)+'</option>';}).join('')+'</select></div></div>'+
+  '<div class="photo-grid explore-desktop-grid">'+filtered.map(function(p){return renderExploreCard(p,false);}).join('')+'</div>'+
+  renderExploreMobileGroups(filtered)+
   (S.exploreLoading?'<div class="text-center py-20"><i class="fas fa-spinner fa-spin text-3xl text-[var(--accent)] mb-3 block"></i><p class="text-[var(--text2)]">'+(S.lang==='ar'?'جاري التحميل...':'Loading...')+'</p></div>':(filtered.length===0?'<div class="text-center py-20"><i class="fas fa-search text-4xl text-[var(--border)] mb-4 block"></i><p class="text-[var(--text2)]">'+(S.lang==='ar'?'لا يوجد مصورون مطابقون':'No photographers found')+'</p></div>':''))+'</div></div>';
   var container=document.getElementById('explore-content');
   if(container){container.innerHTML=html;}
@@ -1882,38 +2005,54 @@ async function viewPhotographerProfile(id){
     S.viewedPackages=JSON.parse(JSON.stringify(p.packages||[]));
     S.viewedWorkingHours=[];
   }
-  S.pubViewCollection=null;S.pubLightboxIdx=null;
+  S.pubViewCollection=null;S.pubLightboxIdx=null;S.pubAvatarPreview=false;syncPublicMediaOverlay();
   navigate('public');
 }
 
-/* ===== PUBLIC PROFILE GALLERY (collections + lightbox) ===== */
-function renderPubGallery(){
+/* ===== PUBLIC PROFILE GALLERY (collections + glass viewer) ===== */
+function getPubCollections(){
   var isViewing=!!S.viewedPhotographer;
-  var collections=isViewing?(S.viewedCollections||[]):(S.collections||[]);
+  return isViewing?(S.viewedCollections||[]):(S.collections||[]);
+}
+function getActivePubCollection(){
+  var collections=getPubCollections();
+  if(S.pubViewCollection===null||S.pubViewCollection===undefined)return null;
+  return collections.find(function(c){return String(c.id)===String(S.pubViewCollection);})||null;
+}
+function syncPublicMediaOverlay(){
+  var isOpen=S.view==='public'&&((S.pubViewCollection!==null&&S.pubViewCollection!==undefined)||!!S.pubAvatarPreview);
+  if(document.body)document.body.classList.toggle('public-media-open',isOpen);
+}
+function renderPubCollectionViewer(){
+  var col=getActivePubCollection();
+  if(!col)return'';
+  var photos=col.photos||[];
+  if(photos.length===0)return'';
+  if(S.pubLightboxIdx===null||S.pubLightboxIdx===undefined)S.pubLightboxIdx=0;
+  S.pubLightboxIdx=Math.max(0,Math.min(photos.length-1,S.pubLightboxIdx));
+  var ph=photos[S.pubLightboxIdx];
+  var dots=photos.map(function(_,i){
+    return'<button class="pub-gallery-dot '+(i===S.pubLightboxIdx?'active':'')+'" onclick="event.stopPropagation();openPubLightbox('+i+')" aria-label="Image '+(i+1)+'"></button>';
+  }).join('');
+  return'<div class="pub-gallery-viewer" onclick="closePubLightbox()">'+
+    '<div class="pub-gallery-backdrop"></div>'+
+    '<div class="pub-gallery-pane" onclick="event.stopPropagation()" ontouchstart="handlePubGalleryTouchStart(event)" ontouchend="handlePubGalleryTouchEnd(event)">'+
+      '<button class="pub-gallery-close" onclick="closePubLightbox()" aria-label="Close"><i class="fas fa-times"></i></button>'+
+      '<div class="pub-gallery-header"><div><div class="pub-gallery-title">'+(col.name||'المجموعة')+'</div>'+
+      '<div class="pub-gallery-subtitle">'+(S.pubLightboxIdx+1)+' / '+photos.length+'</div></div></div>'+
+      '<div class="pub-gallery-stage">'+
+        (S.pubLightboxIdx<photos.length-1?'<button class="pub-gallery-arrow pub-gallery-prev" onclick="movePubLightbox(1)" aria-label="Next"><i class="fas fa-chevron-right"></i></button>':'')+
+        '<img src="'+ph.url+'" class="pub-gallery-img" alt="'+escapeHtml(ph.title||col.name||'')+'">'+
+        (S.pubLightboxIdx>0?'<button class="pub-gallery-arrow pub-gallery-next" onclick="movePubLightbox(-1)" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>':'')+
+      '</div>'+
+      '<div class="pub-gallery-footer">'+(ph.title?'<div class="pub-gallery-caption">'+ph.title+'</div>':'<div></div>')+
+      '<div class="pub-gallery-progress">'+dots+'</div></div>'+
+    '</div></div>';
+}
+function renderPubGallery(){
+  var collections=getPubCollections();
   if(collections.length===0){
     return'<div class="py-10 text-center"><i class="fas fa-images text-4xl block mb-3" style="color:var(--border)"></i><p class="text-[var(--text2)]">'+(S.lang==='ar'?'لا توجد مجموعات في المعرض بعد':'No collections yet')+'</p></div>';
-  }
-  var colId=S.pubViewCollection;
-  if(colId!==null&&colId!==undefined){
-    var col=collections.find(function(c){return String(c.id)===String(colId);});
-    if(!col){S.pubViewCollection=null;return renderPubGallery();}
-    var photos=col.photos||[];
-    var lightboxHtml='';
-    if(S.pubLightboxIdx!==null&&S.pubLightboxIdx!==undefined&&photos[S.pubLightboxIdx]){
-      var ph=photos[S.pubLightboxIdx];
-      lightboxHtml='<div class="pub-lightbox-overlay" onclick="closePubLightbox()">'+
-        '<button class="pub-lightbox-close" onclick="closePubLightbox()"><i class="fas fa-times"></i></button>'+
-        (S.pubLightboxIdx>0?'<button class="pub-lightbox-nav pub-lnav-prev" onclick="event.stopPropagation();movePubLightbox(-1)"><i class="fas fa-chevron-right"></i></button>':'')+
-        '<div class="pub-lightbox-inner" onclick="event.stopPropagation()"><img src="'+ph.url+'" class="pub-lightbox-img" alt="'+(ph.title||'')+'">'+
-        (ph.title?'<div class="pub-lightbox-cap">'+ph.title+'</div>':'')+
-        '</div>'+
-        (S.pubLightboxIdx<photos.length-1?'<button class="pub-lightbox-nav pub-lnav-next" onclick="event.stopPropagation();movePubLightbox(1)"><i class="fas fa-chevron-left"></i></button>':'')+
-        '</div>';
-    }
-    return'<button class="btn-secondary btn-sm mb-4" onclick="closePubCollection()"><i class="fas fa-chevron-right ml-2"></i>'+(col.name||'المجموعة')+'</button>'+
-      '<div class="port-grid">'+photos.map(function(p,i){
-        return'<div class="port-item" style="cursor:pointer" onclick="openPubLightbox('+i+')"><img src="'+p.url+'" alt="'+(p.title||'')+'" loading="lazy"><div class="overlay"><span class="text-sm font-semibold">'+(p.title||'')+'</span></div></div>';
-      }).join('')+'</div>'+lightboxHtml;
   }
   return'<div class="grid grid-cols-2 md:grid-cols-3 gap-4">'+collections.map(function(col){
     var photos=col.photos||[];
@@ -1923,21 +2062,54 @@ function renderPubGallery(){
         '<div class="pub-col-thumb pub-col-empty"><i class="fas fa-images text-4xl" style="color:var(--border)"></i></div>')+
       '<div class="p-3"><div class="font-semibold text-sm">'+(col.name||'')+'</div>'+
       '<div class="text-xs text-[var(--text2)] mt-0.5">'+photos.length+' '+(S.lang==='ar'?'صورة':'photos')+'</div></div></div>';
-  }).join('')+'</div>';
+  }).join('')+'</div>'+renderPubCollectionViewer();
 }
 function updatePubGallery(){var el=document.getElementById('pub-gallery-section');if(el)el.innerHTML=renderPubGallery();}
-function openPubCollection(id){S.pubViewCollection=id;S.pubLightboxIdx=null;updatePubGallery();}
-function closePubCollection(){S.pubViewCollection=null;S.pubLightboxIdx=null;updatePubGallery();}
+function openPubCollection(id){
+  var collections=getPubCollections();
+  var col=collections.find(function(c){return String(c.id)===String(id);});
+  if(!col||(col.photos||[]).length===0){showToast(S.lang==='ar'?'لا توجد صور في هذه المجموعة':'This collection has no photos yet','info');return;}
+  S.pubViewCollection=id;S.pubLightboxIdx=0;S.pubAvatarPreview=false;syncPublicMediaOverlay();updatePubGallery();
+}
+function closePubCollection(){S.pubViewCollection=null;S.pubLightboxIdx=null;syncPublicMediaOverlay();updatePubGallery();}
 function openPubLightbox(idx){S.pubLightboxIdx=idx;updatePubGallery();}
-function closePubLightbox(){S.pubLightboxIdx=null;updatePubGallery();}
+function closePubLightbox(){closePubCollection();}
 function movePubLightbox(delta){
-  if(S.pubLightboxIdx===null)return;
-  var isViewing=!!S.viewedPhotographer;
-  var collections=isViewing?(S.viewedCollections||[]):(S.collections||[]);
-  var col=collections.find(function(c){return String(c.id)===String(S.pubViewCollection);});
+  if(S.pubLightboxIdx===null||S.pubLightboxIdx===undefined)return;
+  var col=getActivePubCollection();
   var len=col?(col.photos||[]).length:0;
   S.pubLightboxIdx=Math.max(0,Math.min(len-1,S.pubLightboxIdx+delta));
   updatePubGallery();
+}
+function handlePubGalleryTouchStart(e){
+  var t=e.touches&&e.touches[0];
+  S.pubTouchStartX=t?t.clientX:0;
+}
+function handlePubGalleryTouchEnd(e){
+  var t=e.changedTouches&&e.changedTouches[0];
+  if(!t||!S.pubTouchStartX)return;
+  var dx=t.clientX-S.pubTouchStartX;
+  S.pubTouchStartX=null;
+  if(Math.abs(dx)<40)return;
+  var isMobile=window.matchMedia&&window.matchMedia('(max-width: 768px)').matches;
+  movePubLightbox(isMobile?(dx<0?1:-1):(dx<0?-1:1));
+}
+function renderPubAvatarViewer(u){
+  if(!S.pubAvatarPreview||!u||!u.avatar)return'';
+  return'<div class="pub-avatar-viewer" onclick="closePubAvatarPreview()">'+
+    '<div class="pub-avatar-backdrop"></div>'+
+    '<div class="pub-avatar-pane" onclick="event.stopPropagation()">'+
+      '<button class="pub-avatar-close" onclick="closePubAvatarPreview()" aria-label="Close"><i class="fas fa-times"></i></button>'+
+      '<img src="'+u.avatar+'" class="pub-avatar-large" alt="'+escapeHtml(gf(u,'name')||'')+'">'+
+    '</div></div>';
+}
+function openPubAvatarPreview(){
+  var u=S.viewedPhotographer||S.user;
+  if(!u||!u.avatar)return;
+  S.pubAvatarPreview=true;S.pubViewCollection=null;S.pubLightboxIdx=null;syncPublicMediaOverlay();renderPublicProfile();
+}
+function closePubAvatarPreview(){
+  S.pubAvatarPreview=false;syncPublicMediaOverlay();renderPublicProfile();
 }
 
 /* ===== PUBLIC PROFILE (with enhanced package display & booking) ===== */
@@ -1974,7 +2146,7 @@ function renderPublicProfile(){
   '<div class="flex gap-2"><button onclick="publishPortfolioChanges()" class="btn-primary btn-sm">'+(S.lang==='ar'?'نشر الآن':'Publish Now')+'</button>'+
   '<button onclick="S.isPortfolioPreview=false;navigate(\'dashboard\');switchTab(\'portfolio\');" class="btn-secondary btn-sm">'+(S.lang==='ar'?'عودة للتعديل':'Back to Edit')+'</button></div></div></div>':'';
   var avatarEl=u.avatar
-    ?'<img src="'+u.avatar+'" class="pub-avatar w-32 h-32 rounded-2xl object-cover border-4 border-[var(--bg)] shadow-xl" alt="">'
+    ?'<button type="button" class="pub-avatar-btn" onclick="openPubAvatarPreview()" aria-label="Open profile image"><img src="'+u.avatar+'" class="pub-avatar w-32 h-32 rounded-2xl object-cover border-4 border-[var(--bg)] shadow-xl" alt=""></button>'
     :'<div class="pub-avatar w-32 h-32 rounded-2xl border-4 border-[var(--bg)] shadow-xl bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-4xl" style="color:var(--border)"></i></div>';
   var html='<div class="pt-14">'+reviewBanner+'<div class="pub-cover" style="background-image:url(\''+u.cover+'\')"></div>'+
   '<div class="max-w-5xl mx-auto px-6 -mt-24 relative z-10">'+
@@ -2059,10 +2231,10 @@ function renderPublicProfile(){
   (u.avatar?'<img src="'+u.avatar+'" class="w-14 h-14 rounded-xl object-cover border border-[var(--border)]" alt="">':'<div class="w-14 h-14 rounded-xl border border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-xl" style="color:var(--border)"></i></div>')+
   '<div><div id="pub-service-name" class="font-bold text-lg text-[var(--accent)]"></div><div id="pub-service-duration" class="text-sm text-[var(--text2)]"></div><div id="pub-service-features-preview" class="text-xs text-[var(--text2)] mt-1"></div></div><div class="text-right"><div id="pub-service-price" class="text-3xl font-bold gradient-text"></div><div class="text-xs text-[var(--text2)] mt-1">Total</div></div></div></div>'+
   '<div class="rounded-xl border border-[var(--border)] bg-[var(--bg2)] p-5 space-y-4">'+
-  '<div><label class="block text-sm font-semibold mb-2"><i class="fas fa-calendar-alt ml-2 text-[var(--accent)]"></i>'+t('selectDate')+'</label><input type="date" class="input" required id="pub-date" min="'+new Date().toISOString().split('T')[0]+'" onchange="onPubDateChange()"></div>'+
+  '<div><label class="block text-sm font-semibold mb-2"><i class="fas fa-calendar-alt ml-2 text-[var(--accent)]"></i>'+t('selectDate')+'</label><input type="date" class="input" required id="pub-date" min="'+todayLocalISO()+'" onchange="onPubDateChange()"></div>'+
   '<div id="pub-time-area" class="hidden"><label class="block text-sm font-semibold mb-3"><i class="fas fa-clock ml-2 text-[var(--accent)]"></i>'+t('selectTime')+'</label><div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="pub-time-slots"></div></div>'+
   '</div>'+
-  '<div class="flex items-center gap-3 text-xs text-[var(--text2)]"><span class="security-badge"><i class="fas fa-shield-alt"></i> SSL Encrypted</span><span class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</span></div>'+
+  '<div class="flex items-center gap-3 text-xs text-[var(--text2)]"><span class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</span></div>'+
   ((S.user&&S.user.role==='client')
     ?'<button type="submit" class="btn-primary text-lg w-full py-4 mt-2"><i class="fas fa-calendar-check ml-2"></i>'+t('submitBooking')+'</button>'
     :'<button type="button" onclick="promptLoginToBook()" class="btn-primary text-lg w-full py-4 mt-2"><i class="fas fa-sign-in-alt ml-2"></i>'+(S.lang==='ar'?'سجّل الدخول للحجز':'Sign in to book')+'</button>')+
@@ -2071,6 +2243,8 @@ function renderPublicProfile(){
   '</div></div></div></div>'+
 
   /* Footer */
+  renderPubAvatarViewer(u)+
+
   '<footer class="border-t border-[var(--border)] py-8 bg-[var(--bg2)]"><div class="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-[var(--text2)]"><div class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</div><span>&copy; 2025 DOF STUDIOS. All rights reserved.</span></div></footer></div>';
   var container=document.getElementById('public-content');
   if(container){container.innerHTML=html;}
@@ -2251,7 +2425,7 @@ async function handlePublicBooking(e){
     S.bookings.push(newBooking);
     renderClientBookingsPanel();
     addCustomerRecord(newBooking);
-    notifyPhotographerWhatsApp(newBooking);
+    notifyPhotographerWhatsApp(newBooking,phFor);
   }catch(err){showToast(err.message||'فشل الحجز','error');return;}
   var conf=document.getElementById('pub-booking-confirmation');
   if(conf){
@@ -2600,7 +2774,7 @@ async function renderChatMessages(){
     return'<div class="chat-msg '+(m.sender==='photographer'?'photographer':'client')+'">'+
     '<div class="bubble">'+
     (isMine?'<div class="chat-msg-actions"><button onclick="deleteChatMessage(\''+m.id+'\')" title="'+t('chatDeleteMsg')+'"><i class="fas fa-trash-alt"></i></button></div>':'')+
-    m.content+'<div class="time">'+timeStr+'<span class="enc-icon"><i class="fas fa-lock" title="Encrypted"></i></span></div></div></div>';
+    m.content+'<div class="time">'+timeStr+'</div></div></div>';
   }).join('');
   area.scrollTop=area.scrollHeight;
   /* Mark messages as read */

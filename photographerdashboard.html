@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="stylesheet" href="assets/css/styles.css">
+<link rel="stylesheet" href="assets/css/styles.css?v=dashboard-booking-cleanup-20260702">
 </head>
 <body data-page="dashboard">
 
@@ -121,7 +121,6 @@
         <label for="reg-terms" class="text-xs text-[var(--text2)]" data-t="termsAgree">I agree to the <a href="#" class="text-[var(--accent)]">Terms</a> & <a href="#" class="text-[var(--accent)]">Privacy Policy</a></label>
       </div>
       <button type="submit" class="btn-primary w-full" data-t="createAccount">Create Account</button>
-      <div class="flex items-center justify-center gap-2 text-xs text-[var(--text2)]"><i class="fas fa-lock"></i><span data-t="secureReg">256-bit encrypted</span></div>
     </form>
   </div>
 </div>
@@ -183,8 +182,8 @@
           <div class="validation-msg" id="pkg-price-msg"></div>
         </div>
         <div>
-          <label class="block text-sm text-[var(--text2)] mb-1">المدة *</label>
-          <input type="text" class="input" id="pkg-duration" required placeholder="مثال: 4 ساعات" dir="rtl">
+          <label class="block text-sm text-[var(--text2)] mb-1">المدة بالساعات *</label>
+          <input type="number" class="input" id="pkg-duration" required min="0.5" step="0.5" placeholder="مثال: 4" dir="rtl">
           <div class="validation-msg" id="pkg-duration-msg"></div>
         </div>
       </div>
@@ -305,11 +304,9 @@
       <span class="font-bold text-sm" id="chat-panel-title">Messages</span>
     </div>
     <div class="flex items-center gap-2">
-      <span class="security-badge" style="font-size:9px;padding:3px 8px;"><i class="fas fa-lock"></i> E2EE</span>
       <button onclick="closeChatPanel()" class="text-[var(--text2)] hover:text-[var(--text)]"><i class="fas fa-times"></i></button>
     </div>
   </div>
-  <div class="chat-privacy-banner"><i class="fas fa-shield-alt"></i><span data-t="chatEncrypted">End-to-end encrypted • Your messages are private</span></div>
   <div id="chat-conv-list" class="chat-conv-list"></div>
   <div id="chat-conv-view" class="hidden flex flex-col" style="flex:1;display:none;">
     <div id="chat-conv-header" class="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between" style="flex-shrink:0;">
@@ -438,7 +435,7 @@
 <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-[99] hidden lg:hidden" onclick="toggleSidebar()"></div>
 
 <!-- Hidden file input for collection photo uploads -->
-<input type="file" id="col-photo-input" accept="image/*" class="hidden" onchange="handleColPhotoUpload(this)">
+<input type="file" id="col-photo-input" accept="image/*" multiple class="hidden" onchange="handleColPhotoUpload(this)">
 
 
 <!-- ===== FULL-SCREEN CHAT MODAL ===== -->
@@ -469,6 +466,6 @@
 <!-- ============================================================ -->
 <!-- ===== COMPLETE JAVASCRIPT ===== -->
 <!-- ============================================================ -->
-<script src="assets/js/app.js"></script>
+<script src="assets/js/app.js?v=dashboard-booking-cleanup-20260702"></script>
 </body>
 </html>

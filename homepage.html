@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="stylesheet" href="assets/css/styles.css">
+<link rel="stylesheet" href="assets/css/styles.css?v=dashboard-booking-cleanup-20260702">
 </head>
 <body data-page="landing">
 
@@ -113,7 +113,6 @@
         <label for="reg-terms" class="text-xs text-[var(--text2)]" data-t="termsAgree">I agree to the <a href="#" class="text-[var(--accent)]">Terms</a> & <a href="#" class="text-[var(--accent)]">Privacy Policy</a></label>
       </div>
       <button type="submit" class="btn-primary w-full" data-t="createAccount">Create Account</button>
-      <div class="flex items-center justify-center gap-2 text-xs text-[var(--text2)]"><i class="fas fa-lock"></i><span data-t="secureReg">256-bit encrypted</span></div>
     </form>
   </div>
 </div>
@@ -187,8 +186,8 @@
           <div class="validation-msg" id="pkg-price-msg"></div>
         </div>
         <div>
-          <label class="block text-sm text-[var(--text2)] mb-1">Duration (EN) *</label>
-          <input type="text" class="input" id="pkg-duration" required placeholder="e.g., 4 hours">
+          <label class="block text-sm text-[var(--text2)] mb-1">Duration in Hours *</label>
+          <input type="number" class="input" id="pkg-duration" required min="0.5" step="0.5" placeholder="e.g., 4">
           <div class="validation-msg" id="pkg-duration-msg"></div>
         </div>
         <div>
@@ -315,11 +314,9 @@
       <span class="font-bold text-sm" id="chat-panel-title">Messages</span>
     </div>
     <div class="flex items-center gap-2">
-      <span class="security-badge" style="font-size:9px;padding:3px 8px;"><i class="fas fa-lock"></i> E2EE</span>
       <button onclick="closeChatPanel()" class="text-[var(--text2)] hover:text-[var(--text)]"><i class="fas fa-times"></i></button>
     </div>
   </div>
-  <div class="chat-privacy-banner"><i class="fas fa-shield-alt"></i><span data-t="chatEncrypted">End-to-end encrypted • Your messages are private</span></div>
   <div id="chat-conv-list" class="chat-conv-list"></div>
   <div id="chat-conv-view" class="hidden flex flex-col" style="flex:1;display:none;">
     <div id="chat-conv-header" class="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between" style="flex-shrink:0;">
@@ -442,19 +439,20 @@
   </section>
 
   <!-- Hero Section -->
-  <section class="min-h-screen flex items-center pt-14 sm:pt-16 relative overflow-hidden">
+  <section class="landing-hero-section min-h-screen flex items-center pt-14 sm:pt-16 relative overflow-hidden">
     <div class="hero-shape w-[500px] h-[500px] bg-[var(--accent)] top-[-100px] right-[-100px]"></div>
     <div class="hero-shape w-[300px] h-[300px] bg-[var(--accent-d)] bottom-[50px] left-[-50px]"></div>
     <div class="max-w-7xl mx-auto px-6 w-full relative z-10">
       <div class="hero-grid grid grid-cols-2 gap-12 items-center" style="grid-template-columns:1.1fr 0.9fr;">
-        <div class="fade-up">
+        <div class="hero-copy fade-up">
           <div class="dof-badge mb-6"><i class="fas fa-gem"></i> DOF STUDIOS</div>
           <h1 class="text-5xl md:text-6xl font-black leading-tight mb-6">
             <span data-t="heroTitle1">Where Photography</span><br>
             <span class="gradient-text" data-t="heroTitle2">Meets Opportunity</span>
           </h1>
           <p class="hero-desc text-[var(--text2)] text-lg mb-8 max-w-lg leading-relaxed" data-t="heroDesc">Connect with talented photographers, explore stunning portfolios, and book your perfect session — all in one place.</p>
-          <div class="flex gap-4 flex-wrap">
+          <div class="hero-cta-spacer" aria-hidden="true"></div>
+          <div class="hero-actions flex gap-4 flex-wrap">
             <button onclick="openModal('auth-modal')" class="btn-primary text-base px-8 py-3.5" data-t="joinNow">Join Now — Free</button>
             <button onclick="navigate('explore')" class="btn-secondary text-base px-8 py-3.5" data-t="browsePhotographers">Browse Photographers</button>
           </div>
@@ -481,7 +479,7 @@
   <div class="glow-line max-w-4xl mx-auto my-8"></div>
 
   <!-- Features Section -->
-  <section id="features-section" class="py-24 relative z-10">
+  <section id="features-section" class="landing-features-section py-24 relative z-10">
     <div class="max-w-7xl mx-auto px-6">
       <div class="text-center mb-16 fade-up"><h2 class="text-4xl font-bold mb-4" data-t="featSectionTitle">For Photographers & Clients</h2><p class="text-[var(--text2)] max-w-xl mx-auto" data-t="featSectionDesc">A complete ecosystem for photography business management and client discovery.</p></div>
       <div class="feat-grid grid grid-cols-3 gap-6">
@@ -496,7 +494,7 @@
   </section>
 
   <!-- How It Works -->
-  <section class="py-24 bg-[var(--bg2)] relative z-10">
+  <section id="how-section" class="landing-how-section py-24 bg-[var(--bg2)] relative z-10">
     <div class="max-w-7xl mx-auto px-6">
       <div class="text-center mb-16 fade-up"><h2 class="text-4xl font-bold mb-4" data-t="howTitle">How It Works</h2></div>
       <div class="how-grid grid grid-cols-3 gap-8 max-w-4xl mx-auto">
@@ -540,6 +538,6 @@
 <!-- ============================================================ -->
 <!-- ===== COMPLETE JAVASCRIPT ===== -->
 <!-- ============================================================ -->
-<script src="assets/js/app.js"></script>
+<script src="assets/js/app.js?v=dashboard-booking-cleanup-20260702"></script>
 </body>
 </html>

@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="stylesheet" href="assets/css/styles.css">
+<link rel="stylesheet" href="assets/css/styles.css?v=dashboard-booking-cleanup-20260702">
 </head>
 <body data-page="landing">
 
@@ -131,7 +131,6 @@
         <label for="reg-terms" class="text-xs text-[var(--text2)]" data-t="termsAgree">I agree to the <a href="#" class="text-[var(--accent)]">Terms</a> & <a href="#" class="text-[var(--accent)]">Privacy Policy</a></label>
       </div>
       <button type="submit" class="btn-primary w-full" data-t="createAccount">Create Account</button>
-      <div class="flex items-center justify-center gap-2 text-xs text-[var(--text2)]"><i class="fas fa-lock"></i><span data-t="secureReg">256-bit encrypted</span></div>
     </form>
   </div>
 </div>
@@ -205,8 +204,8 @@
           <div class="validation-msg" id="pkg-price-msg"></div>
         </div>
         <div>
-          <label class="block text-sm text-[var(--text2)] mb-1">Duration (EN) *</label>
-          <input type="text" class="input" id="pkg-duration" required placeholder="e.g., 4 hours">
+          <label class="block text-sm text-[var(--text2)] mb-1">Duration in Hours *</label>
+          <input type="number" class="input" id="pkg-duration" required min="0.5" step="0.5" placeholder="e.g., 4">
           <div class="validation-msg" id="pkg-duration-msg"></div>
         </div>
         <div>
@@ -333,11 +332,9 @@
       <span class="font-bold text-sm" id="chat-panel-title">Messages</span>
     </div>
     <div class="flex items-center gap-2">
-      <span class="security-badge" style="font-size:9px;padding:3px 8px;"><i class="fas fa-lock"></i> E2EE</span>
       <button onclick="closeChatPanel()" class="text-[var(--text2)] hover:text-[var(--text)]"><i class="fas fa-times"></i></button>
     </div>
   </div>
-  <div class="chat-privacy-banner"><i class="fas fa-shield-alt"></i><span data-t="chatEncrypted">End-to-end encrypted • Your messages are private</span></div>
   <div id="chat-conv-list" class="chat-conv-list"></div>
   <div id="chat-conv-view" class="hidden flex flex-col" style="flex:1;display:none;">
     <div id="chat-conv-header" class="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between" style="flex-shrink:0;">
@@ -449,19 +446,20 @@
 
 
   <!-- Hero Section -->
-  <section class="min-h-screen flex items-center pt-14 sm:pt-16 relative overflow-hidden">
+  <section class="landing-hero-section min-h-screen flex items-center pt-14 sm:pt-16 relative overflow-hidden">
     <div class="hero-shape w-[500px] h-[500px] bg-[var(--accent)] top-[-100px] right-[-100px]"></div>
     <div class="hero-shape w-[300px] h-[300px] bg-[var(--accent-d)] bottom-[50px] left-[-50px]"></div>
     <div class="max-w-7xl mx-auto px-6 w-full relative z-10">
       <div class="hero-grid grid grid-cols-2 gap-12 items-center" style="grid-template-columns:1.1fr 0.9fr;">
-        <div class="fade-up">
+        <div class="hero-copy fade-up">
           <div class="dof-badge mb-6"><i class="fas fa-gem"></i> DOF STUDIOS</div>
           <h1 class="text-5xl md:text-6xl font-black leading-tight mb-6">
             <span data-t="heroTitle1">Where Photography</span><br>
             <span class="gradient-text" data-t="heroTitle2">Meets Opportunity</span>
           </h1>
           <p class="hero-desc text-[var(--text2)] text-lg mb-8 max-w-lg leading-relaxed" data-t="heroDesc">Connect with talented photographers, explore stunning portfolios, and book your perfect session — all in one place.</p>
-          <div class="flex gap-4 flex-wrap">
+          <div class="hero-cta-spacer" aria-hidden="true"></div>
+          <div class="hero-actions flex gap-4 flex-wrap">
             <button onclick="openModal('auth-modal')" id="hero-join-btn" class="btn-primary text-base px-8 py-3.5" data-t="joinNow">Join Now — Free</button>
             <button onclick="navigate('explore')" class="btn-secondary text-base px-8 py-3.5" data-t="browsePhotographers">Browse Photographers</button>
           </div>
@@ -485,25 +483,27 @@
     </div>
   </section>
 
-  <div class="glow-line max-w-4xl mx-auto my-8"></div>
+  <div class="hero-section-divider glow-line max-w-4xl mx-auto my-8"></div>
 
   <!-- Features Section -->
-  <section id="features-section" class="py-24 relative z-10">
+  <section id="features-section" class="landing-features-section py-24 relative z-10">
     <div class="max-w-7xl mx-auto px-6">
       <div class="text-center mb-16 fade-up"><h2 class="text-4xl font-bold mb-4" data-t="featSectionTitle">For Photographers & Clients</h2><p class="text-[var(--text2)] max-w-xl mx-auto" data-t="featSectionDesc">A complete ecosystem for photography business management and client discovery.</p></div>
-      <div class="feat-grid grid grid-cols-3 gap-6">
-        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-search text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat1Title">Discover Photographers</h4><p class="text-sm text-[var(--text2)]" data-t="feat1Desc">Browse profiles, view portfolios, and find the perfect photographer.</p></div>
-        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-calendar-check text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat2Title">Easy Booking</h4><p class="text-sm text-[var(--text2)]" data-t="feat2Desc">Book sessions directly through photographer profiles.</p></div>
-        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-shield-alt text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat3Title">Secure & Trusted</h4><p class="text-sm text-[var(--text2)]" data-t="feat3Desc">Verified profiles, secure payments, protected data.</p></div>
-        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-images text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat4Title">Portfolio Showcase</h4><p class="text-sm text-[var(--text2)]" data-t="feat4Desc">Display your best work in a stunning gallery.</p></div>
-        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-tags text-white"></i></div><h4 class="text-lg font-bold mb-2">إدارة الباقات</h4><p class="text-sm text-[var(--text2)]">أنشئ وادر باقاتك الخاصة بأسعار ومدد مخصصة.</p></div>
-        <div class="card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-headset text-white"></i></div><h4 class="text-lg font-bold mb-2">دعم العملاء</h4><p class="text-sm text-[var(--text2)]">فريق دعم متاح لمساعدتك في كل خطوة.</p></div>
+      <div class="feat-carousel-wrap">
+        <div class="feat-grid grid grid-cols-3 gap-6">
+          <div class="feat-card card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-search text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat1Title">Discover Photographers</h4><p class="text-sm text-[var(--text2)]" data-t="feat1Desc">Browse profiles, view portfolios, and find the perfect photographer.</p></div>
+          <div class="feat-card card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-calendar-check text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat2Title">Easy Booking</h4><p class="text-sm text-[var(--text2)]" data-t="feat2Desc">Book sessions directly through photographer profiles.</p></div>
+          <div class="feat-card card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-shield-alt text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat3Title">Secure & Trusted</h4><p class="text-sm text-[var(--text2)]" data-t="feat3Desc">Verified profiles, secure payments, protected data.</p></div>
+          <div class="feat-card card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-images text-white"></i></div><h4 class="text-lg font-bold mb-2" data-t="feat4Title">Portfolio Showcase</h4><p class="text-sm text-[var(--text2)]" data-t="feat4Desc">Display your best work in a stunning gallery.</p></div>
+          <div class="feat-card card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-tags text-white"></i></div><h4 class="text-lg font-bold mb-2">إدارة الباقات</h4><p class="text-sm text-[var(--text2)]">أنشئ وادر باقاتك الخاصة بأسعار ومدد مخصصة.</p></div>
+          <div class="feat-card card p-7 fade-up"><div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mb-5"><i class="fas fa-headset text-white"></i></div><h4 class="text-lg font-bold mb-2">دعم العملاء</h4><p class="text-sm text-[var(--text2)]">فريق دعم متاح لمساعدتك في كل خطوة.</p></div>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- How It Works -->
-  <section class="py-24 relative z-10">
+  <section id="how-section" class="landing-how-section py-24 relative z-10">
     <div class="max-w-5xl mx-auto px-6">
       <div class="text-center mb-16 fade-up">
         <h2 class="text-4xl font-bold mb-3">كيف يعمل؟</h2>
@@ -513,42 +513,36 @@
         <!-- Connector hairline (desktop only) -->
         <div class="hidden md:block absolute top-8 right-[16.5%] left-[16.5%] h-px bg-gradient-to-l from-[var(--accent-l)] via-[var(--accent)] to-[var(--accent-d)] opacity-30"></div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-6">
+        <div class="how-grid grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-6">
           <!-- Step 1 -->
-          <div class="text-center fade-up group">
+          <div class="how-step text-center fade-up group">
             <div class="relative mb-6">
-              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex flex-col items-center justify-center mx-auto shadow-lg shadow-[var(--accent)]/20 transition-shadow group-hover:shadow-[var(--accent)]/40">
+              <div class="how-step-icon w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex flex-col items-center justify-center mx-auto shadow-lg shadow-[var(--accent)]/20 transition-shadow group-hover:shadow-[var(--accent)]/40">
                 <i class="fas fa-user-plus text-white text-base mb-0.5"></i>
-                <span class="text-white font-bold" style="font-size:10px">01</span>
               </div>
             </div>
             <h4 class="font-bold text-lg mb-2">أنشئ حسابك</h4>
-            <p class="text-sm text-[var(--text2)] leading-relaxed">سجّل كمصوّر أو كعميل في ثوانٍ<br>واختر الباقة المناسبة لك</p>
           </div>
 
           <!-- Step 2 (spotlight) -->
-          <div class="text-center fade-up group relative">
+          <div class="how-step text-center fade-up group relative">
             <div class="absolute inset-x-0 -inset-y-4 rounded-3xl bg-[var(--accent)]/5 -z-10 hidden md:block"></div>
             <div class="relative mb-6">
-              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex flex-col items-center justify-center mx-auto shadow-xl shadow-[var(--accent)]/35 ring-2 ring-[var(--accent)]/30 transition-shadow group-hover:shadow-[var(--accent)]/50">
+              <div class="how-step-icon how-step-icon-featured w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex flex-col items-center justify-center mx-auto shadow-xl shadow-[var(--accent)]/35 transition-shadow group-hover:shadow-[var(--accent)]/50">
                 <i class="fas fa-images text-white text-base mb-0.5"></i>
-                <span class="text-white font-bold" style="font-size:10px">02</span>
               </div>
             </div>
             <h4 class="font-bold text-lg mb-2">اعرض أو استكشف</h4>
-            <p class="text-sm text-[var(--text2)] leading-relaxed">المصوّرون يبنون معرضهم وباقاتهم<br>والعملاء يتصفحون ويقارنون</p>
           </div>
 
           <!-- Step 3 -->
-          <div class="text-center fade-up group">
+          <div class="how-step text-center fade-up group">
             <div class="relative mb-6">
-              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex flex-col items-center justify-center mx-auto shadow-lg shadow-[var(--accent)]/20 transition-shadow group-hover:shadow-[var(--accent)]/40">
+              <div class="how-step-icon w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex flex-col items-center justify-center mx-auto shadow-lg shadow-[var(--accent)]/20 transition-shadow group-hover:shadow-[var(--accent)]/40">
                 <i class="fas fa-calendar-check text-white text-base mb-0.5"></i>
-                <span class="text-white font-bold" style="font-size:10px">03</span>
               </div>
             </div>
             <h4 class="font-bold text-lg mb-2">احجز وانطلق</h4>
-            <p class="text-sm text-[var(--text2)] leading-relaxed">احجز جلستك مباشرة مع المصوّر<br>وابدأ رحلتك الإبداعية</p>
           </div>
         </div>
       </div>
@@ -588,6 +582,6 @@
 <!-- ============================================================ -->
 <!-- ===== COMPLETE JAVASCRIPT ===== -->
 <!-- ============================================================ -->
-<script src="assets/js/app.js"></script>
+<script src="assets/js/app.js?v=dashboard-booking-cleanup-20260702"></script>
 </body>
 </html>

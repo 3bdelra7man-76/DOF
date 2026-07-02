@@ -545,6 +545,11 @@ async function createAvailabilityBlock(req, res) {
   requireRole(profile, 'photographer');
   const body = await readJson(req);
   required(body, ['date', 'startTime', 'endTime']);
+  const blockDate = new Date(`${body.date}T00:00:00`);
+  if (Number.isNaN(blockDate.getTime())) throw fail(422, 'Invalid block date');
+  if (!body.startTime || !body.endTime || body.startTime >= body.endTime) {
+    throw fail(422, 'وقت النهاية يجب أن يكون بعد وقت البداية');
+  }
   const { data, error } = await supabaseService()
     .from('availability_blocks')
     .insert({

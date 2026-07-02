@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="stylesheet" href="assets/css/styles.css">
+<link rel="stylesheet" href="assets/css/styles.css?v=dashboard-booking-cleanup-20260702">
 </head>
 <body data-page="explore">
 
@@ -113,7 +113,6 @@
         <label for="reg-terms" class="text-xs text-[var(--text2)]" data-t="termsAgree">I agree to the <a href="#" class="text-[var(--accent)]">Terms</a> & <a href="#" class="text-[var(--accent)]">Privacy Policy</a></label>
       </div>
       <button type="submit" class="btn-primary w-full" data-t="createAccount">Create Account</button>
-      <div class="flex items-center justify-center gap-2 text-xs text-[var(--text2)]"><i class="fas fa-lock"></i><span data-t="secureReg">256-bit encrypted</span></div>
     </form>
   </div>
 </div>
@@ -187,8 +186,8 @@
           <div class="validation-msg" id="pkg-price-msg"></div>
         </div>
         <div>
-          <label class="block text-sm text-[var(--text2)] mb-1">Duration (EN) *</label>
-          <input type="text" class="input" id="pkg-duration" required placeholder="e.g., 4 hours">
+          <label class="block text-sm text-[var(--text2)] mb-1">Duration in Hours *</label>
+          <input type="number" class="input" id="pkg-duration" required min="0.5" step="0.5" placeholder="e.g., 4">
           <div class="validation-msg" id="pkg-duration-msg"></div>
         </div>
         <div>
@@ -315,11 +314,9 @@
       <span class="font-bold text-sm" id="chat-panel-title">Messages</span>
     </div>
     <div class="flex items-center gap-2">
-      <span class="security-badge" style="font-size:9px;padding:3px 8px;"><i class="fas fa-lock"></i> E2EE</span>
       <button onclick="closeChatPanel()" class="text-[var(--text2)] hover:text-[var(--text)]"><i class="fas fa-times"></i></button>
     </div>
   </div>
-  <div class="chat-privacy-banner"><i class="fas fa-shield-alt"></i><span data-t="chatEncrypted">End-to-end encrypted • Your messages are private</span></div>
   <div id="chat-conv-list" class="chat-conv-list"></div>
   <div id="chat-conv-view" class="hidden flex flex-col" style="flex:1;display:none;">
     <div id="chat-conv-header" class="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between" style="flex-shrink:0;">
@@ -419,7 +416,7 @@
     <div class="flex items-center gap-2">
       <button onclick="openModal('auth-modal')" id="nav-get-started-exp" class="btn-primary btn-sm">ابدأ الآن</button>
       <button onclick="handleLogout()" id="nav-logout-exp" class="hidden btn-secondary btn-sm flex items-center gap-2"><i class="fas fa-sign-out-alt"></i><span id="nav-user-name-exp"></span></button>
-      <button onclick="navigate('landing')" class="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--text)] hover:border-[var(--accent)] transition"><i class="fas fa-chevron-right text-sm"></i></button>
+      <button onclick="navigate('landing')" class="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--text)] hover:border-[var(--accent)] transition"><i class="fas fa-chevron-right text-sm mobile-back-arrow"></i></button>
     </div>
   </nav>
   <div class="pt-14 min-h-screen" id="explore-content"></div>
@@ -429,6 +426,6 @@
 <!-- ============================================================ -->
 <!-- ===== COMPLETE JAVASCRIPT ===== -->
 <!-- ============================================================ -->
-<script src="assets/js/app.js"></script>
+<script src="assets/js/app.js?v=dashboard-booking-cleanup-20260702"></script>
 </body>
 </html>
