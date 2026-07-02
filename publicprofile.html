@@ -125,12 +125,21 @@
       <button onclick="closeModal('apt-modal')" class="text-[var(--text2)] hover:text-[var(--text)] text-xl"><i class="fas fa-times"></i></button>
     </div>
     <form onsubmit="handleAddApt(event)" class="space-y-4">
+      <div><label class="block text-sm text-[var(--text2)] mb-1">Linked Client</label><select class="input" id="apt-client-account" onchange="fillAptClientFromSelect()"></select></div>
       <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="clientName">Client Name</label><input type="text" class="input" required id="apt-client"></div>
-      <div class="grid grid-cols-2 gap-3">
-        <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="date">Date</label><input type="date" class="input" required id="apt-date"></div>
-        <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="time">Time</label><select class="input" required id="apt-time"></select></div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="phone">Phone</label><input type="tel" class="input" required id="apt-phone"></div>
+        <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="email">Email</label><input type="email" class="input" id="apt-email"></div>
       </div>
-      <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="service">Service</label><select class="input" required id="apt-service"></select></div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="date">Date</label><input type="date" class="input" required id="apt-date"></div>
+        <div><label class="block text-sm text-[var(--text2)] mb-1">Start</label><input type="time" class="input" required id="apt-start"></div>
+        <div><label class="block text-sm text-[var(--text2)] mb-1">End</label><input type="time" class="input" required id="apt-end"></div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="service">Service</label><input type="text" class="input" required id="apt-service" placeholder="Custom session"></div>
+        <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="packagePrice">Price</label><input type="number" min="1" step="1" class="input" required id="apt-price"></div>
+      </div>
       <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="notes">Notes</label><textarea class="input" id="apt-notes"></textarea></div>
       <div class="flex gap-3 pt-2">
         <button type="button" onclick="closeModal('apt-modal')" class="btn-secondary flex-1" data-t="cancel">Cancel</button>

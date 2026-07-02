@@ -3,7 +3,7 @@ import { config } from '../backend/lib/config.js';
 import { created, fail, handleError, methodNotAllowed, noContent, ok, readJson } from '../backend/lib/http.js';
 import { limitsForPlan, planForPhotographer } from '../backend/lib/limits.js';
 import { createPaymobSubscriptionIntent, verifyPaymobHmac } from '../backend/lib/paymob.js';
-import { addMinutes, generateSlots } from '../backend/lib/slots.js';
+import { addMinutes, generateSlots, hasOverlap } from '../backend/lib/slots.js';
 import { supabaseAnon, supabaseService } from '../backend/lib/supabase.js';
 import { asInt, assertUuid, required } from '../backend/lib/validation.js';
 
@@ -70,6 +70,43 @@ function formatClock(value) {
   const suffix = hour24 >= 12 ? 'PM' : 'AM';
   const hour12 = hour24 % 12 || 12;
   return `${hour12}:${match[2]} ${suffix}`;
+}
+
+function normalizeApiTime(value) {
+  const raw = cleanString(value);
+  const ampm = raw.match(/^(\d{1,2}):(\d{2})\s*([ap]m)$/i);
+  if (ampm) {
+    let hour = Number.parseInt(ampm[1], 10);
+    const minute = Number.parseInt(ampm[2], 10);
+    if (hour < 1 || hour > 12 || minute < 0 || minute > 59) throw fail(422, 'Invalid time');
+    if (ampm[3].toLowerCase() === 'pm' && hour !== 12) hour += 12;
+    if (ampm[3].toLowerCase() === 'am' && hour === 12) hour = 0;
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  }
+  const match = raw.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) throw fail(422, 'Invalid time');
+  const hour = Number.parseInt(match[1], 10);
+  const minute = Number.parseInt(match[2], 10);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) throw fail(422, 'Invalid time');
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function minutesFromTime(value) {
+  const [hours, minutes] = normalizeApiTime(value).split(':').map((part) => Number.parseInt(part, 10));
+  return hours * 60 + minutes;
+}
+
+function assertNotPastDate(dateValue) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const bookingDate = new Date(`${dateValue}T00:00:00`);
+  if (isNaN(bookingDate.getTime()) || bookingDate < today) throw fail(422, 'لا يمكن الحجز في تاريخ ماضٍ');
+}
+
+function assertValidEmail(value) {
+  const email = cleanString(value);
+  if (!email) return;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw fail(422, 'صيغة البريد الإلكتروني غير صحيحة');
 }
 
 function pageParams(req, defaultPageSize = 25) {
@@ -666,18 +703,10 @@ async function createBooking(req, res) {
   required(body, ['photographerId', 'packageId', 'date', 'startTime', 'clientName', 'clientPhone']);
 
   /* Reject past dates */
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const bookingDate = new Date(body.date + 'T00:00:00');
-  if (isNaN(bookingDate.getTime()) || bookingDate < today) {
-    throw fail(422, 'لا يمكن الحجز في تاريخ ماضٍ');
-  }
+  assertNotPastDate(body.date);
 
   /* Validate email format if provided */
-  if (body.clientEmail && String(body.clientEmail).trim()) {
-    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(body.clientEmail).trim());
-    if (!emailOk) throw fail(422, 'صيغة البريد الإلكتروني غير صحيحة');
-  }
+  assertValidEmail(body.clientEmail);
 
   const tokenUser = await requireUser(req).catch(() => null);
   if (!tokenUser || tokenUser.profile?.role !== 'client') {
@@ -728,6 +757,89 @@ async function createBooking(req, res) {
     .single();
   if (error) throw fail(422, error.message);
   created(res, { booking: data });
+}
+
+async function createManualBooking(req, res) {
+  const { profile } = await requireUser(req);
+  requireRole(profile, 'photographer');
+  const body = await readJson(req);
+  required(body, ['clientName', 'clientPhone', 'date', 'startTime', 'endTime', 'serviceName', 'price']);
+  assertNotPastDate(body.date);
+  assertValidEmail(body.clientEmail);
+
+  const startTime = normalizeApiTime(body.startTime);
+  const endTime = normalizeApiTime(body.endTime);
+  const startMinutes = minutesFromTime(startTime);
+  const endMinutes = minutesFromTime(endTime);
+  if (startMinutes >= endMinutes) throw fail(422, 'End time must be after start time');
+
+  const priceCents = Math.max(0, Math.round(Number(body.price || 0) * 100));
+  if (!priceCents) throw fail(422, 'Price is required');
+  const durationMinutes = endMinutes - startMinutes;
+  const clientId = cleanString(body.clientId) || null;
+  if (clientId) assertUuid(clientId, 'clientId');
+
+  const sb = supabaseService();
+  if (clientId) {
+    const [{ data: relatedBookings, error: bookingLinkError }, { data: relatedConversations, error: conversationLinkError }] = await Promise.all([
+      sb.from('bookings').select('id').eq('photographer_id', profile.id).eq('client_id', clientId).limit(1),
+      sb.from('conversations').select('id').eq('photographer_id', profile.id).eq('client_id', clientId).limit(1)
+    ]);
+    const linkError = bookingLinkError || conversationLinkError;
+    if (linkError) throw fail(422, linkError.message);
+    if ((!relatedBookings || relatedBookings.length === 0) && (!relatedConversations || relatedConversations.length === 0)) {
+      throw fail(403, 'Client is not linked to this photographer');
+    }
+  }
+
+  const [{ data: bookings, error: bookingError }, { data: blocks, error: blockError }] = await Promise.all([
+    sb.from('bookings').select('start_time,end_time').eq('photographer_id', profile.id).eq('booking_date', body.date).in('status', ['confirmed', 'pending']),
+    sb.from('availability_blocks').select('start_time,end_time').eq('photographer_id', profile.id).eq('block_date', body.date)
+  ]);
+  const dataError = bookingError || blockError;
+  if (dataError) throw fail(422, dataError.message);
+  if (hasOverlap({ startTime, endTime, bookings: bookings || [], blocks: blocks || [] })) {
+    throw fail(409, 'Time slot is no longer available');
+  }
+
+  const insertRow = {
+    client_id: clientId,
+    photographer_id: profile.id,
+    package_id: null,
+    booking_date: body.date,
+    start_time: startTime,
+    end_time: endTime,
+    client_name: cleanString(body.clientName),
+    client_email: cleanString(body.clientEmail),
+    client_phone: cleanString(body.clientPhone),
+    notes: cleanString(body.notes),
+    price_cents: priceCents,
+    status: 'confirmed',
+    manual_service_name: cleanString(body.serviceName),
+    manual_duration_minutes: durationMinutes,
+    created_by_photographer: true
+  };
+
+  const { data: booking, error } = await sb
+    .from('bookings')
+    .insert(insertRow)
+    .select('*, packages(name, duration_minutes)')
+    .single();
+  if (error) throw fail(422, error.message);
+
+  let conversationId = null;
+  if (clientId) {
+    const { data: conv } = await sb
+      .from('conversations')
+      .upsert(
+        { client_id: clientId, photographer_id: profile.id },
+        { onConflict: 'client_id,photographer_id' }
+      )
+      .select('*')
+      .single();
+    conversationId = conv?.id || null;
+  }
+  created(res, { booking, conversationId });
 }
 
 async function listBookings(req, res) {
@@ -870,14 +982,42 @@ async function listConversations(req, res) {
   })) });
 }
 
+async function enrichConversation(sb, conversation) {
+  if (!conversation) return null;
+  const ids = [conversation.client_id, conversation.photographer_id].filter(Boolean);
+  const { data: people } = ids.length
+    ? await sb.from('profiles').select('id, display_name, avatar_url').in('id', ids)
+    : { data: [] };
+  const peopleById = Object.fromEntries((people || []).map((person) => [person.id, person]));
+  return {
+    ...conversation,
+    client_name: peopleById[conversation.client_id]?.display_name || 'Client',
+    client_avatar: peopleById[conversation.client_id]?.avatar_url || null,
+    photographer_name: peopleById[conversation.photographer_id]?.display_name || 'Photographer',
+    photographer_avatar: peopleById[conversation.photographer_id]?.avatar_url || null
+  };
+}
+
 async function createConversation(req, res) {
   const { profile } = await requireUser(req);
   if (profile.role !== 'client') throw fail(403, 'Only clients can start conversations with photographers');
   const body = await readJson(req);
-  const photographerId = cleanString(body.photographerId);
+  const sb = supabaseService();
+  let photographerId = cleanString(body.photographerId);
+  const photographerLink = cleanString(body.photographerLink || body.customLink);
+  if (!photographerId && photographerLink) {
+    const { data: byLink, error: linkError } = await sb
+      .from('photographer_directory')
+      .select('id')
+      .eq('custom_link', photographerLink)
+      .eq('is_published', true)
+      .eq('is_suspended', false)
+      .maybeSingle();
+    if (linkError) throw fail(422, linkError.message);
+    photographerId = byLink?.id || '';
+  }
   if (!photographerId) throw fail(422, 'Could not identify the photographer to message');
   assertUuid(photographerId, 'photographerId');
-  const sb = supabaseService();
   const { data: photographer, error: photographerError } = await sb
     .from('photographer_directory')
     .select('id')
@@ -896,20 +1036,37 @@ async function createConversation(req, res) {
     .select('*')
     .single();
   if (error) throw fail(422, error.message);
-  const { data: people } = await sb
-    .from('profiles')
-    .select('id, display_name, avatar_url')
-    .in('id', [data.client_id, data.photographer_id]);
-  const peopleById = Object.fromEntries((people || []).map((person) => [person.id, person]));
-  created(res, {
-    conversation: {
-      ...data,
-      client_name: peopleById[data.client_id]?.display_name || 'Client',
-      client_avatar: peopleById[data.client_id]?.avatar_url || null,
-      photographer_name: peopleById[data.photographer_id]?.display_name || 'Photographer',
-      photographer_avatar: peopleById[data.photographer_id]?.avatar_url || null
-    }
-  });
+  created(res, { conversation: await enrichConversation(sb, data) });
+}
+
+async function createConversationFromBooking(req, res) {
+  const { profile } = await requireUser(req);
+  requireRole(profile, 'photographer');
+  const body = await readJson(req);
+  const bookingId = cleanString(body.bookingId);
+  if (!bookingId) throw fail(422, 'Missing bookingId');
+  assertUuid(bookingId, 'bookingId');
+  const sb = supabaseService();
+  const { data: booking, error: bookingError } = await sb
+    .from('bookings')
+    .select('id, client_id, photographer_id')
+    .eq('id', bookingId)
+    .eq('photographer_id', profile.id)
+    .maybeSingle();
+  if (bookingError) throw fail(422, bookingError.message);
+  if (!booking) throw fail(404, 'Booking not found');
+  if (!booking.client_id) throw fail(422, 'This booking is not linked to a client account');
+
+  const { data, error } = await sb
+    .from('conversations')
+    .upsert(
+      { client_id: booking.client_id, photographer_id: profile.id },
+      { onConflict: 'client_id,photographer_id' }
+    )
+    .select('*')
+    .single();
+  if (error) throw fail(422, error.message);
+  created(res, { conversation: await enrichConversation(sb, data) });
 }
 
 async function updateConversationState(req, res, conversationId, action) {
@@ -1554,6 +1711,7 @@ if (req.method === 'POST' && first === 'auth' && second === 'register') return r
   if (req.method === 'PUT' && first === 'availability' && second === 'working-hours') return setWorkingHours(req, res);
   if (req.method === 'POST' && first === 'availability' && second === 'blocks') return createAvailabilityBlock(req, res);
   if (req.method === 'DELETE' && first === 'availability' && second === 'blocks' && third) return deleteAvailabilityBlock(req, res, third);
+  if (req.method === 'POST' && first === 'bookings' && second === 'manual') return createManualBooking(req, res);
   if (req.method === 'POST' && first === 'bookings') return createBooking(req, res);
   if (req.method === 'GET' && first === 'bookings') return listBookings(req, res);
   if (req.method === 'PATCH' && first === 'bookings' && second && third === 'cancel') return cancelBooking(req, res, second);
@@ -1561,6 +1719,7 @@ if (req.method === 'POST' && first === 'auth' && second === 'register') return r
   if (req.method === 'PATCH' && first === 'bookings' && second && third === 'complete') return completeBooking(req, res, second);
 
   if (req.method === 'GET' && first === 'conversations') return listConversations(req, res);
+  if (req.method === 'POST' && first === 'conversations' && second === 'from-booking') return createConversationFromBooking(req, res);
   if (req.method === 'POST' && first === 'conversations') return createConversation(req, res);
   if (req.method === 'PATCH' && first === 'conversations' && second && third === 'block') return updateConversationState(req, res, second, 'block');
   if (req.method === 'PATCH' && first === 'conversations' && second && third === 'archive') return updateConversationState(req, res, second, 'archive');

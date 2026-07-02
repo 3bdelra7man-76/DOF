@@ -209,14 +209,16 @@ function normalizePackage(pkg){
 }
 function normalizeBooking(b){
   var pkg=b.packages||{};
-  var durationMinutes=Number(pkg.duration_minutes||60);
+  var durationMinutes=Number(pkg.duration_minutes||b.manual_duration_minutes||60);
   if(!isFinite(durationMinutes)||durationMinutes<=0)durationMinutes=60;
+  var manualService=b.manual_service_name||b.manualServiceName||'';
   return {
     id:b.id,clientId:b.client_id||null,clientName:b.client_name||'',clientEmail:b.client_email||'',clientPhone:b.client_phone||'',
     date:b.booking_date,time:(b.start_time||'').slice(0,5),endTime:(b.end_time||'').slice(0,5),
-    serviceId:b.package_id,service:pkg.name||b.service||'',servicePrice:Math.round(Number(b.price_cents||0)/100),
+    serviceId:b.package_id,service:pkg.name||manualService||b.service||'',servicePrice:Math.round(Number(b.price_cents||0)/100),
     serviceDuration:formatDurationHours(durationMinutes,S.lang),status:b.status||'pending',
-    photographerName:b.photographer_name||b.photographerName||'',photographerAvatar:b.photographer_avatar||b.photographerAvatar||''
+    photographerName:b.photographer_name||b.photographerName||'',photographerAvatar:b.photographer_avatar||b.photographerAvatar||'',
+    notes:b.notes||'',createdByPhotographer:b.created_by_photographer===true
   };
 }
 function normalizeConversation(c){
@@ -265,7 +267,7 @@ async function refreshMyBookings(){
   var data=await apiRequest('/api/bookings');
   S.bookings=(data.bookings||[]).map(normalizeBooking);
   S.appointments=S.bookings.filter(function(b){return b.status==='confirmed';}).map(function(b){
-    return {id:b.id,date:b.date,time:b.time,client:b.clientName,service:b.service,status:b.status,notes:''};
+    return {id:b.id,date:b.date,time:b.time,client:b.clientName,service:b.service,status:b.status,notes:b.notes||''};
   });
 }
 async function refreshMyPortfolio(){
@@ -1570,20 +1572,93 @@ async function saveWorkingHours(){
 function changeMonth(dir){S.calMonth+=dir;if(S.calMonth>11){S.calMonth=0;S.calYear++;}if(S.calMonth<0){S.calMonth=11;S.calYear--;}S.selectedDate=null;renderTab();}
 function selectCalDate(ds){S.selectedDate=ds;renderTab();}
 function openAptModal(){
-  document.getElementById('apt-time').innerHTML=timeSlots().map(function(s){return'<option value="'+s+'">'+s+'</option>';}).join('');
-  document.getElementById('apt-service').innerHTML=S.packages.map(function(p){return'<option value="'+gf(p,'name')+'">'+gf(p,'name')+'</option>';}).join('');
   var today = todayLocalISO();
-  document.getElementById('apt-date').min = today;
-  document.getElementById('apt-date').value = S.selectedDate || today;
+  var form=document.querySelector('#apt-modal form');
+  if(form)form.reset();
+  var date=document.getElementById('apt-date');
+  if(date){date.min=today;date.value=S.selectedDate || today;}
+  var start=document.getElementById('apt-start');
+  var end=document.getElementById('apt-end');
+  if(start&&!start.value)start.value='10:00';
+  if(end&&!end.value)end.value='11:00';
+  populateAptClientOptions();
+  if(apiToken()&&S.user&&S.user.role==='photographer'){
+    refreshConversations().then(populateAptClientOptions).catch(function(){});
+  }
   openModal('apt-modal');
 }
-function handleAddApt(e){
+function aptKnownClients(){
+  var byId={};
+  (S.bookings||[]).forEach(function(b){
+    if(!b.clientId)return;
+    byId[b.clientId]={id:b.clientId,name:b.clientName||'Client',email:b.clientEmail||'',phone:b.clientPhone||''};
+  });
+  (S.conversations||[]).forEach(function(c){
+    if(!c.clientId)return;
+    if(!byId[c.clientId])byId[c.clientId]={id:c.clientId,name:c.clientName||'Client',email:'',phone:''};
+    else if(!byId[c.clientId].name)byId[c.clientId].name=c.clientName||'Client';
+  });
+  return Object.keys(byId).map(function(id){return byId[id];}).sort(function(a,b){return a.name.localeCompare(b.name);});
+}
+function populateAptClientOptions(){
+  var select=document.getElementById('apt-client-account');
+  if(!select)return;
+  var current=select.value;
+  var label=S.lang==='ar'?'بدون ربط - بيانات تواصل فقط':'No linked client - contact only';
+  var options='<option value="">'+label+'</option>'+aptKnownClients().map(function(c){
+    return'<option value="'+c.id+'" data-name="'+escapeHtml(c.name||'')+'" data-email="'+escapeHtml(c.email||'')+'" data-phone="'+escapeHtml(c.phone||'')+'">'+escapeHtml(c.name||'Client')+'</option>';
+  }).join('');
+  select.innerHTML=options;
+  if(current)select.value=current;
+}
+function fillAptClientFromSelect(){
+  var select=document.getElementById('apt-client-account');
+  if(!select||!select.value)return;
+  var opt=select.options[select.selectedIndex];
+  var name=document.getElementById('apt-client');
+  var email=document.getElementById('apt-email');
+  var phone=document.getElementById('apt-phone');
+  if(name&&opt.dataset.name)name.value=opt.dataset.name;
+  if(email&&opt.dataset.email)email.value=opt.dataset.email;
+  if(phone&&opt.dataset.phone)phone.value=opt.dataset.phone;
+}
+async function handleAddApt(e){
   e.preventDefault();
-  S.appointments.push({id:++S.nextId,date:document.getElementById('apt-date').value,
-    time:document.getElementById('apt-time').value,client:document.getElementById('apt-client').value,
-    service:document.getElementById('apt-service').value,notes:document.getElementById('apt-notes').value,status:'confirmed'});
-  S.selectedDate=document.getElementById('apt-date').value;
-  closeModal('apt-modal');renderTab();showToast('تم إضافة الموعد','success');
+  if(!apiToken()||!S.user||S.user.role!=='photographer'){showToast(S.lang==='ar'?'سجل الدخول كمصور أولاً':'Sign in as a photographer first','error');return;}
+  var start=document.getElementById('apt-start').value;
+  var end=document.getElementById('apt-end').value;
+  if(!start||!end||start>=end){showToast(S.lang==='ar'?'وقت النهاية يجب أن يكون بعد وقت البداية':'End time must be after start time','error');return;}
+  var btn=e.target.querySelector('button[type="submit"]');
+  if(btn){btn.disabled=true;btn.classList.add('opacity-60');}
+  try{
+    var selectedClient=document.getElementById('apt-client-account');
+    var res=await apiRequest('/api/bookings/manual',{method:'POST',body:{
+      clientId:selectedClient&&selectedClient.value?selectedClient.value:null,
+      clientName:document.getElementById('apt-client').value,
+      clientEmail:document.getElementById('apt-email').value,
+      clientPhone:document.getElementById('apt-phone').value,
+      date:document.getElementById('apt-date').value,
+      startTime:start,
+      endTime:end,
+      serviceName:document.getElementById('apt-service').value,
+      price:document.getElementById('apt-price').value,
+      notes:document.getElementById('apt-notes').value
+    }});
+    var booking=normalizeBooking(res.booking);
+    S.bookings=S.bookings.filter(function(b){return String(b.id)!==String(booking.id);});
+    S.bookings.push(booking);
+    S.appointments=S.appointments.filter(function(a){return String(a.id)!==String(booking.id);});
+    S.appointments.push({id:booking.id,date:booking.date,time:booking.time,client:booking.clientName,service:booking.service,status:'confirmed',notes:booking.notes||''});
+    if(res.conversationId){await refreshConversations().catch(function(){});}
+    S.selectedDate=booking.date;
+    closeModal('apt-modal');
+    renderTab();
+    showToast(S.lang==='ar'?'تم إضافة الحجز':'Booking added','success');
+  }catch(err){
+    showToast(err.message||'تعذر إضافة الحجز','error');
+  }finally{
+    if(btn){btn.disabled=false;btn.classList.remove('opacity-60');}
+  }
 }
 
 /* ===== DASHBOARD: BOOKINGS ===== */
@@ -1599,11 +1674,27 @@ function renderBookings(){
     var today=new Date();today.setHours(0,0,0,0);
     var isPast=b.date&&new Date(b.date+'T00:00:00')<today;
     var completeBtn=(b.status==='confirmed'&&isPast)?'<button onclick="updateBookingSt(\''+b.id+'\',\'completed\')" class="btn-primary"><i class="fas fa-check ml-1"></i>تم الإنجاز</button>':'';
+    var msgBtn=b.clientId?'<button onclick="openBookingConversation(\''+b.id+'\')" class="btn-secondary"><i class="fas fa-comment-dots ml-1"></i>'+(S.lang==='ar'?'رسالة':'Message')+'</button>':'';
+    var actions=b.status==='pending'
+      ?'<button onclick="updateBookingSt(\''+b.id+'\',\'confirmed\')" class="btn-success">'+t('confirmBooking')+'</button><button onclick="updateBookingSt(\''+b.id+'\',\'cancelled\')" class="btn-danger">'+t('cancelBooking')+'</button>'+msgBtn
+      :completeBtn+msgBtn;
     return'<div class="card p-5"><div class="flex justify-between items-start gap-3"><div class="flex items-center gap-3"><img src="'+(b.photographerAvatar||S.user.avatar||'https://picsum.photos/seed/booking/120/120')+'" class="w-12 h-12 rounded-xl object-cover border border-[var(--border)]" alt=""><div><div class="font-semibold">'+b.clientName+'</div><div class="text-sm text-[var(--text2)]">'+b.service+' — '+fmtD(b.date)+'</div><div class="text-xs text-[var(--accent)] mt-1">'+formatMoney(b.servicePrice)+'</div></div></div>'+statusBadge(b.status)+'</div>'+
-    (b.status==='pending'?'<div class="flex gap-2 mt-4"><button onclick="updateBookingSt(\''+b.id+'\',\'confirmed\')" class="btn-success">'+t('confirmBooking')+'</button><button onclick="updateBookingSt(\''+b.id+'\',\'cancelled\')" class="btn-danger">'+t('cancelBooking')+'</button></div>':(completeBtn?'<div class="flex gap-2 mt-4">'+completeBtn+'</div>':''))+'</div>';
+    (actions?'<div class="flex flex-wrap gap-2 mt-4">'+actions+'</div>':'')+'</div>';
   }).join('')+'</div>');
 }
 function filterBookings(f){S.bookingFilter=f;renderTab();}
+async function openBookingConversation(bookingId){
+  try{
+    var data=await apiRequest('/api/conversations/from-booking',{method:'POST',body:{bookingId:bookingId}});
+    var conv=normalizeConversation(data.conversation);
+    var idx=S.conversations.findIndex(function(c){return String(c.id)===String(conv.id);});
+    if(idx>-1)S.conversations[idx]=conv;else S.conversations.push(conv);
+    if(S.view==='dashboard'){openChatModal(conv.id);}
+    else{openChatConversation(conv.id);}
+  }catch(err){
+    showToast(err.message||'تعذر فتح المحادثة','error');
+  }
+}
 async function updateBookingSt(id,status){
   var b=S.bookings.find(function(x){return String(x.id)===String(id);});
   if(!b)return;
@@ -2305,7 +2396,7 @@ function renderPublicProfile(){
     ?'<button type="button" class="pub-avatar-btn" onclick="openPubAvatarPreview()" aria-label="Open profile image"><img src="'+u.avatar+'" class="pub-avatar w-32 h-32 rounded-2xl object-cover border-4 border-[var(--bg)] shadow-xl" alt=""></button>'
     :'<div class="pub-avatar w-32 h-32 rounded-2xl border-4 border-[var(--bg)] shadow-xl bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-4xl" style="color:var(--border)"></i></div>';
   var profileActions=!(S.user&&S.user.role==='photographer')
-    ?'<div class="profile-actions ml-auto flex items-center gap-2 mb-2"><button class="btn-secondary btn-sm" style="border-radius:10px;" onclick="event.stopPropagation();startChatWithPhotographer(\''+jsString(u.id)+'\',\''+jsString(u.customLink||u.custom_link||'')+'\')"><i class="fas fa-comment-dots mr-1"></i>'+(S.lang==='ar'?'رسالة':'Message')+'</button></div>'
+    ?'<div class="profile-actions ml-auto flex items-center gap-2 mb-2"><button class="btn-secondary btn-sm" style="border-radius:10px;" data-photographer-id="'+escapeHtml(u.id||'')+'" data-photographer-link="'+escapeHtml(u.customLink||u.custom_link||'')+'" onclick="event.stopPropagation();startChatWithCurrentPhotographer(this)"><i class="fas fa-comment-dots mr-1"></i>'+(S.lang==='ar'?'رسالة':'Message')+'</button></div>'
     :'';
   var publicCoverPosition=normalizeCoverPosition(u.coverPosition);
   var html='<div class="pt-14">'+reviewBanner+'<div class="pub-cover" style="background-image:url(\''+u.cover+'\');background-position:'+publicCoverPosition+';"></div>'+
@@ -2840,9 +2931,20 @@ function getConversationPeer(conv){
     avatar:conv.photographerAvatar||'https://picsum.photos/seed/conv/80/80'
   };
 }
+function syncChatPanelMode(){
+  var panel=document.getElementById('chat-panel');
+  if(!panel)return;
+  var isClient=S.user&&S.user.role==='client';
+  panel.classList.toggle('client-chat-panel',!!isClient);
+}
+function useClientWideChat(){
+  var panel=document.getElementById('chat-panel');
+  return !!(panel&&panel.classList.contains('client-chat-panel')&&window.innerWidth>=760);
+}
 function toggleChatPanel(){
   var panel=document.getElementById('chat-panel');
   var fab=document.getElementById('chat-fab');
+  syncChatPanelMode();
   if(panel.classList.contains('open')){
     panel.classList.remove('open');
     fab.style.display='';
@@ -2859,6 +2961,8 @@ function closeChatPanel(){
 function showChatConvList(){
   var convView=document.getElementById('chat-conv-view');
   var convList=document.getElementById('chat-conv-list');
+  var panel=document.getElementById('chat-panel');
+  if(panel)panel.classList.remove('chat-has-thread');
   if(convView){convView.style.display='none';convView.classList.add('hidden');}
   if(convList){convList.style.display='';convList.classList.remove('hidden');}
   S.chatActiveConv=null;
@@ -2869,7 +2973,11 @@ async function renderChatConvList(){
   var convView=document.getElementById('chat-conv-view');
   if(!container)return;
   if(apiToken()){await refreshConversations().catch(function(){});}
-  if(convView){convView.style.display='none';convView.classList.add('hidden');}
+  syncChatPanelMode();
+  var keepThread=!!(S.chatActiveConv&&useClientWideChat());
+  var panel=document.getElementById('chat-panel');
+  if(panel)panel.classList.toggle('chat-has-thread',keepThread);
+  if(convView){convView.style.display=keepThread?'flex':'none';convView.classList.toggle('hidden',!keepThread);}
   container.style.display='';container.classList.remove('hidden');
   var convs=S.conversations||[];
   var au=authUser();
@@ -2883,6 +2991,8 @@ async function renderChatConvList(){
   var title=document.getElementById('chat-panel-title');
   if(title){title.textContent=t('chatTitle');}
   if(filtered.length===0){
+    var emptyPanel=document.getElementById('chat-panel');
+    if(emptyPanel)emptyPanel.classList.remove('chat-has-thread');
     container.innerHTML='<div class="chat-empty-state"><i class="fas fa-comment-dots"></i><div class="text-sm font-semibold">'+t('chatNoConvs')+'</div></div>';
     return;
   }
@@ -2899,6 +3009,7 @@ async function renderChatConvList(){
     (c.unread>0?'<div class="unread-badge">'+(c.unread>99?'99+':c.unread)+'</div>':'')+
     '<div class="time-sm">'+timeAgo(c.lastMessageAt)+'</div></div></div>';
   }).join('');
+  if(keepThread){openChatConversation(S.chatActiveConv);}
   updateChatBadge();
 }
 function timeAgo(iso){
@@ -2942,12 +3053,12 @@ async function renderChatMessages(){
     return;
   }
   area.innerHTML=msgs.map(function(m){
-    if(m.deleted){
-      return'<div class="chat-msg '+(m.sender==='photographer'?'photographer':'client')+'"><div class="bubble" style="opacity:0.4;font-style:italic;font-size:11px;"><i class="fas fa-trash-alt mr-1"></i>'+t('chatMsgDeleted')+'</div></div>';
-    }
     var isMine=(isClient&&m.sender==='client')||(!isClient&&m.sender==='photographer');
+    if(m.deleted){
+      return'<div class="chat-msg '+(m.sender==='photographer'?'photographer':'client')+' '+(isMine?'mine':'theirs')+'"><div class="bubble" style="opacity:0.4;font-style:italic;font-size:11px;"><i class="fas fa-trash-alt mr-1"></i>'+t('chatMsgDeleted')+'</div></div>';
+    }
     var timeStr=formatClock(m.timestamp);
-    return'<div class="chat-msg '+(m.sender==='photographer'?'photographer':'client')+'">'+
+    return'<div class="chat-msg '+(m.sender==='photographer'?'photographer':'client')+' '+(isMine?'mine':'theirs')+'">'+
     '<div class="bubble">'+
     (isMine?'<div class="chat-msg-actions"><button onclick="deleteChatMessage(\''+m.id+'\')" title="'+t('chatDeleteMsg')+'"><i class="fas fa-trash-alt"></i></button></div>':'')+
     m.content+'<div class="time">'+timeStr+'</div></div></div>';
@@ -2973,7 +3084,13 @@ function openChatConversation(convId){
   var convView=document.getElementById('chat-conv-view');
   var title=document.getElementById('chat-panel-title');
   var peer=getConversationPeer(conv);
-  if(container){container.style.display='none';container.classList.add('hidden');}
+  syncChatPanelMode();
+  var panel=document.getElementById('chat-panel');
+  if(panel)panel.classList.toggle('chat-has-thread',useClientWideChat());
+  if(container){
+    if(useClientWideChat()){container.style.display='';container.classList.remove('hidden');}
+    else{container.style.display='none';container.classList.add('hidden');}
+  }
   if(convView){convView.style.display='flex';convView.classList.remove('hidden');}
   if(title){title.textContent=t('convWith')+' '+peer.name;}
   var avatar=document.getElementById('chat-conv-avatar');
@@ -3071,9 +3188,15 @@ async function resolvePhotographerIdForChat(photographerId,photographerLink){
   saveFrontendSession();
   return String(profile.id||'').trim();
 }
-function stashPendingChatIntent(photographerId){
+function startChatWithCurrentPhotographer(btn){
+  var current=S.viewedPhotographer||{};
+  var id=btn&&btn.dataset?btn.dataset.photographerId:'';
+  var link=btn&&btn.dataset?btn.dataset.photographerLink:'';
+  startChatWithPhotographer(id||current.id||'',link||current.customLink||current.custom_link||'');
+}
+function stashPendingChatIntent(photographerId,photographerLink){
   var phFor=S.viewedPhotographer||S.user||{};
-  var intent={photographerId:photographerId||phFor.id||'',photographerLink:phFor.customLink||phFor.custom_link||'',savedAt:Date.now()};
+  var intent={photographerId:photographerId||phFor.id||'',photographerLink:photographerLink||phFor.customLink||phFor.custom_link||'',savedAt:Date.now()};
   try{sessionStorage.setItem('dof_pending_chat_intent',JSON.stringify(intent));}catch(e){}
 }
 function restorePendingChatIntent(){
@@ -3083,13 +3206,13 @@ function restorePendingChatIntent(){
   var intent;try{intent=JSON.parse(raw);}catch(e){return false;}
   try{sessionStorage.removeItem('dof_pending_chat_intent');}catch(e){}
   if(!intent||!intent.savedAt||Date.now()-intent.savedAt>30*60*1000)return false;
-  if(!intent.photographerId)return false;
+  if(!intent.photographerId&&!intent.photographerLink)return false;
   setTimeout(function(){startChatWithPhotographer(intent.photographerId,intent.photographerLink);},80);
   return true;
 }
 async function startChatWithPhotographer(photographerId,photographerLink){
   if(!S.user||!apiToken()){
-    stashPendingChatIntent(photographerId);
+    stashPendingChatIntent(photographerId,photographerLink);
     setAuthRole('client');
     switchAuthTab('login');
     openModal('auth-modal');
@@ -3113,6 +3236,7 @@ async function startChatWithPhotographer(photographerId,photographerLink){
   if(S.view==='public'||S.view==='landing'){
     var panel=document.getElementById('chat-panel');
     if(panel){
+      syncChatPanelMode();
       panel.classList.add('open');
     }
     var fab=document.getElementById('chat-fab');
@@ -3427,6 +3551,7 @@ async function manualRefreshBookings(){
 function setupChatFAB(){
   var fab=document.getElementById('chat-fab');
   if(!fab)return;
+  syncChatPanelMode();
   if(S.view==='public'&&S.user&&S.user.role==='client'){
     fab.classList.remove('hidden');
   } else if(S.view==='landing'&&S.user&&S.user.role==='client'){
