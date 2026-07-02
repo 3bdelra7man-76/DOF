@@ -11,6 +11,7 @@ const PORTFOLIO_BUCKET = 'portfolio';
 const PACKAGE_BUCKET = 'package-attachments';
 const MONTHLY_SUBSCRIPTION_EGP = 200;
 const ADMIN_PAGE_SIZE_MAX = 100;
+const INTERNAL_MANUAL_PACKAGE_KIND = 'manual_booking_internal';
 const DEFAULT_PUBLIC_CONTENT = {
   heroTitle1Ar: 'حيث يلتقي التصوير',
   heroTitle2Ar: 'بالفرصة',
@@ -107,6 +108,11 @@ function assertValidEmail(value) {
   const email = cleanString(value);
   if (!email) return;
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw fail(422, 'صيغة البريد الإلكتروني غير صحيحة');
+}
+
+function isInternalManualPackage(pkg) {
+  const attachments = Array.isArray(pkg?.attachments) ? pkg.attachments : [];
+  return attachments.some((item) => item && item.kind === INTERNAL_MANUAL_PACKAGE_KIND);
 }
 
 function pageParams(req, defaultPageSize = 25) {
@@ -381,7 +387,12 @@ async function getPublicPhotographer(req, res, customLink) {
     sb.from('working_hours').select('*').eq('photographer_id', photographer.id).order('day_of_week')
   ]);
 
-  ok(res, { photographer, collections: collections || [], packages: packages || [], workingHours: workingHours || [] });
+  ok(res, {
+    photographer,
+    collections: collections || [],
+    packages: (packages || []).filter((pkg) => !isInternalManualPackage(pkg)),
+    workingHours: workingHours || []
+  });
 }
 
 async function signUpload(req, res) {
@@ -488,7 +499,7 @@ async function listPackages(req, res) {
   requireRole(profile, 'photographer');
   const { data, error } = await supabaseService().from('packages').select('*').eq('photographer_id', profile.id).order('created_at', { ascending: false });
   if (error) throw fail(422, error.message);
-  ok(res, { packages: data || [] });
+  ok(res, { packages: (data || []).filter((pkg) => !isInternalManualPackage(pkg)) });
 }
 
 async function createPackage(req, res) {
@@ -763,23 +774,63 @@ async function createManualBooking(req, res) {
   const { profile } = await requireUser(req);
   requireRole(profile, 'photographer');
   const body = await readJson(req);
-  required(body, ['clientName', 'clientPhone', 'date', 'startTime', 'endTime', 'serviceName', 'price']);
+  required(body, ['clientName', 'clientPhone', 'date', 'startTime']);
   assertNotPastDate(body.date);
   assertValidEmail(body.clientEmail);
 
   const startTime = normalizeApiTime(body.startTime);
-  const endTime = normalizeApiTime(body.endTime);
-  const startMinutes = minutesFromTime(startTime);
-  const endMinutes = minutesFromTime(endTime);
-  if (startMinutes >= endMinutes) throw fail(422, 'End time must be after start time');
-
-  const priceCents = Math.max(0, Math.round(Number(body.price || 0) * 100));
-  if (!priceCents) throw fail(422, 'Price is required');
-  const durationMinutes = endMinutes - startMinutes;
   const clientId = cleanString(body.clientId) || null;
   if (clientId) assertUuid(clientId, 'clientId');
 
   const sb = supabaseService();
+  const requestedPackageId = cleanString(body.packageId);
+  let pkg = null;
+  let durationMinutes = 0;
+  let priceCents = 0;
+  let packageId = requestedPackageId || null;
+  let internalPackagePayload = null;
+
+  if (requestedPackageId) {
+    assertUuid(requestedPackageId, 'packageId');
+    const { data: packageRow, error: packageError } = await sb
+      .from('packages')
+      .select('*')
+      .eq('id', requestedPackageId)
+      .eq('photographer_id', profile.id)
+      .maybeSingle();
+    if (packageError) throw fail(422, packageError.message);
+    if (!packageRow || isInternalManualPackage(packageRow)) throw fail(404, 'Package not found');
+    pkg = packageRow;
+    durationMinutes = Number(pkg.duration_minutes || 0);
+    priceCents = Number(pkg.price_cents || 0);
+  } else {
+    required(body, ['serviceName', 'price']);
+    const endTimeForDuration = body.endTime ? normalizeApiTime(body.endTime) : '';
+    if (endTimeForDuration) {
+      durationMinutes = minutesFromTime(endTimeForDuration) - minutesFromTime(startTime);
+    } else {
+      durationMinutes = asInt(body.durationMinutes);
+    }
+    if (!durationMinutes || durationMinutes <= 0) throw fail(422, 'End time must be after start time');
+    priceCents = Math.max(0, Math.round(Number(body.price || 0) * 100));
+    if (!priceCents) throw fail(422, 'Price is required');
+    internalPackagePayload = {
+      photographer_id: profile.id,
+      name: cleanString(body.serviceName),
+      description: 'Internal custom booking package',
+      price_cents: priceCents,
+      duration_minutes: durationMinutes,
+      features: [],
+      attachments: [{ kind: INTERNAL_MANUAL_PACKAGE_KIND }],
+      status: 'draft',
+      featured: false
+    };
+  }
+
+  if (!durationMinutes || durationMinutes <= 0) throw fail(422, 'Invalid booking duration');
+  if (minutesFromTime(startTime) + durationMinutes > 24 * 60) throw fail(422, 'Booking cannot run past midnight');
+  const endTime = addMinutes(startTime, durationMinutes);
+
   if (clientId) {
     const [{ data: relatedBookings, error: bookingLinkError }, { data: relatedConversations, error: conversationLinkError }] = await Promise.all([
       sb.from('bookings').select('id').eq('photographer_id', profile.id).eq('client_id', clientId).limit(1),
@@ -802,10 +853,22 @@ async function createManualBooking(req, res) {
     throw fail(409, 'Time slot is no longer available');
   }
 
+  if (!packageId && internalPackagePayload) {
+    const { data: createdPackage, error: packageCreateError } = await sb
+      .from('packages')
+      .insert(internalPackagePayload)
+      .select('*')
+      .single();
+    if (packageCreateError) throw fail(422, packageCreateError.message);
+    pkg = createdPackage;
+    packageId = createdPackage.id;
+  }
+  if (!packageId) throw fail(422, 'Package is required');
+
   const insertRow = {
     client_id: clientId,
     photographer_id: profile.id,
-    package_id: null,
+    package_id: packageId,
     booking_date: body.date,
     start_time: startTime,
     end_time: endTime,
@@ -814,10 +877,7 @@ async function createManualBooking(req, res) {
     client_phone: cleanString(body.clientPhone),
     notes: cleanString(body.notes),
     price_cents: priceCents,
-    status: 'confirmed',
-    manual_service_name: cleanString(body.serviceName),
-    manual_duration_minutes: durationMinutes,
-    created_by_photographer: true
+    status: 'confirmed'
   };
 
   const { data: booking, error } = await sb
@@ -839,7 +899,7 @@ async function createManualBooking(req, res) {
       .single();
     conversationId = conv?.id || null;
   }
-  created(res, { booking, conversationId });
+  created(res, { booking, conversationId, package: pkg });
 }
 
 async function listBookings(req, res) {
@@ -1000,8 +1060,11 @@ async function enrichConversation(sb, conversation) {
 
 async function createConversation(req, res) {
   const { profile } = await requireUser(req);
-  if (profile.role !== 'client') throw fail(403, 'Only clients can start conversations with photographers');
   const body = await readJson(req);
+  if (profile.role === 'photographer' && body.bookingId) {
+    return createConversationFromBookingBody(profile, body, res);
+  }
+  if (profile.role !== 'client') throw fail(403, 'Only clients can start conversations with photographers');
   const sb = supabaseService();
   let photographerId = cleanString(body.photographerId);
   const photographerLink = cleanString(body.photographerLink || body.customLink);
@@ -1039,10 +1102,7 @@ async function createConversation(req, res) {
   created(res, { conversation: await enrichConversation(sb, data) });
 }
 
-async function createConversationFromBooking(req, res) {
-  const { profile } = await requireUser(req);
-  requireRole(profile, 'photographer');
-  const body = await readJson(req);
+async function createConversationFromBookingBody(profile, body, res) {
   const bookingId = cleanString(body.bookingId);
   if (!bookingId) throw fail(422, 'Missing bookingId');
   assertUuid(bookingId, 'bookingId');
@@ -1067,6 +1127,13 @@ async function createConversationFromBooking(req, res) {
     .single();
   if (error) throw fail(422, error.message);
   created(res, { conversation: await enrichConversation(sb, data) });
+}
+
+async function createConversationFromBooking(req, res) {
+  const { profile } = await requireUser(req);
+  requireRole(profile, 'photographer');
+  const body = await readJson(req);
+  return createConversationFromBookingBody(profile, body, res);
 }
 
 async function updateConversationState(req, res, conversationId, action) {

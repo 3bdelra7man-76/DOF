@@ -141,12 +141,14 @@
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="date">Date</label><input type="date" class="input" required id="apt-date"></div>
-        <div><label class="block text-sm text-[var(--text2)] mb-1">Start</label><input type="time" class="input" required id="apt-start"></div>
-        <div><label class="block text-sm text-[var(--text2)] mb-1">End</label><input type="time" class="input" required id="apt-end"></div>
+        <div><label class="block text-sm text-[var(--text2)] mb-1">Start</label><input type="time" class="input" required id="apt-start" onchange="fillAptPackageDetails()"></div>
+        <div><label class="block text-sm text-[var(--text2)] mb-1">End</label><input type="time" class="input" id="apt-end"></div>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="service">Service</label><input type="text" class="input" required id="apt-service" placeholder="Custom session"></div>
-        <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="packagePrice">Price</label><input type="number" min="1" step="1" class="input" required id="apt-price"></div>
+      <div><label class="block text-sm text-[var(--text2)] mb-1">Booking Type</label><select class="input" id="apt-service-mode" onchange="toggleAptServiceMode()"><option value="package">Package</option><option value="custom">Custom</option></select></div>
+      <div id="apt-package-wrap"><label class="block text-sm text-[var(--text2)] mb-1" data-t="selectService">Select Service</label><select class="input" id="apt-package" onchange="fillAptPackageDetails()"></select><div id="apt-package-summary" class="text-xs text-[var(--text2)] mt-2"></div></div>
+      <div id="apt-custom-wrap" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="service">Service</label><input type="text" class="input" id="apt-service" placeholder="Custom session"></div>
+        <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="packagePrice">Price</label><input type="number" min="1" step="1" class="input" id="apt-price"></div>
       </div>
       <div><label class="block text-sm text-[var(--text2)] mb-1" data-t="notes">Notes</label><textarea class="input" id="apt-notes"></textarea></div>
       <div class="flex gap-3 pt-2">

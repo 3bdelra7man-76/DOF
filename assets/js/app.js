@@ -468,6 +468,7 @@ function debounce(fn,wait){
 var debouncedExploreSearch=debounce(function(val){updateExploreFilter('search',val);},180);
 function starsHTML(r){if(!r)return'';var full=Math.floor(r),half=r%1>=0.5?1:0,empty=5-full-half;var s='';for(var i=0;i<full;i++)s+='<i class="fas fa-star"></i>';if(half)s+='<i class="fas fa-star-half-alt"></i>';for(var i=0;i<empty;i++)s+='<i class="fas fa-star empty"></i>';return s;}
 function validateEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
+function isUuidLike(value){return/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''));}
 function formatMoney(v,currency){
   var amount=Number(v||0);
   if(S.lang==='ar'){
@@ -1571,6 +1572,55 @@ async function saveWorkingHours(){
 }
 function changeMonth(dir){S.calMonth+=dir;if(S.calMonth>11){S.calMonth=0;S.calYear++;}if(S.calMonth<0){S.calMonth=11;S.calYear--;}S.selectedDate=null;renderTab();}
 function selectCalDate(ds){S.selectedDate=ds;renderTab();}
+function addMinutesToTimeInput(time,minutes){
+  var parts=String(time||'').split(':');
+  if(parts.length<2)return'';
+  var total=(parseInt(parts[0],10)||0)*60+(parseInt(parts[1],10)||0)+Number(minutes||0);
+  total=Math.max(0,Math.min(23*60+59,total));
+  return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0');
+}
+function getAptSelectedPackage(){
+  var select=document.getElementById('apt-package');
+  if(!select||!select.value)return null;
+  return (S.packages||[]).find(function(p){return String(p.id)===String(select.value);})||null;
+}
+function populateAptPackageOptions(){
+  var select=document.getElementById('apt-package');
+  if(!select)return;
+  var packages=(S.packages||[]).slice().sort(function(a,b){return String(gf(a,'name')||'').localeCompare(String(gf(b,'name')||''));});
+  select.innerHTML=packages.length
+    ? packages.map(function(p){return'<option value="'+p.id+'">'+escapeHtml(gf(p,'name')||'')+' — '+formatMoney(p.price)+'</option>';}).join('')
+    : '<option value="">'+(S.lang==='ar'?'لا توجد باقات':'No packages yet')+'</option>';
+}
+function fillAptPackageDetails(){
+  var mode=(document.getElementById('apt-service-mode')||{}).value||'package';
+  if(mode!=='package')return;
+  var pkg=getAptSelectedPackage();
+  var end=document.getElementById('apt-end');
+  var start=document.getElementById('apt-start');
+  var summary=document.getElementById('apt-package-summary');
+  if(!pkg){
+    if(summary)summary.textContent=S.lang==='ar'?'أنشئ باقة أو اختر حجز مخصص':'Create a package or switch to custom booking';
+    return;
+  }
+  if(start&&end&&start.value)end.value=addMinutesToTimeInput(start.value,pkg.durationMinutes||60);
+  if(summary)summary.textContent=(S.lang==='ar'?'السعر: ':'Price: ')+formatMoney(pkg.price)+' • '+(S.lang==='ar'?'المدة: ':'Duration: ')+gf(pkg,'duration');
+}
+function toggleAptServiceMode(){
+  var mode=(document.getElementById('apt-service-mode')||{}).value||'package';
+  var packageWrap=document.getElementById('apt-package-wrap');
+  var customWrap=document.getElementById('apt-custom-wrap');
+  var service=document.getElementById('apt-service');
+  var price=document.getElementById('apt-price');
+  var end=document.getElementById('apt-end');
+  var usePackage=mode==='package';
+  if(packageWrap)packageWrap.classList.toggle('hidden',!usePackage);
+  if(customWrap)customWrap.classList.toggle('hidden',usePackage);
+  if(service){service.required=!usePackage;service.disabled=usePackage;}
+  if(price){price.required=!usePackage;price.disabled=usePackage;}
+  if(end){end.required=!usePackage;end.readOnly=usePackage;}
+  if(usePackage)fillAptPackageDetails();
+}
 function openAptModal(){
   var today = todayLocalISO();
   var form=document.querySelector('#apt-modal form');
@@ -1581,6 +1631,10 @@ function openAptModal(){
   var end=document.getElementById('apt-end');
   if(start&&!start.value)start.value='10:00';
   if(end&&!end.value)end.value='11:00';
+  populateAptPackageOptions();
+  var mode=document.getElementById('apt-service-mode');
+  if(mode)mode.value=(S.packages||[]).length?'package':'custom';
+  toggleAptServiceMode();
   populateAptClientOptions();
   if(apiToken()&&S.user&&S.user.role==='photographer'){
     refreshConversations().then(populateAptClientOptions).catch(function(){});
@@ -1627,23 +1681,34 @@ async function handleAddApt(e){
   if(!apiToken()||!S.user||S.user.role!=='photographer'){showToast(S.lang==='ar'?'سجل الدخول كمصور أولاً':'Sign in as a photographer first','error');return;}
   var start=document.getElementById('apt-start').value;
   var end=document.getElementById('apt-end').value;
-  if(!start||!end||start>=end){showToast(S.lang==='ar'?'وقت النهاية يجب أن يكون بعد وقت البداية':'End time must be after start time','error');return;}
+  var mode=(document.getElementById('apt-service-mode')||{}).value||'package';
+  var packageId=(document.getElementById('apt-package')||{}).value||'';
+  if(!start){showToast(S.lang==='ar'?'اختر وقت البداية':'Select a start time','error');return;}
+  if(mode==='package'&&!packageId){showToast(S.lang==='ar'?'اختر باقة أو استخدم الحجز المخصص':'Choose a package or switch to custom','error');return;}
+  if(mode==='custom'&&(!end||start>=end)){showToast(S.lang==='ar'?'وقت النهاية يجب أن يكون بعد وقت البداية':'End time must be after start time','error');return;}
+  if(mode==='custom'&&!document.getElementById('apt-service').value.trim()){showToast(S.lang==='ar'?'اكتب اسم الخدمة':'Enter a service name','error');return;}
+  if(mode==='custom'&&!document.getElementById('apt-price').value){showToast(S.lang==='ar'?'اكتب السعر':'Enter a price','error');return;}
   var btn=e.target.querySelector('button[type="submit"]');
   if(btn){btn.disabled=true;btn.classList.add('opacity-60');}
   try{
     var selectedClient=document.getElementById('apt-client-account');
-    var res=await apiRequest('/api/bookings/manual',{method:'POST',body:{
+    var payload={
       clientId:selectedClient&&selectedClient.value?selectedClient.value:null,
       clientName:document.getElementById('apt-client').value,
       clientEmail:document.getElementById('apt-email').value,
       clientPhone:document.getElementById('apt-phone').value,
       date:document.getElementById('apt-date').value,
       startTime:start,
-      endTime:end,
-      serviceName:document.getElementById('apt-service').value,
-      price:document.getElementById('apt-price').value,
       notes:document.getElementById('apt-notes').value
-    }});
+    };
+    if(mode==='package'){
+      payload.packageId=packageId;
+    }else{
+      payload.endTime=end;
+      payload.serviceName=document.getElementById('apt-service').value;
+      payload.price=document.getElementById('apt-price').value;
+    }
+    var res=await apiRequest('/api/bookings/manual',{method:'POST',body:payload});
     var booking=normalizeBooking(res.booking);
     S.bookings=S.bookings.filter(function(b){return String(b.id)!==String(booking.id);});
     S.bookings.push(booking);
@@ -1685,7 +1750,12 @@ function renderBookings(){
 function filterBookings(f){S.bookingFilter=f;renderTab();}
 async function openBookingConversation(bookingId){
   try{
-    var data=await apiRequest('/api/conversations/from-booking',{method:'POST',body:{bookingId:bookingId}});
+    var data;
+    try{
+      data=await apiRequest('/api/conversations/from-booking',{method:'POST',body:{bookingId:bookingId}});
+    }catch(routeErr){
+      data=await apiRequest('/api/conversations',{method:'POST',body:{bookingId:bookingId}});
+    }
     var conv=normalizeConversation(data.conversation);
     var idx=S.conversations.findIndex(function(c){return String(c.id)===String(conv.id);});
     if(idx>-1)S.conversations[idx]=conv;else S.conversations.push(conv);
@@ -2395,7 +2465,7 @@ function renderPublicProfile(){
   var avatarEl=u.avatar
     ?'<button type="button" class="pub-avatar-btn" onclick="openPubAvatarPreview()" aria-label="Open profile image"><img src="'+u.avatar+'" class="pub-avatar w-32 h-32 rounded-2xl object-cover border-4 border-[var(--bg)] shadow-xl" alt=""></button>'
     :'<div class="pub-avatar w-32 h-32 rounded-2xl border-4 border-[var(--bg)] shadow-xl bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-4xl" style="color:var(--border)"></i></div>';
-  var profileActions=!(S.user&&S.user.role==='photographer')
+  var profileActions=(isViewing||u.role==='photographer')&&!(S.user&&S.user.role==='photographer')
     ?'<div class="profile-actions ml-auto flex items-center gap-2 mb-2"><button class="btn-secondary btn-sm" style="border-radius:10px;" data-photographer-id="'+escapeHtml(u.id||'')+'" data-photographer-link="'+escapeHtml(u.customLink||u.custom_link||'')+'" onclick="event.stopPropagation();startChatWithCurrentPhotographer(this)"><i class="fas fa-comment-dots mr-1"></i>'+(S.lang==='ar'?'رسالة':'Message')+'</button></div>'
     :'';
   var publicCoverPosition=normalizeCoverPosition(u.coverPosition);
@@ -3142,11 +3212,15 @@ async function sendChatMessage(){
   renderChatMessages();
   updateChatConvListPreview();
 }
-async function findOrCreateConversation(photographerId){
-  photographerId=await resolvePhotographerIdForChat(photographerId);
-  if(!photographerId)return null;
+async function findOrCreateConversation(photographerId,photographerLink){
+  photographerId=await resolvePhotographerIdForChat(photographerId,photographerLink);
+  var link=String(photographerLink||(S.viewedPhotographer&&S.viewedPhotographer.customLink)||'').trim();
+  if(!photographerId&&!link)return null;
   if(apiToken()){
-    var data=await apiRequest('/api/conversations',{method:'POST',body:{photographerId:photographerId}});
+    var body={};
+    if(photographerId)body.photographerId=photographerId;
+    if(link)body.photographerLink=link;
+    var data=await apiRequest('/api/conversations',{method:'POST',body:body});
     var conv=normalizeConversation(data.conversation);
     var existingIndex=S.conversations.findIndex(function(c){return c.id===conv.id;});
     if(existingIndex>-1)S.conversations[existingIndex]=conv;else S.conversations.push(conv);
@@ -3166,11 +3240,15 @@ async function findOrCreateConversation(photographerId){
 }
 async function resolvePhotographerIdForChat(photographerId,photographerLink){
   var id=String(photographerId||'').trim();
-  if(id)return id;
   var current=S.viewedPhotographer||{};
-  id=String(current.id||'').trim();
-  if(id)return id;
   var link=String(photographerLink||current.customLink||current.custom_link||'').trim();
+  if(S.user&&S.user.role==='client'&&id&&String(id)===String(S.user.id))id='';
+  if(id&&(!apiToken()||isUuidLike(id)))return id;
+  if(id&&apiToken()&&!isUuidLike(id)&&!link)return'';
+  id=String(current.id||'').trim();
+  if(S.user&&S.user.role==='client'&&id&&String(id)===String(S.user.id))id='';
+  if(id&&(!apiToken()||isUuidLike(id)))return id;
+  if(id&&apiToken()&&!isUuidLike(id)&&!link)return'';
   if(!link)return'';
   var data=await apiRequest('/api/photographers/'+encodeURIComponent(link));
   if(!data||!data.photographer)return'';
@@ -3188,11 +3266,28 @@ async function resolvePhotographerIdForChat(photographerId,photographerLink){
   saveFrontendSession();
   return String(profile.id||'').trim();
 }
-function startChatWithCurrentPhotographer(btn){
+async function ensurePublicProfileChatTarget(btn){
   var current=S.viewedPhotographer||{};
   var id=btn&&btn.dataset?btn.dataset.photographerId:'';
   var link=btn&&btn.dataset?btn.dataset.photographerLink:'';
-  startChatWithPhotographer(id||current.id||'',link||current.customLink||current.custom_link||'');
+  id=id||current.id||'';
+  link=link||current.customLink||current.custom_link||'';
+  if(S.user&&S.user.role==='client'&&String(id)===String(S.user.id))id='';
+  if(id||link)return{id:id,link:link};
+  try{
+    var params=new URLSearchParams(window.location.search);
+    link=params.get('photographer')||params.get('profile')||params.get('link')||'';
+  }catch(e){}
+  if(link)return{id:'',link:link};
+  return{id:'',link:''};
+}
+async function startChatWithCurrentPhotographer(btn){
+  var target=await ensurePublicProfileChatTarget(btn);
+  if(!target.id&&!target.link){
+    showToast(S.lang==='ar'?'تعذر تحديد المصور لبدء المحادثة':'Could not identify the photographer to message','error');
+    return;
+  }
+  startChatWithPhotographer(target.id,target.link);
 }
 function stashPendingChatIntent(photographerId,photographerLink){
   var phFor=S.viewedPhotographer||S.user||{};
@@ -3231,7 +3326,7 @@ async function startChatWithPhotographer(photographerId,photographerLink){
     return;
   }
   var conv;
-  try{conv=await findOrCreateConversation(targetId);}catch(err){showToast(err.message||'Could not start conversation','error');return;}
+  try{conv=await findOrCreateConversation(targetId,photographerLink);}catch(err){showToast(err.message||'Could not start conversation','error');return;}
   if(!conv){showToast('تعذر فتح المحادثة','error');return;}
   if(S.view==='public'||S.view==='landing'){
     var panel=document.getElementById('chat-panel');
