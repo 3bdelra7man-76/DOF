@@ -342,7 +342,8 @@ function saveFrontendSession(){
     sessionStorage.setItem('dof_frontend_session_v1',JSON.stringify({
       user:S.user,appointments:S.appointments,bookings:S.bookings,portfolio:S.portfolio,
       portfolioPublished:S.portfolioPublished,packages:S.packages,workingHours:S.workingHours,lang:S.lang,tab:S.tab,
-      viewedPhotographer:S.viewedPhotographer,viewedPortfolio:S.viewedPortfolio,viewedPackages:S.viewedPackages,viewedCollections:S.viewedCollections
+      viewedPhotographer:S.viewedPhotographer,viewedPortfolio:S.viewedPortfolio,viewedPackages:S.viewedPackages,
+      viewedCollections:S.viewedCollections,viewedWorkingHours:S.viewedWorkingHours
     }));
   }catch(e){}
 }
@@ -364,6 +365,7 @@ function restoreFrontendSession(){
     if(data.viewedPortfolio)S.viewedPortfolio=data.viewedPortfolio;
     if(data.viewedPackages)S.viewedPackages=data.viewedPackages;
     if(data.viewedCollections)S.viewedCollections=data.viewedCollections;
+    if(Object.prototype.hasOwnProperty.call(data,'viewedWorkingHours'))S.viewedWorkingHours=data.viewedWorkingHours;
   }catch(e){}
 }
 function hashPII(value){
@@ -654,7 +656,7 @@ function handleLogout(){
   /* Full state reset so the next user can't see stale data */
   S.user=null;S.portfolio=[];S.portfolioPublished=[];S.portfolioDirty=false;S.isPortfolioPreview=false;
   S.collections=[];S.openCollectionId=null;S.packages=[];S.bookings=[];S.appointments=[];
-  S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;S.viewedCollections=[];
+  S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;S.viewedCollections=[];S.viewedWorkingHours=[];
   S.pubViewCollection=null;S.pubLightboxIdx=null;
   S.conversations=[];S.messages={};S.chatActiveConv=null;S.workingHours=[];
   try{sessionStorage.removeItem('dof_frontend_session_v1');}catch(e){}
@@ -744,7 +746,7 @@ function updateNavBar(){
   if(btnOutPub){btnOutPub.classList.toggle('hidden',!u);if(userNamePub&&u)userNamePub.textContent=u.name||'';}
 }
 function navigate(v){
-  if(v!=='public'){S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;S.viewedCollections=[];S.pubViewCollection=null;S.pubLightboxIdx=null;S.pubAvatarPreview=false;syncPublicMediaOverlay();saveFrontendSession();}
+  if(v!=='public'){S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;S.viewedCollections=[];S.viewedWorkingHours=[];S.pubViewCollection=null;S.pubLightboxIdx=null;S.pubAvatarPreview=false;syncPublicMediaOverlay();saveFrontendSession();}
   checkSubscriptionStatus();
   if(!hasPageContainer(v)){goToPage(v);return;}
   S.view=v;
@@ -2221,11 +2223,30 @@ function openPubAvatarPreview(){
 function closePubAvatarPreview(){
   S.pubAvatarPreview=false;syncPublicMediaOverlay();renderPublicProfile();
 }
+async function recoverViewedWorkingHours(){
+  var u=S.viewedPhotographer;
+  if(!u||Array.isArray(S.viewedWorkingHours)||S.viewedWorkingHoursLoading)return;
+  var link=u.customLink||u.custom_link;
+  if(!link)return;
+  S.viewedWorkingHoursLoading=true;
+  try{
+    var data=await apiRequest('/api/photographers/'+encodeURIComponent(link));
+    if(!S.viewedPhotographer||String(S.viewedPhotographer.customLink||S.viewedPhotographer.custom_link||'')!==String(link))return;
+    S.viewedWorkingHours=data.workingHours||[];
+    saveFrontendSession();
+    if(S.view==='public')renderPublicProfile();
+  }catch(e){
+    S.viewedWorkingHours=[];
+  }finally{
+    S.viewedWorkingHoursLoading=false;
+  }
+}
 
 /* ===== PUBLIC PROFILE (with enhanced package display & booking) ===== */
 function renderPublicProfile(){
   var isViewing=!!S.viewedPhotographer;
   var u=isViewing?S.viewedPhotographer:S.user;if(!u)return'';
+  if(isViewing&&!Array.isArray(S.viewedWorkingHours))recoverViewedWorkingHours();
   var pubPackages=isViewing?S.viewedPackages:S.packages;
   var pubPortfolio=isViewing?S.viewedPortfolio:S.portfolio;
   if(!isViewing)checkSubscriptionStatus();
