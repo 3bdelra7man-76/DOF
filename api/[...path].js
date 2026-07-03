@@ -499,13 +499,21 @@ async function resetPassword(req, res) {
   }
   const { error } = await supabaseAnon().auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
   if (error) {
+    const providerMessage = cleanString(error.message) || 'Supabase rejected the reset request';
+    const providerStatus = error.status || error.statusCode || null;
+    const providerCode = error.code || null;
     console.error('[auth/reset-password] Supabase failed', {
-      message: error.message,
-      status: error.status,
-      code: error.code,
+      message: providerMessage,
+      status: providerStatus,
+      code: providerCode,
       redirectTo
     });
-    throw fail(502, 'Unable to send reset email right now');
+    throw fail(502, `Reset email failed: ${providerMessage}`, {
+      providerMessage,
+      providerStatus,
+      providerCode,
+      redirectTo
+    });
   }
   ok(res, { ok: true });
 }
