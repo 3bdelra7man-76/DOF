@@ -12,6 +12,24 @@ const PACKAGE_BUCKET = 'package-attachments';
 const MONTHLY_SUBSCRIPTION_EGP = 200;
 const ADMIN_PAGE_SIZE_MAX = 100;
 const INTERNAL_MANUAL_PACKAGE_KIND = 'manual_booking_internal';
+const MAX_PHOTOGRAPHER_CATEGORIES = 5;
+const DEFAULT_PHOTOGRAPHER_CATEGORIES = [
+  ['wedding', 'Wedding Photography', 'تصوير أعراس'],
+  ['portrait', 'Portrait Photography', 'تصوير بورتريه'],
+  ['event', 'Event Photography', 'تصوير فعاليات'],
+  ['fashion', 'Fashion Photography', 'تصوير أزياء'],
+  ['newborn', 'Newborn Photography', 'تصوير مواليد'],
+  ['product', 'Product Photography', 'تصوير منتجات'],
+  ['food', 'Food Photography', 'تصوير طعام'],
+  ['realestate', 'Real Estate Photography', 'تصوير عقارات'],
+  ['sports', 'Sports Photography', 'تصوير رياضي'],
+  ['drone', 'Drone/Aerial Photography', 'تصوير جوي'],
+  ['cinematic', 'Cinematic Video', 'تصوير سينمائي'],
+  ['maternity', 'Maternity Photography', 'تصوير حمل'],
+  ['boudoir', 'Boudoir Photography', 'تصوير بودوار'],
+  ['corporate', 'Corporate Photography', 'تصوير شركات'],
+  ['street', 'Street Photography', 'تصوير شوارع']
+];
 const DEFAULT_PUBLIC_CONTENT = {
   heroTitle1Ar: 'حيث يلتقي التصوير',
   heroTitle2Ar: 'بالفرصة',
@@ -51,8 +69,93 @@ function param(req, name) {
   return url.searchParams.get(name);
 }
 
+function headerValue(req, name) {
+  const value = req.headers?.[name.toLowerCase()] || req.headers?.[name];
+  return Array.isArray(value) ? value[0] : value;
+}
+
 function cleanString(value) {
   return String(value || '').trim();
+}
+
+function normalizeBaseUrl(value) {
+  const raw = cleanString(value).replace(/\/+$/, '');
+  if (!raw) return '';
+  try {
+    const url = new URL(raw.includes('://') ? raw : `https://${raw}`);
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return '';
+  }
+}
+
+function isLocalBaseUrl(value) {
+  try {
+    const host = new URL(value).hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host.endsWith('.local');
+  } catch {
+    return false;
+  }
+}
+
+function publicSiteBaseUrl(req) {
+  const explicit = [process.env.PUBLIC_SITE_URL, process.env.APP_BASE_URL].map(normalizeBaseUrl).filter(Boolean);
+  const nonLocalExplicit = explicit.find((url) => !isLocalBaseUrl(url));
+  if (nonLocalExplicit) return nonLocalExplicit;
+
+  const vercelUrl = normalizeBaseUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL);
+  if (vercelUrl) return vercelUrl;
+
+  const forwardedHost = cleanString(headerValue(req, 'x-forwarded-host'));
+  const forwardedProto = cleanString(headerValue(req, 'x-forwarded-proto')) || 'https';
+  const host = forwardedHost || cleanString(headerValue(req, 'host'));
+  const requestHostUrl = host ? normalizeBaseUrl(`${forwardedProto}://${host}`) : '';
+  if (requestHostUrl && !isLocalBaseUrl(requestHostUrl)) return requestHostUrl;
+
+  const originUrl = normalizeBaseUrl(headerValue(req, 'origin') || headerValue(req, 'referer'));
+  if (originUrl && !isLocalBaseUrl(originUrl)) return originUrl;
+  return explicit[0] || requestHostUrl || originUrl || '';
+}
+
+function categorySlug(value) {
+  return cleanString(value)
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+function categoryComparable(value) {
+  return cleanString(value)
+    .toLowerCase()
+    .replace(/photography/g, '')
+    .replace(/تصوير/g, '')
+    .replace(/[^a-z0-9\u0600-\u06FF]+/g, ' ')
+    .trim();
+}
+
+function defaultCategoryRows() {
+  return DEFAULT_PHOTOGRAPHER_CATEGORIES.map(([slug, nameEn, nameAr], index) => ({
+    id: slug,
+    slug,
+    name_en: nameEn,
+    name_ar: nameAr,
+    is_active: true,
+    sort_order: (index + 1) * 10,
+    fallback: true
+  }));
+}
+
+function missingCategorySchema(error) {
+  const msg = cleanString(error?.message).toLowerCase();
+  return msg.includes('photographer_categories')
+    || msg.includes('photographer_profile_categories')
+    || msg.includes('schema cache');
+}
+
+function looksLikeUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(cleanString(value));
 }
 
 function cleanPosition(value) {
@@ -208,6 +311,122 @@ async function writeAdminNotification(sb, type, title, message, metadata = {}) {
   await sb.from('admin_notifications').insert({ type, title, message, metadata });
 }
 
+function categoryValuesFromBody(body) {
+  let values = [];
+  let explicit = false;
+  if (Array.isArray(body.categorySlugs)) {
+    values = body.categorySlugs;
+    explicit = true;
+  } else if (Array.isArray(body.categories)) {
+    values = body.categories.map((item) => (item && typeof item === 'object' ? item.slug : item));
+    explicit = true;
+  } else if (Array.isArray(body.specialties)) {
+    values = body.specialties;
+    explicit = true;
+  } else if (body.specialty !== undefined) {
+    values = [body.specialty];
+  }
+  const cleaned = Array.from(new Set(values.map(cleanString).filter(Boolean)));
+  return { values: cleaned, explicit };
+}
+
+async function getActiveCategoryRows(sb = supabaseService()) {
+  const { data, error } = await sb
+    .from('photographer_categories')
+    .select('*')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+    .order('name_en', { ascending: true });
+  if (error) {
+    if (missingCategorySchema(error)) return defaultCategoryRows();
+    throw fail(422, error.message);
+  }
+  return data || [];
+}
+
+async function resolveCategoryRows(sb, body, { requiredSelection = false } = {}) {
+  const { values, explicit } = categoryValuesFromBody(body);
+  if (requiredSelection && values.length === 0) throw fail(422, 'Select at least one category');
+  if (values.length > MAX_PHOTOGRAPHER_CATEGORIES) throw fail(422, `Select up to ${MAX_PHOTOGRAPHER_CATEGORIES} categories`);
+  if (values.length === 0) return [];
+
+  const categories = await getActiveCategoryRows(sb);
+  const matched = [];
+  const missing = [];
+  for (const value of values) {
+    const slug = categorySlug(value);
+    const comparable = categoryComparable(value);
+    const row = categories.find((cat) => {
+      return cat.slug === slug
+        || cleanString(cat.slug).toLowerCase() === cleanString(value).toLowerCase()
+        || cleanString(cat.name_en).toLowerCase() === cleanString(value).toLowerCase()
+        || cleanString(cat.name_ar) === cleanString(value)
+        || categoryComparable(cat.name_en) === comparable
+        || categoryComparable(cat.name_ar) === comparable;
+    });
+    if (row) matched.push(row);
+    else missing.push(value);
+  }
+
+  if ((explicit || requiredSelection) && missing.length) throw fail(422, `Unknown category: ${missing[0]}`);
+  return Array.from(new Map(matched.map((row) => [row.id, row])).values());
+}
+
+async function syncPhotographerCategories(sb, photographerId, categoryRows) {
+  if (!Array.isArray(categoryRows)) return;
+  if (!categoryRows.length || categoryRows.some((category) => category.fallback || !looksLikeUuid(category.id))) return;
+  const { error: deleteError } = await sb
+    .from('photographer_profile_categories')
+    .delete()
+    .eq('photographer_id', photographerId);
+  if (missingCategorySchema(deleteError)) return;
+  if (deleteError) throw fail(422, deleteError.message || 'Unable to update photographer categories');
+  const rows = categoryRows.map((category) => ({ photographer_id: photographerId, category_id: category.id }));
+  const { error } = await sb.from('photographer_profile_categories').insert(rows);
+  if (missingCategorySchema(error)) return;
+  if (error) throw fail(422, error.message);
+}
+
+function categoryDto(row) {
+  return {
+    id: row.id,
+    slug: row.slug,
+    nameEn: row.name_en,
+    nameAr: row.name_ar,
+    isActive: row.is_active !== false,
+    sortOrder: row.sort_order || 0
+  };
+}
+
+async function listCategories(req, res) {
+  const rows = await getActiveCategoryRows();
+  ok(res, { categories: rows.map(categoryDto) });
+}
+
+async function attachProfileCategories(sb, profile) {
+  if (!profile || profile.role !== 'photographer') return profile;
+  const photographerProfile = Array.isArray(profile.photographer_profiles)
+    ? profile.photographer_profiles[0]
+    : profile.photographer_profiles;
+  if (!photographerProfile) return profile;
+
+  const { data, error } = await sb
+    .from('photographer_profile_categories')
+    .select('photographer_categories(id, slug, name_en, name_ar, is_active, sort_order)')
+    .eq('photographer_id', profile.id);
+  if (error) return profile;
+
+  const categories = (data || [])
+    .map((row) => row.photographer_categories)
+    .filter(Boolean)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || String(a.name_en || '').localeCompare(String(b.name_en || '')));
+
+  photographerProfile.categories = categories;
+  photographerProfile.category_slugs = categories.map((category) => category.slug);
+  if (categories.length) photographerProfile.specialty = categories.map((category) => category.name_en).join(', ');
+  return profile;
+}
+
 async function getPhotographerProfile(sb, profileId) {
   const { data, error } = await sb
     .from('photographer_profiles')
@@ -226,6 +445,9 @@ async function register(req, res) {
   const sb = supabaseService();
   const settings = await getPlatformSettings(sb);
   if (settings.registrationOpen === false) throw fail(403, 'Registration is currently closed');
+  const categoryRows = body.role === 'photographer'
+    ? await resolveCategoryRows(sb, body, { requiredSelection: true })
+    : [];
 
   const { data: authData, error: authError } = await sb.auth.admin.createUser({
     email: cleanString(body.email).toLowerCase(),
@@ -247,10 +469,11 @@ async function register(req, res) {
   if (profileError) throw fail(422, profileError.message);
 
   if (body.role === 'photographer') {
-    required(body, ['specialty', 'region', 'customLink']);
+    required(body, ['region', 'customLink']);
+    const primaryCategory = categoryRows[0];
     const { error } = await sb.from('photographer_profiles').insert({
       profile_id: authData.user.id,
-      specialty: cleanString(body.specialty),
+      specialty: primaryCategory?.name_en || cleanString(body.specialty) || 'Photography',
       region: cleanString(body.region),
       custom_link: cleanString(body.customLink).toLowerCase(),
       bio: cleanString(body.bio),
@@ -258,6 +481,7 @@ async function register(req, res) {
       is_published: false
     });
     if (error) throw fail(422, error.message);
+    await syncPhotographerCategories(sb, authData.user.id, categoryRows);
   }
 
   created(res, { userId: authData.user.id });
@@ -267,13 +491,21 @@ async function resetPassword(req, res) {
   const body = await readJson(req);
   required(body, ['email']);
   const email = cleanString(body.email).toLowerCase();
-  /* Origin for redirect — falls back to env or request host */
-  const origin = req.headers.origin || req.headers.referer || process.env.PUBLIC_SITE_URL || '';
-  const redirectTo = origin ? origin.replace(/\/$/, '') + '/reset.html' : undefined;
+  const resetBaseUrl = publicSiteBaseUrl(req);
+  const redirectTo = resetBaseUrl ? `${resetBaseUrl}/reset.html` : undefined;
+  if (!redirectTo) {
+    console.error('[auth/reset-password] missing public reset URL');
+    throw fail(500, 'Password reset is not configured');
+  }
   const { error } = await supabaseAnon().auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
-  /* Always return ok to avoid leaking which emails exist */
   if (error) {
-    /* swallow */
+    console.error('[auth/reset-password] Supabase failed', {
+      message: error.message,
+      status: error.status,
+      code: error.code,
+      redirectTo
+    });
+    throw fail(502, 'Unable to send reset email right now');
   }
   ok(res, { ok: true });
 }
@@ -287,23 +519,25 @@ async function login(req, res) {
   });
   if (error) throw fail(401, error.message);
 
-  const { data: profile } = await supabaseService()
+  const sb = supabaseService();
+  const { data: profile } = await sb
     .from('profiles')
     .select('*, photographer_profiles(*)')
     .eq('id', data.user.id)
     .single();
 
-  ok(res, { session: data.session, user: data.user, profile });
+  ok(res, { session: data.session, user: data.user, profile: await attachProfileCategories(sb, profile) });
 }
 
 async function getMe(req, res) {
   const { profile } = await requireUser(req);
-  const { data } = await supabaseService()
+  const sb = supabaseService();
+  const { data } = await sb
     .from('profiles')
     .select('*, photographer_profiles(*)')
     .eq('id', profile.id)
     .single();
-  ok(res, { profile: data });
+  ok(res, { profile: await attachProfileCategories(sb, data) });
 }
 
 async function updateMe(req, res) {
@@ -325,7 +559,13 @@ async function updateMe(req, res) {
 
   if (profile.role === 'photographer') {
     const photographerPatch = {};
+    let categoryRows = null;
+    if (body.categorySlugs !== undefined || body.categories !== undefined || body.specialties !== undefined) {
+      categoryRows = await resolveCategoryRows(sb, body, { requiredSelection: true });
+      photographerPatch.specialty = categoryRows.map((category) => category.name_en).join(', ');
+    }
     ['specialty', 'region', 'customLink', 'bio', 'coverUrl', 'coverPosition', 'socialLinks', 'isPublished'].forEach((key) => {
+      if (key === 'specialty' && categoryRows) return;
       if (body[key] !== undefined) {
         const dbKey = { customLink: 'custom_link', coverUrl: 'cover_url', coverPosition: 'cover_position', socialLinks: 'social_links', isPublished: 'is_published' }[key] || key;
         photographerPatch[dbKey] = key === 'coverPosition' ? cleanPosition(body[key]) : body[key];
@@ -335,6 +575,7 @@ async function updateMe(req, res) {
       const { error } = await sb.from('photographer_profiles').update(photographerPatch).eq('profile_id', profile.id);
       if (error) throw fail(422, error.message);
     }
+    if (categoryRows) await syncPhotographerCategories(sb, profile.id, categoryRows);
   }
   ok(res, { saved: true });
 }
@@ -363,8 +604,14 @@ async function listPhotographers(req, res) {
   if (error) throw fail(422, error.message);
 
   const filtered = (data || []).filter((row) => {
-    const matchesSearch = !search || `${row.display_name} ${row.specialty}`.toLowerCase().includes(search);
-    const matchesSpecialty = !specialty || String(row.specialty || '').toLowerCase().includes(specialty);
+    const categories = Array.isArray(row.categories) ? row.categories : [];
+    const categoryText = categories.map((category) => `${category.slug} ${category.name_en} ${category.name_ar}`).join(' ');
+    const categorySlugs = Array.isArray(row.category_slugs) ? row.category_slugs : [];
+    const matchesSearch = !search || `${row.display_name} ${row.specialty} ${categoryText}`.toLowerCase().includes(search);
+    const matchesSpecialty = !specialty
+      || String(row.specialty || '').toLowerCase().includes(specialty)
+      || categorySlugs.map((slug) => String(slug).toLowerCase()).includes(specialty)
+      || categoryText.toLowerCase().includes(specialty);
     return matchesSearch && matchesSpecialty;
   });
   ok(res, { photographers: filtered });
@@ -1488,6 +1735,102 @@ async function adminUpdatePhotographerModeration(req, res, photographerId) {
   ok(res, { photographerProfile: data });
 }
 
+async function adminListCategories(req, res) {
+  await requireAdmin(req);
+  const { data, error } = await supabaseService()
+    .from('photographer_categories')
+    .select('*')
+    .order('is_active', { ascending: false })
+    .order('sort_order', { ascending: true })
+    .order('name_en', { ascending: true });
+  if (error) throw fail(422, error.message);
+  ok(res, { categories: (data || []).map(categoryDto) });
+}
+
+async function adminCreateCategory(req, res) {
+  const actor = await requireAdmin(req);
+  const body = await readJson(req);
+  const nameEn = cleanString(body.nameEn || body.name_en);
+  const nameAr = cleanString(body.nameAr || body.name_ar) || nameEn;
+  if (!nameEn) throw fail(422, 'English category name is required');
+
+  const sb = supabaseService();
+  const slug = categorySlug(body.slug || nameEn);
+  if (!slug) throw fail(422, 'Category slug is required');
+  const { data: lastCategory } = await sb
+    .from('photographer_categories')
+    .select('sort_order')
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data, error } = await sb
+    .from('photographer_categories')
+    .insert({
+      slug,
+      name_en: nameEn,
+      name_ar: nameAr,
+      is_active: true,
+      sort_order: Number(lastCategory?.sort_order || 0) + 10
+    })
+    .select('*')
+    .single();
+  if (error) throw fail(422, error.message);
+  await writeAdminLog(sb, actor, 'category_create', 'photographer_category', data.id, { nameEn, nameAr, slug });
+  created(res, { category: categoryDto(data) });
+}
+
+async function adminUpdateCategory(req, res, categoryId) {
+  const actor = await requireAdmin(req);
+  assertUuid(categoryId, 'categoryId');
+  const body = await readJson(req);
+  const patch = {};
+  if (body.nameEn !== undefined || body.name_en !== undefined) {
+    const nameEn = cleanString(body.nameEn || body.name_en);
+    if (!nameEn) throw fail(422, 'English category name is required');
+    patch.name_en = nameEn;
+  }
+  if (body.nameAr !== undefined || body.name_ar !== undefined) {
+    const nameAr = cleanString(body.nameAr || body.name_ar);
+    if (!nameAr) throw fail(422, 'Arabic category name is required');
+    patch.name_ar = nameAr;
+  }
+  if (body.isActive !== undefined || body.is_active !== undefined) {
+    patch.is_active = (body.isActive ?? body.is_active) === true;
+  }
+  if (body.sortOrder !== undefined || body.sort_order !== undefined) {
+    patch.sort_order = asInt(body.sortOrder ?? body.sort_order);
+  }
+  if (!Object.keys(patch).length) throw fail(422, 'No category fields supplied');
+  patch.updated_at = new Date().toISOString();
+
+  const sb = supabaseService();
+  const { data, error } = await sb
+    .from('photographer_categories')
+    .update(patch)
+    .eq('id', categoryId)
+    .select('*')
+    .single();
+  if (error) throw fail(422, error.message);
+  await writeAdminLog(sb, actor, 'category_update', 'photographer_category', categoryId, { patch });
+  ok(res, { category: categoryDto(data) });
+}
+
+async function adminDeleteCategory(req, res, categoryId) {
+  const actor = await requireAdmin(req);
+  assertUuid(categoryId, 'categoryId');
+  const sb = supabaseService();
+  const { data, error } = await sb
+    .from('photographer_categories')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('id', categoryId)
+    .select('*')
+    .single();
+  if (error) throw fail(422, error.message);
+  await writeAdminLog(sb, actor, 'category_deactivate', 'photographer_category', categoryId, {});
+  ok(res, { category: categoryDto(data) });
+}
+
 async function adminListBookings(req, res) {
   await requireAdmin(req);
   const sb = supabaseService();
@@ -1783,8 +2126,9 @@ async function handle(req, res) {
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || ''
   });
   if (req.method === 'GET' && first === 'content') return getPublicContent(req, res);
+  if (req.method === 'GET' && first === 'categories') return listCategories(req, res);
 
-if (req.method === 'POST' && first === 'auth' && second === 'register') return register(req, res);
+  if (req.method === 'POST' && first === 'auth' && second === 'register') return register(req, res);
   if (req.method === 'POST' && first === 'auth' && second === 'login') return login(req, res);
   if (req.method === 'POST' && first === 'auth' && second === 'reset-password') return resetPassword(req, res);
   if (req.method === 'GET' && first === 'me') return getMe(req, res);
@@ -1834,6 +2178,10 @@ if (req.method === 'POST' && first === 'auth' && second === 'register') return r
   if (req.method === 'GET' && first === 'admin' && second === 'users') return adminListUsers(req, res);
   if (req.method === 'GET' && first === 'admin' && second === 'photographers') return adminListPhotographers(req, res);
   if (req.method === 'PATCH' && first === 'admin' && second === 'photographers' && third && fourth === 'moderation') return adminUpdatePhotographerModeration(req, res, third);
+  if (req.method === 'GET' && first === 'admin' && second === 'categories') return adminListCategories(req, res);
+  if (req.method === 'POST' && first === 'admin' && second === 'categories') return adminCreateCategory(req, res);
+  if (req.method === 'PATCH' && first === 'admin' && second === 'categories' && third) return adminUpdateCategory(req, res, third);
+  if (req.method === 'DELETE' && first === 'admin' && second === 'categories' && third) return adminDeleteCategory(req, res, third);
   if (req.method === 'GET' && first === 'admin' && second === 'bookings') return adminListBookings(req, res);
   if (req.method === 'PATCH' && first === 'admin' && second === 'bookings' && third && fourth === 'status') return adminUpdateBookingStatus(req, res, third);
   if (req.method === 'GET' && first === 'admin' && second === 'reports') return adminListReports(req, res);

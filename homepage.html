@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
-<link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📷</text></svg>">
+<link rel="icon" type="image/png" href="dof-studios-logo-gold-.png">
 <title>DOF STUDIOS — Photography Platform Egypt</title>
 <meta name="description" content="Connect with professional Egyptian photographers, browse portfolios, and book sessions.">
 <meta name="keywords" content="photography, photographer, Egypt, Cairo, Alexandria, wedding, portrait, event photography">
@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=chat-routing-fix-20260702">
+<link rel="stylesheet" href="assets/css/styles.css?v=auth-category-list-20260703">
 </head>
 <body data-page="landing">
 
@@ -32,7 +32,7 @@
   <div class="modal-box">
     <div class="flex justify-between items-center mb-4">
       <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-sm"></i></div>
+        <span class="brand-logo-mark"><img src="dof-studios-logo-gold-.png" alt="" class="brand-logo-img"></span>
         <span class="font-bold tracking-wide" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span>
       </div>
       <button onclick="closeModal('auth-modal')" class="text-[var(--text2)] hover:text-[var(--text)] text-xl"><i class="fas fa-times"></i></button>
@@ -424,7 +424,7 @@
 <div id="landing-page">
   <nav class="fixed top-0 w-full z-50 backdrop-blur-xl bg-[rgba(12,12,12,0.8)] border-b border-[var(--border)] h-14 sm:h-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
-      <a href="#" class="flex items-center gap-2"><div class="w-7 sm:w-8 h-7 sm:h-8 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-xs sm:text-sm"></i></div><span class="font-bold text-sm sm:text-lg tracking-wide" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span></a>
+      <a href="#" class="flex items-center gap-2"><span class="brand-logo-mark sm"><img src="dof-studios-logo-gold-.png" alt="" class="brand-logo-img"></span><span class="font-bold text-sm sm:text-lg tracking-wide" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span></a>
       <div class="hidden md:flex items-center gap-6 text-sm text-[var(--text2)]">
         <a href="#features-section" class="hover:text-[var(--accent)] transition" data-t="navFeatures">Features</a>
         <a href="#" onclick="navigate('explore');return false" class="hover:text-[var(--accent)] transition" data-t="navPhotographers">Photographers</a>
@@ -452,7 +452,7 @@
   <!-- Hero Section -->
   <section class="landing-hero-section min-h-screen flex items-center pt-14 sm:pt-16 relative overflow-hidden">
     <div class="hero-shape w-[500px] h-[500px] bg-[var(--accent)] top-[-100px] right-[-100px]"></div>
-    <div class="hero-shape w-[300px] h-[300px] bg-[var(--accent-d)] bottom-[50px] left-[-50px]"></div>
+    <div class="hero-shape w-[220px] h-[220px] bg-[var(--accent-d)] bottom-[170px] left-[-20px]"></div>
     <div class="max-w-7xl mx-auto px-6 w-full relative z-10">
       <div class="hero-grid grid grid-cols-2 gap-12 items-center" style="grid-template-columns:1.1fr 0.9fr;">
         <div class="hero-copy fade-up">
@@ -466,10 +466,6 @@
           <div class="hero-actions flex gap-4 flex-wrap">
             <button onclick="openModal('auth-modal')" class="btn-primary text-base px-8 py-3.5" data-t="joinNow">Join Now — Free</button>
             <button onclick="navigate('explore')" class="btn-secondary text-base px-8 py-3.5" data-t="browsePhotographers">Browse Photographers</button>
-          </div>
-          <div class="flex items-center gap-6 mt-10 text-sm text-[var(--text2)]">
-            <span><i class="fas fa-check text-[var(--success)] mr-1.5"></i><span data-t="heroF1">2,000+ photographers</span></span>
-            <span><i class="fas fa-check text-[var(--success)] mr-1.5"></i><span data-t="heroF2">Secure payments</span></span>
           </div>
         </div>
         <div class="hero-img-wrap relative fade-up" style="animation-delay:.2s">
@@ -531,10 +527,10 @@
   <footer class="border-t border-[var(--border)] py-12 bg-[var(--bg2)]">
     <div class="max-w-7xl mx-auto px-6">
       <div class="foot-grid grid grid-cols-4 gap-8 mb-10">
-        <div><div class="flex items-center gap-2 mb-4"><div class="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-xs"></i></div><span class="font-bold" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span></div><p class="text-sm text-[var(--text2)]" data-t="footerAbout">The complete platform for photographers and clients.</p></div>
+        <div><div class="flex items-center gap-2 mb-4"><span class="brand-logo-mark sm"><img src="dof-studios-logo-gold-.png" alt="" class="brand-logo-img"></span><span class="font-bold" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span></div><p class="text-sm text-[var(--text2)]" data-t="footerAbout">The complete platform for photographers and clients.</p></div>
         <div><div class="text-sm font-semibold mb-3" data-t="footerPlatform">Platform</div><ul class="space-y-2 text-sm text-[var(--text2)]"><li><a href="#" onclick="navigate('explore');return false" class="hover:text-[var(--accent)]" data-t="footerPhotographers">Photographers</a></li><li><a href="#pricing-section" class="hover:text-[var(--accent)]" data-t="footerPricing">Pricing</a></li></ul></div>
         <div><div class="text-sm font-semibold mb-3" data-t="footerSupport">Support</div><ul class="space-y-2 text-sm text-[var(--text2)]"><li><a href="#" class="hover:text-[var(--accent)]" data-t="footerHelp">Help Center</a></li><li><a href="#" class="hover:text-[var(--accent)]" data-t="footerContact">Contact</a></li></ul></div>
-        <div><div class="text-sm font-semibold mb-3" data-t="footerConnect">Connect</div><div class="flex gap-3"><a href="#" class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-facebook-f"></i></a><a href="#" class="w-9 h-9 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-instagram"></i></a></div></div>
+        <div><div class="text-sm font-semibold mb-3" data-t="footerConnect">Connect</div><div class="official-contact-icons"><a href="mailto:dofstudios1@gmail.com" aria-label="Email DOF Studios"><i class="fas fa-envelope"></i></a><a href="https://www.facebook.com/share/183hWjknft/?mibextid=wwXIfr" target="_blank" rel="noopener" aria-label="DOF Studios Facebook"><i class="fab fa-facebook-f"></i></a><a href="https://www.instagram.com/dofstudioss?igsh=MXI2enBiaWR1MHVidg%3D%3D&utm_source=qr" target="_blank" rel="noopener" aria-label="DOF Studios Instagram"><i class="fab fa-instagram"></i></a></div></div>
       </div>
       <div class="glow-line mb-6"></div>
       <div class="flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-[var(--text2)]">
@@ -549,6 +545,6 @@
 <!-- ============================================================ -->
 <!-- ===== COMPLETE JAVASCRIPT ===== -->
 <!-- ============================================================ -->
-<script src="assets/js/app.js?v=chat-routing-fix-20260702"></script>
+<script src="assets/js/app.js?v=reset-email-errors-20260703"></script>
 </body>
 </html>

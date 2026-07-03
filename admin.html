@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=5.0,user-scalable=yes">
 <meta name="theme-color" content="#0A0A0B">
+<link rel="icon" type="image/png" href="dof-studios-logo-gold-.png">
 <title>DOF STUDIOS — لوحة الإدارة</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
@@ -299,6 +300,12 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
   .card:hover{border-color:var(--border)}
   .stat-card:hover{transform:none}
 }
+.brand-logo-mark{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:10px;background:transparent;overflow:hidden;border:1px solid rgba(196,145,92,.72);box-shadow:none;flex:0 0 auto;padding:1px 2px 0}
+.brand-logo-mark.lg{width:64px;height:64px;border-radius:16px}
+.brand-logo-img{width:100%;height:100%;object-fit:contain;display:block;transform:translateY(1px) scale(1.14);transform-origin:center}
+.official-contact-icons{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+.official-contact-icons a{width:34px;height:34px;border:1px solid var(--border);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:var(--text2);background:rgba(255,255,255,.03);transition:var(--transition)}
+.official-contact-icons a:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
 </style>
 </head>
 <body>
@@ -315,13 +322,12 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
     <!-- Brand -->
     <div class="text-center mb-8 fade-up">
       <div class="flex items-center justify-center gap-3 mb-6">
-        <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--accent-d),var(--accent-l));display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-accent)">
-          <i class="fas fa-camera text-white" style="font-size:22px"></i>
-        </div>
+        <span class="brand-logo-mark lg"><img src="dof-studios-logo-gold-.png" alt="" class="brand-logo-img"></span>
         <span class="font-display font-bold" style="font-size:26px;letter-spacing:1px">DOF STUDIOS</span>
       </div>
       <h1 class="font-display font-bold mb-2" style="font-size:32px">لوحة الإدارة</h1>
       <p class="text-muted" style="font-size:15px">تسجيل دخول المسؤولين</p>
+      <div class="official-contact-icons mt-4"><a href="mailto:dofstudios1@gmail.com" aria-label="Email DOF Studios"><i class="fas fa-envelope"></i></a><a href="https://www.facebook.com/share/183hWjknft/?mibextid=wwXIfr" target="_blank" rel="noopener" aria-label="DOF Studios Facebook"><i class="fab fa-facebook-f"></i></a><a href="https://www.instagram.com/dofstudioss?igsh=MXI2enBiaWR1MHVidg%3D%3D&utm_source=qr" target="_blank" rel="noopener" aria-label="DOF Studios Instagram"><i class="fab fa-instagram"></i></a></div>
     </div>
 
     <!-- Login Card -->
@@ -367,7 +373,7 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
   <aside class="sidebar" id="admin-sidebar">
     <div class="p-5 border-b">
       <div class="flex items-center gap-2 mb-6">
-        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent-d),var(--accent-l));display:flex;align-items:center;justify-content:center"><i class="fas fa-camera text-white" style="font-size:14px"></i></div>
+        <span class="brand-logo-mark"><img src="dof-studios-logo-gold-.png" alt="" class="brand-logo-img"></span>
         <span class="font-display font-bold" style="font-size:17px;letter-spacing:.5px">DOF STUDIOS</span>
       </div>
       <div class="flex items-center gap-3">
@@ -1159,6 +1165,6 @@ document.getElementById('admin-pass').addEventListener('keydown',function(e){if(
 /* Initialize mobile check */
 checkMobile();
 </script>
-<script src="assets/js/admin.js"></script>
+<script src="assets/js/admin.js?v=brand-tweaks-20260703"></script>
 </body>
 </html>

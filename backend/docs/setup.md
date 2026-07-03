@@ -41,12 +41,14 @@ PAYMOB_INTEGRATION_ID=
 PAYMOB_IFRAME_ID=
 PAYMOB_HMAC_SECRET=
 APP_BASE_URL=https://your-domain.com
+PUBLIC_SITE_URL=https://your-domain.com
 ```
 
 For local development, use:
 
 ```text
 APP_BASE_URL=http://localhost:3000
+PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 Use the Supabase service role key only in Vercel server-side environment variables. Never expose it in frontend code.
@@ -125,6 +127,16 @@ After deployment, add the same environment variables in Vercel Project Settings.
 
 ```text
 APP_BASE_URL=https://your-domain.com
+PUBLIC_SITE_URL=https://your-domain.com
+```
+
+For password reset emails, add these URLs in Supabase Dashboard -> Authentication -> URL Configuration:
+
+```text
+Site URL: https://your-domain.com
+Redirect URLs:
+https://your-domain.com/reset.html
+http://localhost:3000/reset.html
 ```
 
 ## 5. First Admin

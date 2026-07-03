@@ -12,6 +12,7 @@ var S={lang:'ar',view:'landing',tab:'overview',
   trialDaysLeft:7,isSubscribed:false,subscriptionPrice:4,subscriptionCurrency:'USD',subscriptionDueAt:null,paymentWarningSentAt:null,portfolioSuspended:false,subscriptionPaymentMethod:'card',
   emailNotifs:true,smsNotifs:false,
   exploreFilter:{search:'',region:'',specialty:''},
+  categories:[],authCategorySlugs:[],authCategoryOpen:false,settingsCategorySlugs:[],
   packageSort:'newest',packageFilter:'all',
   tempPackageFeatures:[],tempPackageFiles:[],deletePackageId:null,
   portfolioPublished:[],portfolioDirty:false,isPortfolioPreview:false,
@@ -150,16 +151,124 @@ async function apiRequest(path,options){
   }
   return data;
 }
+function slugifyCategory(value){
+  return String(value||'').toLowerCase().trim().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+}
+function fallbackCategories(){
+  return (S.photographyTypes||[]).map(function(type){
+    return {id:type.id,slug:type.id,en:type.en,ar:type.ar,icon:type.icon,isActive:true,sortOrder:0};
+  });
+}
+function normalizeCategoryRecord(row){
+  if(!row)return null;
+  var en=row.nameEn||row.name_en||row.en||row.name||row.slug||'';
+  var ar=row.nameAr||row.name_ar||row.ar||en;
+  var slug=row.slug||row.id||slugifyCategory(en);
+  var fallback=(S.photographyTypes||[]).find(function(type){return type.id===slug;});
+  return {
+    id:String(row.id||slug),
+    slug:String(slug),
+    en:en,
+    ar:ar,
+    icon:row.icon||(fallback&&fallback.icon)||'fa-camera',
+    isActive:row.isActive!==false&&row.is_active!==false,
+    sortOrder:Number(row.sortOrder||row.sort_order||0)
+  };
+}
+function categoryOptions(){
+  var rows=(S.categories&&S.categories.length?S.categories:fallbackCategories()).map(normalizeCategoryRecord).filter(Boolean);
+  return rows.filter(function(row){return row.isActive!==false;});
+}
+function findCategory(slug){
+  var wanted=String(slug||'');
+  return categoryOptions().find(function(cat){return cat.slug===wanted||cat.id===wanted;})||null;
+}
+function categoryLabel(category,lang){
+  var row=normalizeCategoryRecord(category);
+  if(!row)return'';
+  return (lang||S.lang)==='ar'?(row.ar||row.en):(row.en||row.ar);
+}
+function categoryTextValue(category,lang){
+  var row=normalizeCategoryRecord(category);
+  if(!row)return'';
+  return (lang||'en')==='ar'?(row.ar||row.en):(row.en||row.ar);
+}
+function normalizeCategoryList(raw,slugs,legacyEn,legacyAr){
+  var rows=[];
+  if(Array.isArray(raw)){
+    rows=raw.map(normalizeCategoryRecord).filter(Boolean);
+  }
+  if(rows.length===0&&Array.isArray(slugs)){
+    rows=slugs.map(findCategory).filter(Boolean);
+  }
+  if(rows.length===0&&(legacyEn||legacyAr)){
+    var text=[legacyEn,legacyAr].join(' ');
+    var normalized=' '+normalizeCategoryText(text)+' ';
+    rows=categoryOptions().filter(function(cat){
+      var terms=[cat.slug,cat.en,cat.ar,normalizeCategoryText(cat.en),normalizeCategoryText(cat.ar)];
+      return terms.some(function(term){
+        var clean=normalizeCategoryText(term);
+        return clean&&normalized.indexOf(' '+clean+' ')>-1;
+      });
+    });
+  }
+  var bySlug={};
+  return rows.filter(function(row){
+    if(!row||bySlug[row.slug])return false;
+    bySlug[row.slug]=true;
+    return true;
+  });
+}
+async function hydrateCategories(){
+  try{
+    var data=await apiRequest('/api/categories');
+    var rows=(data.categories||[]).map(normalizeCategoryRecord).filter(Boolean);
+    if(rows.length)S.categories=rows;
+  }catch(e){}
+  if(!S.categories||!S.categories.length)S.categories=fallbackCategories();
+  upgradeRegisterCategoryPicker();
+}
+function selectedProfileCategorySlugs(profile){
+  if(!profile)return[];
+  if(Array.isArray(profile.categorySlugs)&&profile.categorySlugs.length)return profile.categorySlugs.slice();
+  if(Array.isArray(profile.category_slugs)&&profile.category_slugs.length)return profile.category_slugs.slice();
+  if(Array.isArray(profile.categories)&&profile.categories.length)return profile.categories.map(function(cat){return normalizeCategoryRecord(cat);}).filter(Boolean).map(function(cat){return cat.slug;});
+  return normalizeCategoryList(null,null,profile.specialty,profile.specialtyAr).map(function(cat){return cat.slug;});
+}
+function selectedCategoryRows(slugs){
+  return (slugs||[]).map(findCategory).filter(Boolean);
+}
+function categorySummaryFromSlugs(slugs,lang){
+  var rows=selectedCategoryRows(slugs);
+  return rows.map(function(cat){return categoryTextValue(cat,lang||S.lang);}).join((lang||S.lang)==='ar'?'، ':', ');
+}
+function photographerCategoryLabels(p){
+  if(!p)return[];
+  var rows=normalizeCategoryList(p.categories,p.categorySlugs||p.category_slugs,p.specialty,p.specialtyAr);
+  if(!rows.length&&p.specialty)return[S.lang==='ar'?(p.specialtyAr||p.specialty):p.specialty];
+  return rows.map(function(cat){return categoryLabel(cat);});
+}
+function photographerCategoryText(p){
+  var labels=photographerCategoryLabels(p);
+  return labels.length?labels.join(S.lang==='ar'?'، ':', '):'Photography';
+}
 function normalizeProfile(profile){
   if(!profile)return null;
   var pp=Array.isArray(profile.photographer_profiles)?profile.photographer_profiles[0]:profile.photographer_profiles;
+  var rawCategories=pp?(pp.categories||[]):(profile.categories||[]);
+  var rawSlugs=pp?(pp.category_slugs||pp.categorySlugs):(profile.category_slugs||profile.categorySlugs);
+  var categories=normalizeCategoryList(rawCategories,rawSlugs,pp?(pp.specialty||''):(profile.specialty||''),profile.specialtyAr||'');
+  var specialtyEn=categories.length?categories.map(function(cat){return categoryTextValue(cat,'en');}).join(', '):(pp?(pp.specialty||'Photography'):(profile.specialty||'Photography'));
+  var specialtyAr=categories.length?categories.map(function(cat){return categoryTextValue(cat,'ar');}).join('، '):(profile.specialtyAr||(pp?(pp.specialty||'تصوير'):'تصوير'));
   return {
     id:profile.id,email:profile.email,role:profile.role,
     name:profile.display_name||profile.name||'',
     nameAr:profile.display_name||profile.nameAr||profile.name||'',
     phone:profile.phone||'',avatar:profile.avatar_url||profile.avatar||'',
-    specialty:pp?(pp.specialty||'Photography'):(profile.specialty||'Photography'),
-    specialtyAr:pp?(pp.specialty||'تصوير'):(profile.specialtyAr||'تصوير'),
+    specialty:specialtyEn,
+    specialtyAr:specialtyAr,
+    categories:categories,
+    categorySlugs:categories.map(function(cat){return cat.slug;}),
     region:pp?(pp.region||'cairo'):(profile.region||'cairo'),
     regionAr:pp?(pp.region||'القاهرة'):(profile.regionAr||'القاهرة'),
     customLink:pp?(pp.custom_link||''):(profile.customLink||''),
@@ -177,9 +286,13 @@ function normalizeProfile(profile){
   };
 }
 function normalizeDirectoryPhotographer(row){
+  var categories=normalizeCategoryList(row.categories,row.category_slugs||row.categorySlugs,row.specialty,row.specialtyAr);
   return {
     id:row.id,name:row.display_name,nameAr:row.display_name,
-    specialty:row.specialty||'Photography',specialtyAr:row.specialty||'تصوير',
+    specialty:categories.length?categories.map(function(cat){return categoryTextValue(cat,'en');}).join(', '):(row.specialty||'Photography'),
+    specialtyAr:categories.length?categories.map(function(cat){return categoryTextValue(cat,'ar');}).join('، '):(row.specialtyAr||row.specialty||'تصوير'),
+    categories:categories,
+    categorySlugs:categories.map(function(cat){return cat.slug;}),
     region:row.region||'',regionAr:row.region||'',customLink:row.custom_link,
     avatar:row.avatar_url||'',
     cover:row.cover_url||'',
@@ -345,7 +458,7 @@ function saveFrontendSession(){
       user:S.user,appointments:S.appointments,bookings:S.bookings,portfolio:S.portfolio,
       portfolioPublished:S.portfolioPublished,packages:S.packages,workingHours:S.workingHours,lang:S.lang,tab:S.tab,
       viewedPhotographer:S.viewedPhotographer,viewedPortfolio:S.viewedPortfolio,viewedPackages:S.viewedPackages,
-      viewedCollections:S.viewedCollections,viewedWorkingHours:S.viewedWorkingHours
+      viewedCollections:S.viewedCollections,viewedWorkingHours:S.viewedWorkingHours,categories:S.categories
     }));
   }catch(e){}
 }
@@ -368,6 +481,7 @@ function restoreFrontendSession(){
     if(data.viewedPackages)S.viewedPackages=data.viewedPackages;
     if(data.viewedCollections)S.viewedCollections=data.viewedCollections;
     if(Object.prototype.hasOwnProperty.call(data,'viewedWorkingHours'))S.viewedWorkingHours=data.viewedWorkingHours;
+    if(data.categories)S.categories=data.categories;
   }catch(e){}
 }
 function hashPII(value){
@@ -558,10 +672,7 @@ async function handleForgotPassword(e){
     closeForgotPassword();
     closeModal('auth-modal');
   }catch(err){
-    /* Avoid leaking which emails exist — show success either way */
-    showToast('إذا كان البريد مسجلاً، ستصلك رسالة استعادة قريباً','success');
-    closeForgotPassword();
-    closeModal('auth-modal');
+    showToast(err.message||'تعذر إرسال رابط الاستعادة الآن','error');
   }
 }
 function switchAuthTab(tab){
@@ -575,6 +686,7 @@ function switchAuthTab(tab){
     btn.classList.toggle('text-[var(--accent)]',act);btn.classList.toggle('border-transparent',!act);
     btn.classList.toggle('text-[var(--text2)]',!act);
   });
+  if(tab==='register')upgradeRegisterCategoryPicker();
 }
 function setAuthRole(role){
   S.regRole=role;
@@ -585,6 +697,7 @@ function setAuthRole(role){
   var clientFields=document.getElementById('client-fields');
   if(photoFields)photoFields.classList.toggle('hidden',role!=='photographer');
   if(clientFields)clientFields.classList.toggle('hidden',role!=='client');
+  if(role==='photographer')upgradeRegisterCategoryPicker();
 }
 function selectRole(role,el){
   setAuthRole(role);
@@ -599,6 +712,81 @@ function togglePassVis(id,btn){
   else{inp.type='password';btn.innerHTML='<i class="fas fa-eye"></i>';}
 }
 function validateLink(inp){inp.value=inp.value.toLowerCase().replace(/[^a-z0-9-]/g,'');}
+function renderCategoryPicker(hostId,context){
+  var host=document.getElementById(hostId);
+  if(!host)return;
+  var selected=context==='settings'?S.settingsCategorySlugs:S.authCategorySlugs;
+  if(context==='auth'){
+    var selectedLabels=selectedCategoryRows(selected).map(function(cat){return categoryLabel(cat);});
+    var summary=selectedLabels.length?selectedLabels.join(S.lang==='ar'?'، ':', '):(S.lang==='ar'?'اختر أقسام التصوير':'Choose photography categories');
+    host.className='auth-category-picker '+(S.authCategoryOpen?'open':'');
+    host.innerHTML='<button type="button" class="auth-category-toggle" onclick="toggleAuthCategoryList()">'+
+      '<span class="auth-category-summary">'+summary+'</span>'+
+      '<span class="auth-category-count">'+selected.length+'/5</span>'+
+      '<i class="fas fa-chevron-down"></i>'+
+    '</button>'+
+    '<div class="auth-category-list">'+categoryOptions().map(function(cat){
+      var active=selected.indexOf(cat.slug)>-1;
+      return'<button type="button" class="auth-category-row '+(active?'selected':'')+'" onclick="toggleCategoryChoice(\'auth\',\''+cat.slug+'\')">'+
+        '<span>'+categoryLabel(cat)+'</span>'+
+        '<i class="fas '+(active?'fa-check':'fa-plus')+'"></i>'+
+      '</button>';
+    }).join('')+'</div>';
+    var authHint=document.getElementById('reg-category-hint');
+    if(authHint)authHint.textContent=S.lang==='ar'?'يمكنك اختيار حتى 5 أقسام':'You can choose up to 5 categories';
+    return;
+  }
+  host.className='category-picker';
+  host.innerHTML=categoryOptions().map(function(cat){
+    var active=selected.indexOf(cat.slug)>-1;
+    return'<button type="button" class="category-choice '+(active?'selected':'')+'" onclick="toggleCategoryChoice(\''+context+'\',\''+cat.slug+'\')">'+
+      '<span>'+categoryLabel(cat)+'</span>'+
+      (active?'<i class="fas fa-check"></i>':'')+
+    '</button>';
+  }).join('');
+  var hint=document.getElementById(context==='settings'?'settings-category-hint':'reg-category-hint');
+  if(hint){
+    hint.textContent=(S.lang==='ar'?'اختر من 1 إلى 5 أقسام':'Choose 1 to 5 categories')+' · '+selected.length+'/5';
+  }
+}
+function toggleAuthCategoryList(){
+  S.authCategoryOpen=!S.authCategoryOpen;
+  renderCategoryPicker('reg-category-picker','auth');
+}
+function toggleCategoryChoice(context,slug){
+  var selected=context==='settings'?S.settingsCategorySlugs:S.authCategorySlugs;
+  var idx=selected.indexOf(slug);
+  if(idx>-1)selected.splice(idx,1);
+  else{
+    if(selected.length>=5){showToast(S.lang==='ar'?'يمكن اختيار 5 أقسام كحد أقصى':'You can select up to 5 categories','error');return;}
+    selected.push(slug);
+  }
+  if(context==='settings')S.settingsCategorySlugs=selected;
+  else{
+    S.authCategorySlugs=selected;
+    var legacy=document.getElementById('reg-spec');
+    if(legacy)legacy.value=selected[0]||'';
+  }
+  renderCategoryPicker(context==='settings'?'settings-category-picker':'reg-category-picker',context);
+}
+function upgradeRegisterCategoryPicker(){
+  var select=document.getElementById('reg-spec');
+  if(!select)return;
+  if(!S.authCategorySlugs.length&&select.value)S.authCategorySlugs=[select.value];
+  select.classList.add('hidden');
+  var host=document.getElementById('reg-category-picker');
+  if(!host){
+    host=document.createElement('div');
+    host.id='reg-category-picker';
+    host.className='category-picker';
+    select.insertAdjacentElement('afterend',host);
+    var hint=document.createElement('div');
+    hint.id='reg-category-hint';
+    hint.className='category-picker-hint';
+    host.insertAdjacentElement('afterend',hint);
+  }
+  renderCategoryPicker('reg-category-picker','auth');
+}
 function checkPassStrength(val){
   var bar=document.getElementById('pass-strength'),hint=document.getElementById('pass-hint');
   if(!val){bar.classList.add('hidden');return;}
@@ -641,7 +829,7 @@ async function handleLogin(e){
 }
 async function handleRegister(e){
   e.preventDefault();
-  var name,spec,region,link,email,phone,pass;
+  var name,spec,region,email,phone,pass;
   try{
     if(S.regRole==='photographer'){
       name=document.getElementById('reg-name').value;spec=document.getElementById('reg-spec').value;
@@ -649,9 +837,14 @@ async function handleRegister(e){
       email=document.getElementById('reg-email').value;phone=document.getElementById('reg-phone').value;
       pass=document.getElementById('reg-pass').value;
       if(!name||!email||!phone||!pass){showToast('يرجى ملء الحقول المطلوبة','error');return;}
+      var selectedCategories=(S.authCategorySlugs&&S.authCategorySlugs.length?S.authCategorySlugs.slice():(spec?[spec]:[]));
+      if(!selectedCategories.length){showToast(S.lang==='ar'?'اختر قسماً واحداً على الأقل':'Choose at least one category','error');return;}
+      var primaryCategory=findCategory(selectedCategories[0]);
       await apiRequest('/api/auth/register',{method:'POST',body:{
         role:'photographer',displayName:name,email:email,password:pass,phone:phone,
-        specialty:spec||'Photography',region:region||'cairo',customLink:email.split('@')[0]
+        specialty:primaryCategory?categoryTextValue(primaryCategory,'en'):(spec||'Photography'),
+        categorySlugs:selectedCategories,
+        region:region||'cairo',customLink:email.split('@')[0]
       }});
     } else {
       name=document.getElementById('reg-client-name').value;
@@ -968,6 +1161,7 @@ function renderTab(){
     case'subscriptions':c.innerHTML=renderSubscriptions();break;
     case'settings':c.innerHTML=renderSettings();break;
   }
+  if(S.tab==='settings')renderCategoryPicker('settings-category-picker','settings');
 }
 
 /* ===== DASHBOARD: OVERVIEW ===== */
@@ -1948,6 +2142,7 @@ function renderSubscriptions(){
 /* ===== DASHBOARD: SETTINGS ===== */
 function renderSettings(){
   var u=S.user;
+  S.settingsCategorySlugs=selectedProfileCategorySlugs(u);
   var pubOn=u.isPublished===true;
   var visCard='<div class="card p-6 mb-6 border '+(pubOn?'border-[var(--success)]':'border-[var(--accent)]')+'">'+
     '<div class="flex items-center justify-between gap-4 flex-wrap">'+
@@ -1970,7 +2165,7 @@ function renderSettings(){
   '</div><div class="flex flex-wrap gap-2"><button type="button" onclick="openMediaPicker(\'cover\')" class="btn-secondary btn-sm">تغيير صورة البانر</button>'+(u.cover?'<button type="button" onclick="openCoverPositionModal()" class="btn-secondary btn-sm">ضبط موضع البانر</button>':'')+'</div><input id="s-cover-input" type="file" accept="image/*" onchange="handleMediaFile(\'cover\',this)" class="hidden"></div>'+
   '</div>'+
   '<div><label class="block text-sm text-[var(--text2)] mb-1">الاسم الكامل</label><input class="input" id="s-nameAr" value="'+(u.nameAr||u.name||'')+'"></div>'+
-  '<div><label class="block text-sm text-[var(--text2)] mb-1">التخصص</label><input class="input" id="s-specAr" value="'+(u.specialtyAr||u.specialty||'')+'"></div>'+
+  '<div><label class="block text-sm text-[var(--text2)] mb-2">التخصصات</label><div id="settings-category-picker" class="category-picker"></div><div id="settings-category-hint" class="category-picker-hint"></div></div>'+
   '<div><label class="block text-sm text-[var(--text2)] mb-1">نبذة عنك</label><textarea class="input" id="s-bioAr">'+(u.bioAr||u.bio||'')+'</textarea></div>'+
   '<button type="submit" class="btn-primary w-full">'+t('updateProfile')+'</button></form></div>'+
   '<div class="space-y-6">'+
@@ -1984,16 +2179,21 @@ function renderSettings(){
 async function updateProfile(e){
   e.preventDefault();var u=S.user;
   var nameVal=document.getElementById('s-nameAr').value;
-  var specVal=document.getElementById('s-specAr').value;
   var bioVal=document.getElementById('s-bioAr').value;
+  var selectedCategories=(S.settingsCategorySlugs||[]).slice();
+  if(!selectedCategories.length){showToast(S.lang==='ar'?'اختر قسماً واحداً على الأقل':'Choose at least one category','error');return;}
+  var specValEn=categorySummaryFromSlugs(selectedCategories,'en')||u.specialty||'Photography';
+  var specValAr=categorySummaryFromSlugs(selectedCategories,'ar')||u.specialtyAr||specValEn;
   u.name=nameVal;u.nameAr=nameVal;
-  u.specialty=specVal;u.specialtyAr=specVal;
+  u.specialty=specValEn;u.specialtyAr=specValAr;
+  u.categories=selectedCategoryRows(selectedCategories);
+  u.categorySlugs=selectedCategories;
   u.bio=bioVal;u.bioAr=bioVal;
   var dirPhoto=S.photographers.find(function(p){return p.id===u.id;});
-  if(dirPhoto){Object.assign(dirPhoto,{name:nameVal,nameAr:nameVal,specialty:specVal,specialtyAr:specVal,bio:bioVal,bioAr:bioVal});}
+  if(dirPhoto){Object.assign(dirPhoto,{name:nameVal,nameAr:nameVal,specialty:specValEn,specialtyAr:specValAr,categories:u.categories,categorySlugs:selectedCategories,bio:bioVal,bioAr:bioVal});}
   updateSidebarUser();
   try{
-    await apiRequest('/api/me/profile',{method:'PATCH',body:{displayName:nameVal,specialty:specVal,bio:bioVal}});
+    await apiRequest('/api/me/profile',{method:'PATCH',body:{displayName:nameVal,categorySlugs:selectedCategories,bio:bioVal}});
     showToast('تم تحديث الملف الشخصي','success');
   }catch(err){showToast(err.message||'فشل الحفظ','error');}
 }
@@ -2209,7 +2409,7 @@ function notifyPhotographerWhatsApp(booking,photographer){
 
 /* ===== EXPLORE PHOTOGRAPHERS PAGE (with package pricing preview) ===== */
 function getSpecialtyOptions(){
-  return (S.photographyTypes||[]).map(function(type){return{id:type.id,ar:type.ar,en:type.en,icon:type.icon};});
+  return categoryOptions().map(function(type){return{id:type.slug,slug:type.slug,ar:type.ar,en:type.en,icon:type.icon};});
 }
 function normalizeCategoryText(value){
   return String(value||'').toLowerCase()
@@ -2219,24 +2419,29 @@ function normalizeCategoryText(value){
     .trim();
 }
 function photographerCategoryIds(p){
+  if(p&&Array.isArray(p.categorySlugs)&&p.categorySlugs.length)return p.categorySlugs.slice();
+  if(p&&Array.isArray(p.category_slugs)&&p.category_slugs.length)return p.category_slugs.slice();
+  if(p&&Array.isArray(p.categories)&&p.categories.length){
+    return p.categories.map(function(cat){return normalizeCategoryRecord(cat);}).filter(Boolean).map(function(cat){return cat.slug;});
+  }
   var raw=[p.specialty,p.specialtyAr].join(' ');
   var normalized=' '+normalizeCategoryText(raw)+' ';
   var ids=[];
-  (S.photographyTypes||[]).forEach(function(type){
-    var terms=[type.id,type.en,type.ar,normalizeCategoryText(type.en),normalizeCategoryText(type.ar)];
+  categoryOptions().forEach(function(type){
+    var terms=[type.slug,type.en,type.ar,normalizeCategoryText(type.en),normalizeCategoryText(type.ar)];
     var matched=terms.some(function(term){
       var clean=normalizeCategoryText(term);
       return clean&&normalized.indexOf(' '+clean+' ')>-1;
     });
-    if(matched)ids.push(type.id);
+    if(matched)ids.push(type.slug);
   });
   if(ids.length===0&&p.specialty){
     var s=normalizeCategoryText(p.specialty);
-    (S.photographyTypes||[]).forEach(function(type){
-      if(ids.indexOf(type.id)>-1)return;
-      var id=normalizeCategoryText(type.id);
+    categoryOptions().forEach(function(type){
+      if(ids.indexOf(type.slug)>-1)return;
+      var id=normalizeCategoryText(type.slug);
       var en=normalizeCategoryText(type.en).split(' ')[0];
-      if((id&&s.indexOf(id)>-1)||(en&&s.indexOf(en)>-1))ids.push(type.id);
+      if((id&&s.indexOf(id)>-1)||(en&&s.indexOf(en)>-1))ids.push(type.slug);
     });
   }
   return ids;
@@ -2248,17 +2453,18 @@ function photographerLowestPrice(p){
 function renderExploreCard(p,compact){
   var lowestPrice=photographerLowestPrice(p);
   var coverPos=normalizeCoverPosition(p.coverPosition);
+  var specLabel=photographerCategoryText(p);
   var coverEl=p.cover?'<img src="'+p.cover+'" class="photo-card-cover" style="object-position:'+coverPos+';" alt="'+escapeHtml(gf(p,'name'))+'" loading="lazy">':'<div class="photo-card-cover photo-card-cover-empty"><i class="fas fa-camera" style="font-size:2.5rem;color:var(--border);"></i></div>';
   var avatarEl=p.avatar?'<img src="'+p.avatar+'" class="photo-card-avatar" alt="">':'<div class="photo-card-avatar" style="background:var(--bg2);display:flex;align-items:center;justify-content:center;"><i class="fas fa-user" style="color:var(--border);font-size:1.2rem;"></i></div>';
   if(compact){
     return'<div class="photo-card explore-mini-card"><div class="photo-card-header" style="position:relative;">'+coverEl+avatarEl+'</div>'+
-    '<div class="photo-card-body"><div class="photo-card-name">'+gf(p,'name')+'</div><div class="photo-card-spec">'+gf(p,'specialty')+'</div>'+
+    '<div class="photo-card-body"><div class="photo-card-name">'+gf(p,'name')+'</div><div class="photo-card-spec">'+specLabel+'</div>'+
     '<div class="explore-mini-meta"><span><i class="fas fa-star"></i> '+(p.rating||'-')+'</span><span><i class="fas fa-bookmark"></i> '+(p.bookings||0)+'</span></div>'+
     (lowestPrice!==null?'<div class="explore-mini-price">'+t('startingFrom')+' <strong>'+formatPrice(lowestPrice)+'</strong></div>':'')+
     '<button onclick="viewPhotographerProfile(\''+p.id+'\')" class="btn-primary w-full btn-sm">'+t('viewProfile')+'</button></div></div>';
   }
   return'<div class="photo-card"><div class="photo-card-header" style="position:relative;">'+coverEl+avatarEl+'</div>'+
-  '<div class="photo-card-body"><div class="photo-card-name">'+gf(p,'name')+'</div><div class="photo-card-spec">'+gf(p,'specialty')+'</div>'+
+  '<div class="photo-card-body"><div class="photo-card-name">'+gf(p,'name')+'</div><div class="photo-card-spec">'+specLabel+'</div>'+
   '<div class="photo-card-region"><i class="fas fa-map-marker-alt"></i> '+gf(p,'region')+'</div>'+
   '<div class="photo-card-stats"><div class="photo-card-stat"><div class="photo-card-stat-value">'+p.bookings+'</div><div class="photo-card-stat-label">'+(S.lang==='ar'?'حجوزات':' bookings')+'</div></div><div class="photo-card-stat"><div class="photo-card-stat-value"><span class="stars">'+starsHTML(p.rating)+'</span></div><div class="photo-card-stat-label">'+p.rating+'</div></div></div>'+
   (lowestPrice!==null?'<div class="flex items-center gap-2 mb-3 text-sm"><i class="fas fa-tag text-[var(--accent)]"></i><span class="text-[var(--text2)]">'+t('startingFrom')+' </span><span class="font-bold gradient-text">'+formatPrice(lowestPrice)+'</span></div>':'')+
@@ -2267,8 +2473,8 @@ function renderExploreCard(p,compact){
 }
 function renderExploreMobileGroups(filtered){
   var groups=[];
-  (S.photographyTypes||[]).forEach(function(type){
-    var items=filtered.filter(function(p){return photographerCategoryIds(p).indexOf(type.id)>-1;});
+  categoryOptions().forEach(function(type){
+    var items=filtered.filter(function(p){return photographerCategoryIds(p).indexOf(type.slug)>-1;});
     if(items.length>0)groups.push({type:type,items:items});
   });
   if(groups.length===0&&filtered.length>0){
@@ -2276,10 +2482,10 @@ function renderExploreMobileGroups(filtered){
   }
   if(groups.length===0)return'';
   return'<div class="explore-mobile-results">'+groups.map(function(group){
-    var label=S.lang==='ar'?group.type.ar:group.type.en;
+    var label=categoryLabel(group.type);
     var count=group.items.length+' '+(S.lang==='ar'?'مصور':'photographers');
     return'<section class="explore-category-row">'+
-    '<div class="explore-category-head"><div class="flex items-center gap-2"><span class="explore-category-icon"><i class="fas '+group.type.icon+'"></i></span><h2>'+label+'</h2></div><span>'+count+'</span></div>'+
+    '<div class="explore-category-head"><div class="flex items-center gap-2"><h2>'+label+'</h2></div><span>'+count+'</span></div>'+
     '<div class="explore-category-strip">'+group.items.map(function(p){return renderExploreCard(p,true);}).join('')+'</div></section>';
   }).join('')+'</div>';
 }
@@ -2302,7 +2508,7 @@ async function renderExplorePage(){
   regions.forEach(function(r){rLabels[r.id]=S.lang==='ar'?r.nameAr:r.nameEn;});
   
   var filtered=S.photographers.filter(function(p){
-    var searchText=[p.name,p.nameAr,p.specialty,p.specialtyAr].join(' ').toLowerCase();
+    var searchText=[p.name,p.nameAr,p.specialty,p.specialtyAr,photographerCategoryLabels(p).join(' ')].join(' ').toLowerCase();
     var query=String(f.search||'').toLowerCase();
     var ms=!query||searchText.indexOf(query)>-1;
     var mr=!f.region||p.region===f.region;
@@ -2543,7 +2749,7 @@ function renderPublicProfile(){
     if(suspendedContainer){suspendedContainer.innerHTML=suspendedHtml;}
     return suspendedHtml;
   }
-  var nm=gf(u,'name'),sp=gf(u,'specialty'),bi=gf(u,'bio'),rg=gf(u,'region');
+  var nm=gf(u,'name'),sp=photographerCategoryText(u),bi=gf(u,'bio'),rg=gf(u,'region');
   var activePkgs=(pubPackages||[]).filter(function(pkg){return pkg.status==='active';});
   var featuredPkgs=activePkgs.filter(function(pkg){return pkg.featured;});
   var regularPkgs=activePkgs.filter(function(pkg){return !pkg.featured;});
@@ -2662,7 +2868,7 @@ function renderPublicProfile(){
   /* Footer */
   renderPubAvatarViewer(u)+
 
-  '<footer class="border-t border-[var(--border)] py-8 bg-[var(--bg2)]"><div class="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-[var(--text2)]"><div class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</div><span>&copy; 2025 DOF STUDIOS. All rights reserved.</span></div></footer></div>';
+  '<footer class="border-t border-[var(--border)] py-8 bg-[var(--bg2)]"><div class="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-[var(--text2)]"><div class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</div><div class="official-contact-icons"><a href="mailto:dofstudios1@gmail.com" aria-label="Email DOF Studios"><i class="fas fa-envelope"></i></a><a href="https://www.facebook.com/share/183hWjknft/?mibextid=wwXIfr" target="_blank" rel="noopener" aria-label="DOF Studios Facebook"><i class="fab fa-facebook-f"></i></a><a href="https://www.instagram.com/dofstudioss?igsh=MXI2enBiaWR1MHVidg%3D%3D&utm_source=qr" target="_blank" rel="noopener" aria-label="DOF Studios Instagram"><i class="fab fa-instagram"></i></a></div><span>&copy; 2026 DOF STUDIOS. All rights reserved.</span></div></footer></div>';
   var container=document.getElementById('public-content');
   if(container){container.innerHTML=html;}
   return html;
@@ -2870,15 +3076,15 @@ function selectShootType(type,btn){
     selector.querySelectorAll('button').forEach(function(b){b.classList.remove('active');});
     btn.classList.add('active');
   }
-  var shootType=S.photographyTypes.find(function(st){return st.id===type;});
-  showToast((S.lang==='ar'?'نوع التصوير: ':'Selected: ')+(shootType?(S.lang==='ar'?shootType.ar:shootType.en):''),'info');
+  var shootType=findCategory(type);
+  showToast((S.lang==='ar'?'نوع التصوير: ':'Selected: ')+(shootType?categoryLabel(shootType):''),'info');
 }
 
 function onShootTypeChange(select){
   var val=select.value;
   if(val){
-    var shootType=S.photographyTypes.find(function(st){return st.id===val;});
-    showToast((S.lang==='ar'?'نوع التصوير المحدد: ':'Shoot type set to: ')+(shootType?(S.lang==='ar'?shootType.ar:shootType.en):val),'success');
+    var shootType=findCategory(val);
+    showToast((S.lang==='ar'?'نوع التصوير المحدد: ':'Shoot type set to: ')+(shootType?categoryLabel(shootType):val),'success');
   }
 }
 
@@ -3790,6 +3996,7 @@ function loadDemoPhotographer(){
 async function initializeCurrentPage(){
   restoreFrontendSession();
   await hydrateSiteContent();
+  await hydrateCategories();
   if(apiToken())await hydrateAuthenticatedState();
   else{
     var storedProfile=readApiProfile();

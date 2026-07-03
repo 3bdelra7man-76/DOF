@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
-<link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📷</text></svg>">
+<link rel="icon" type="image/png" href="dof-studios-logo-gold-.png">
 <title>DOF STUDIOS — Photography Platform Egypt</title>
 <meta name="description" content="Connect with professional Egyptian photographers, browse portfolios, and book sessions.">
 <meta name="keywords" content="photography, photographer, Egypt, Cairo, Alexandria, wedding, portrait, event photography">
@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=chat-routing-fix-20260702">
+<link rel="stylesheet" href="assets/css/styles.css?v=auth-category-list-20260703">
 </head>
 <body data-page="dashboard">
 
@@ -32,7 +32,7 @@
   <div class="modal-box">
     <div class="flex justify-between items-center mb-4">
       <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-sm"></i></div>
+        <span class="brand-logo-mark"><img src="dof-studios-logo-gold-.png" alt="" class="brand-logo-img"></span>
         <span class="font-bold tracking-wide" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span>
       </div>
       <button onclick="closeModal('auth-modal')" class="text-[var(--text2)] hover:text-[var(--text)] text-xl"><i class="fas fa-times"></i></button>
@@ -414,13 +414,13 @@
 <div id="dashboard-page" class="hidden">
   <div class="fixed top-0 w-full z-50 bg-[var(--bg2)] border-b border-[var(--border)] h-14 flex items-center justify-between px-4 lg:hidden">
     <button onclick="toggleSidebar()" class="text-[var(--text2)] text-xl"><i class="fas fa-bars"></i></button>
-    <div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-xs"></i></div><span class="font-bold text-sm" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span></div>
+    <div class="flex items-center gap-2"><span class="brand-logo-mark sm"><img src="dof-studios-logo-gold-.png" alt="" class="brand-logo-img"></span><span class="font-bold text-sm" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span></div>
     <div class="w-8 h-8"></div>
   </div>
   <!-- Sidebar Navigation -->
   <aside class="sidebar" id="sidebar">
     <div class="p-5 border-b border-[var(--border)]">
-      <div class="flex items-center gap-2 mb-5"><div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center"><i class="fas fa-camera text-white text-sm"></i></div><span class="font-bold text-lg" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span></div>
+      <div class="flex items-center gap-2 mb-5"><span class="brand-logo-mark"><img src="dof-studios-logo-gold-.png" alt="" class="brand-logo-img"></span><span class="font-bold text-lg" style="font-family:'Playfair Display',serif;">DOF STUDIOS</span></div>
       <div class="flex items-center gap-3"><img id="sidebar-avatar" src="https://picsum.photos/seed/avatar1/80/80" class="w-10 h-10 rounded-full" alt=""><div><div class="text-sm font-semibold" id="sidebar-name">Photographer</div><div class="text-xs text-[var(--text2)]" id="sidebar-spec">Specialty</div></div></div>
     </div>
     <nav class="flex-1 py-4 space-y-1">
@@ -480,6 +480,6 @@
 <!-- ============================================================ -->
 <!-- ===== COMPLETE JAVASCRIPT ===== -->
 <!-- ============================================================ -->
-<script src="assets/js/app.js?v=chat-routing-fix-20260702"></script>
+<script src="assets/js/app.js?v=reset-email-errors-20260703"></script>
 </body>
 </html>

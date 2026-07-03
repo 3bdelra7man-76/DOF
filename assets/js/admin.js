@@ -37,6 +37,7 @@
     bookings:[],bookingTotal:0,
     reports:[],reportTotal:0,
     subscriptions:[],subscriptionTotal:0,
+    categories:[],
     notifications:[],notificationTotal:0,
     logs:[],logTotal:0,
     analytics:null,
@@ -55,6 +56,7 @@
     {id:'bookings',icon:'fa-bookmark',label:'الحجوزات'},
     {id:'reports',icon:'fa-flag',label:'البلاغات'},
     {id:'subscriptions',icon:'fa-crown',label:'الاشتراكات'},
+    {id:'categories',icon:'fa-tags',label:'الأقسام'},
     {id:'content',icon:'fa-file-lines',label:'المحتوى'},
     {id:'notifications',icon:'fa-bell',label:'الإشعارات'},
     {id:'settings',icon:'fa-gear',label:'الإعدادات'},
@@ -235,7 +237,7 @@
     var renderers={
       overview:renderOverview,revenue:renderRevenue,visits:renderVisits,customers:renderCustomers,
       photographers:renderPhotographers,bookings:renderBookings,reports:renderReports,
-      subscriptions:renderSubscriptions,content:renderContent,notifications:renderNotifications,
+      subscriptions:renderSubscriptions,categories:renderCategories,content:renderContent,notifications:renderNotifications,
       settings:renderSettings,logs:renderLogs
     };
     c.innerHTML='<div class="scale-in">'+(renderers[S.tab]||renderOverview)()+'</div>';
@@ -257,6 +259,7 @@
     else if(id==='bookings')await loadBookings();
     else if(id==='reports')await loadReports();
     else if(id==='subscriptions')await loadSubscriptions();
+    else if(id==='categories')await loadCategories();
     else if(id==='content')await loadContent();
     else if(id==='settings')await loadSettings();
     else if(id==='notifications')await loadNotifications(false);
@@ -301,6 +304,10 @@
   async function loadSubscriptions(){
     var data=await api('/api/admin/subscriptions'+params({search:S.subscriptionSearch,status:S.subscriptionStatus,page:S.subscriptionPage,pageSize:PAGE_SIZE}));
     S.subscriptions=data.subscriptions||[];S.subscriptionTotal=data.total||0;
+  }
+  async function loadCategories(){
+    var data=await api('/api/admin/categories');
+    S.categories=data.categories||[];
   }
   async function loadContent(){
     var data=await api('/api/admin/content');
@@ -388,6 +395,14 @@
     (S.subscriptions.length?'<div class="card overflow-hidden"><table class="data-table"><thead><tr><th>المصور</th><th>المبلغ</th><th>الحالة</th><th>ينتهي في</th><th>الطلب</th><th>تحديث</th></tr></thead><tbody>'+S.subscriptions.map(function(s){return '<tr><td><div style="font-weight:600">'+h(s.photographer?.display_name||'-')+'</div><div class="text-dim" style="font-size:12px">'+h(s.photographer?.email||'')+'</div></td><td style="font-weight:700;color:var(--accent)">'+fmtMoney(s.amount)+'</td><td>'+statusBadge(s.status)+'</td><td>'+fmtDate(s.current_period_end)+'</td><td class="text-dim" style="font-size:12px">'+h(s.merchant_order_id||s.provider_order_id||'-')+'</td><td><select class="input" style="width:130px" onchange="updateSubscriptionStatus(\''+s.id+'\',this.value)"><option value="">اختر</option><option value="active">نشط</option><option value="pending">معلق</option><option value="overdue">متأخر</option><option value="cancelled">ملغي</option><option value="failed">فشل</option></select></td></tr>';}).join('')+'</tbody></table></div>':empty('fa-crown','لا توجد اشتراكات'))+
     pagination(S.subscriptionPage,S.subscriptionTotal,'goSubscriptionPage');
   }
+  function renderCategories(){
+    var rows=S.categories||[];
+    return '<div class="flex flex-wrap items-center justify-between gap-4 mb-6"><div><h2 class="font-display" style="font-size:26px;font-weight:700">إدارة الأقسام</h2><p class="text-muted mt-1" style="font-size:14px">إضافة وتعديل أقسام المصورين التي تظهر في التسجيل والاستكشاف.</p></div></div>'+
+    '<form onsubmit="saveCategory(event)" class="card p-6 mb-6 space-y-4"><input type="hidden" id="cat-id">'+
+    '<div class="grid grid-2 gap-4" style="grid-template-columns:1fr 1fr"><div><label>الاسم بالعربية</label><input class="input" id="cat-name-ar" required placeholder="مثال: تصوير أعراس"></div><div><label>English name</label><input class="input" id="cat-name-en" dir="ltr" required placeholder="Wedding Photography"></div></div>'+
+    '<div class="flex flex-wrap gap-2"><button class="btn btn-primary"><i class="fas fa-floppy-disk"></i>حفظ القسم</button><button type="button" class="btn btn-secondary" onclick="resetCategoryForm()">قسم جديد</button></div></form>'+
+    (rows.length?'<div class="card overflow-hidden"><table class="data-table"><thead><tr><th>العربي</th><th>English</th><th>الرابط</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>'+rows.map(function(c){return '<tr><td style="font-weight:700">'+h(c.nameAr||c.name_ar||'-')+'</td><td dir="ltr">'+h(c.nameEn||c.name_en||'-')+'</td><td class="text-dim">'+h(c.slug||'-')+'</td><td>'+statusBadge(c.isActive===false?'inactive':'active')+'</td><td><div class="flex gap-2"><button class="btn-icon" onclick="editCategory(\''+h(c.id)+'\')" title="تعديل"><i class="fas fa-pen" style="font-size:12px"></i></button>'+(c.isActive===false?'<button class="btn-icon" onclick="reactivateCategory(\''+h(c.id)+'\')" title="تفعيل"><i class="fas fa-check" style="font-size:12px"></i></button>':'<button class="btn-icon danger" onclick="removeCategory(\''+h(c.id)+'\')" title="إخفاء"><i class="fas fa-ban" style="font-size:12px"></i></button>')+'</div></td></tr>';}).join('')+'</tbody></table></div>':empty('fa-tags','لا توجد أقسام')) ;
+  }
   function renderContent(){
     var c=S.content;
     return '<div class="mb-6"><h2 class="font-display" style="font-size:26px;font-weight:700">إدارة المحتوى</h2><p class="text-muted mt-1" style="font-size:14px">هذه الحقول تظهر في الصفحة الرئيسية بعد الحفظ.</p></div>'+
@@ -474,6 +489,47 @@
     showToast('تم تحديث الاشتراك','success');
     reloadTab();
   }
+  function resetCategoryForm(){
+    var id=document.getElementById('cat-id');
+    var ar=document.getElementById('cat-name-ar');
+    var en=document.getElementById('cat-name-en');
+    if(id)id.value='';
+    if(ar)ar.value='';
+    if(en)en.value='';
+  }
+  function editCategory(id){
+    var c=(S.categories||[]).find(function(row){return row.id===id;});
+    if(!c)return;
+    document.getElementById('cat-id').value=c.id;
+    document.getElementById('cat-name-ar').value=c.nameAr||c.name_ar||'';
+    document.getElementById('cat-name-en').value=c.nameEn||c.name_en||'';
+    document.getElementById('cat-name-ar').focus();
+  }
+  async function saveCategory(e){
+    e.preventDefault();
+    var id=document.getElementById('cat-id').value;
+    var body={
+      nameAr:document.getElementById('cat-name-ar').value.trim(),
+      nameEn:document.getElementById('cat-name-en').value.trim()
+    };
+    if(!body.nameAr||!body.nameEn){showToast('اكتب اسم القسم بالعربية والإنجليزية','error');return;}
+    if(id)await api('/api/admin/categories/'+id,{method:'PATCH',body:body});
+    else await api('/api/admin/categories',{method:'POST',body:body});
+    resetCategoryForm();
+    showToast('تم حفظ القسم','success');
+    reloadTab();
+  }
+  async function removeCategory(id){
+    if(!confirm('إخفاء هذا القسم من التسجيل والفلاتر؟ سيبقى مرتبطاً بالسجلات القديمة.'))return;
+    await api('/api/admin/categories/'+id,{method:'DELETE'});
+    showToast('تم إخفاء القسم','warning');
+    reloadTab();
+  }
+  async function reactivateCategory(id){
+    await api('/api/admin/categories/'+id,{method:'PATCH',body:{isActive:true}});
+    showToast('تم تفعيل القسم','success');
+    reloadTab();
+  }
   async function saveContent(e){
     e.preventDefault();
     var content={
@@ -553,7 +609,9 @@
     goSubscriptionPage:goSubscriptionPage,goNotifPage:goNotifPage,goLogPage:goLogPage,
     viewUserDetail:viewUserDetail,viewPhotoDetail:viewPhotoDetail,togglePhotoStatus:togglePhotoStatus,togglePhotoPublished:togglePhotoPublished,
     updateBookingAdminStatus:updateBookingAdminStatus,updateReportStatus:updateReportStatus,suspendReported:suspendReported,
-    updateSubscriptionStatus:updateSubscriptionStatus,saveContent:saveContent,saveSettings:saveSettings,
+    updateSubscriptionStatus:updateSubscriptionStatus,resetCategoryForm:resetCategoryForm,editCategory:editCategory,
+    saveCategory:saveCategory,removeCategory:removeCategory,reactivateCategory:reactivateCategory,
+    saveContent:saveContent,saveSettings:saveSettings,
     markRead:markRead,markAllRead:markAllRead,
     exportRevenue:exportRevenue,exportCustomers:exportCustomers,exportPhotographers:exportPhotographers,exportBookings:exportBookings,exportLogs:exportLogs
   });
