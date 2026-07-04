@@ -666,6 +666,54 @@ async function signUpload(req, res) {
   ok(res, { bucket, path, token: data.token, signedUrl: data.signedUrl, publicUrl: publicData.publicUrl });
 }
 
+function decodeImageDataUrl(dataUrl) {
+  const match = cleanString(dataUrl).match(/^data:(image\/(?:jpeg|png|webp));base64,([a-z0-9+/=\s]+)$/i);
+  if (!match) throw fail(422, 'Invalid image data');
+  const buffer = Buffer.from(match[2].replace(/\s/g, ''), 'base64');
+  if (!buffer.length) throw fail(422, 'Invalid image data');
+  if (buffer.length > 5 * 1024 * 1024) throw fail(422, 'Image must be 5MB or smaller');
+  return { mimeType: match[1].toLowerCase(), buffer };
+}
+
+function extensionForMime(mimeType) {
+  if (mimeType === 'image/png') return 'png';
+  if (mimeType === 'image/webp') return 'webp';
+  return 'jpg';
+}
+
+async function uploadProfileMedia(req, res) {
+  const { profile } = await requireUser(req);
+  const body = await readJson(req);
+  required(body, ['type', 'dataUrl']);
+
+  const type = cleanString(body.type);
+  if (type !== 'cover') throw fail(422, 'Unsupported media type');
+  requireRole(profile, 'photographer');
+
+  const { mimeType, buffer } = decodeImageDataUrl(body.dataUrl);
+  const sb = supabaseService();
+  const coverPosition = cleanPosition(body.coverPosition);
+  const path = `${profile.id}/profile-cover-${Date.now()}.${extensionForMime(mimeType)}`;
+  const { error: uploadError } = await sb.storage.from(PORTFOLIO_BUCKET).upload(path, buffer, {
+    contentType: mimeType,
+    cacheControl: '31536000',
+    upsert: false
+  });
+  if (uploadError) throw fail(422, uploadError.message);
+
+  const { data: publicData } = sb.storage.from(PORTFOLIO_BUCKET).getPublicUrl(path);
+  const publicUrl = publicData?.publicUrl;
+  if (!publicUrl) throw fail(422, 'Could not create public image URL');
+
+  const { error: profileError } = await sb
+    .from('photographer_profiles')
+    .update({ cover_url: publicUrl, cover_position: coverPosition })
+    .eq('profile_id', profile.id);
+  if (profileError) throw fail(422, profileError.message);
+
+  ok(res, { type, publicUrl, coverPosition, path });
+}
+
 async function addPortfolioPhoto(req, res) {
   const { profile } = await requireUser(req);
   requireRole(profile, 'photographer');
@@ -2144,6 +2192,7 @@ async function handle(req, res) {
   if (req.method === 'POST' && first === 'auth' && second === 'reset-password') return resetPassword(req, res);
   if (req.method === 'GET' && first === 'me') return getMe(req, res);
   if (req.method === 'PATCH' && first === 'me' && second === 'profile') return updateMe(req, res);
+  if (req.method === 'POST' && first === 'me' && second === 'profile' && third === 'media') return uploadProfileMedia(req, res);
 
   if (req.method === 'GET' && first === 'photographers' && !second) return listPhotographers(req, res);
   if (req.method === 'GET' && first === 'photographers' && second && third === 'available-slots') return getAvailableSlots(req, res, second);

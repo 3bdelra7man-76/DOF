@@ -2321,7 +2321,15 @@ async function uploadMediaFile(type,file,coverPosition){
     showToast(S.lang==='ar'?'تم الحفظ مؤقتاً — فشل الرفع':'Saved locally — upload failed','warning');
   }
 }
-function applyMediaUpdate(type,dataUrl,coverPosition){
+async function uploadProfileCoverDataUrl(dataUrl,coverPosition){
+  var pos=normalizeCoverPosition(coverPosition);
+  var data=await apiRequest('/api/me/profile/media',{method:'POST',body:{type:'cover',dataUrl:dataUrl,coverPosition:pos}});
+  applyMediaUpdate('cover',data.publicUrl,pos,{silent:true});
+  saveFrontendSession();
+  showToast(S.lang==='ar'?'تم تحديث صورة البانر':'Banner updated','success');
+  return data;
+}
+function applyMediaUpdate(type,dataUrl,coverPosition,options){
   if(!S.user)return;
   if(type==='cover'){S.user.cover=dataUrl;S.user.coverPosition=normalizeCoverPosition(coverPosition||S.user.coverPosition);}
   else{S.user.avatar=dataUrl;}
@@ -2333,7 +2341,9 @@ function applyMediaUpdate(type,dataUrl,coverPosition){
   if(S.view==='public'||S.isPortfolioPreview){renderPublicProfile();}
   if(S.view==='dashboard'){renderTab();}
   updateSidebarUser();
-  showToast(type==='cover'?(S.lang==='ar'?'تم تحديث صورة البانر':'Banner image updated'):(S.lang==='ar'?'تم تحديث صورة البروفايل':'Profile photo updated'),'success');
+  if(!(options&&options.silent)){
+    showToast(type==='cover'?(S.lang==='ar'?'تم تحديث صورة البانر':'Banner image updated'):(S.lang==='ar'?'تم تحديث صورة البروفايل':'Profile photo updated'),'success');
+  }
 }
 function ensureCoverPositionModal(){
   var modal=document.getElementById('cover-position-modal');
@@ -2495,18 +2505,24 @@ function coverCropFileName(file){
 }
 async function confirmCoverPosition(){
   if(!S.coverPositionDraft||!S.user)return;
-  var draft=S.coverPositionDraft;
+  var previousCover=S.user.cover;
+  var previousPosition=S.user.coverPosition;
+  var preview;
   try{
     var blob=await exportCoverCropBlob();
-    var preview=await blobToDataUrl(blob);
-    var croppedFile;
-    try{croppedFile=new File([blob],coverCropFileName(draft.file),{type:'image/jpeg'});}
-    catch(e){croppedFile=blob;croppedFile.name=coverCropFileName(draft.file);croppedFile.type='image/jpeg';}
-    closeCoverPositionModal();
-    applyMediaUpdate('cover',preview,'50% 50%');
-    uploadMediaFile('cover',croppedFile,'50% 50%');
+    preview=await blobToDataUrl(blob);
   }catch(err){
     showToast(S.lang==='ar'?'تعذر قص هذه الصورة، أعد رفع الصورة الأصلية':'Could not crop this image. Re-upload the original image.','error');
+    return;
+  }
+  closeCoverPositionModal();
+  applyMediaUpdate('cover',preview,'50% 50%',{silent:true});
+  try{
+    await uploadProfileCoverDataUrl(preview,'50% 50%');
+  }catch(err){
+    applyMediaUpdate('cover',previousCover,previousPosition,{silent:true});
+    saveFrontendSession();
+    showToast(S.lang==='ar'?'فشل رفع البانر. لم يتم تحديث الملف العام.':'Cover upload failed. Public profile was not updated.','error');
   }
 }
 async function handleSubscribe(){

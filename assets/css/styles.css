@@ -119,7 +119,7 @@ textarea.input{resize:vertical;min-height:80px;}
 .brand-logo-mark{display:inline-flex;align-items:center;justify-content:center;width:50px;height:50px;border-radius:10px;background:transparent;overflow:hidden;border:1px solid rgba(196,145,92,0.72);box-shadow:none;flex:0 0 auto;padding:1px 2px 0;}
 .brand-logo-mark.sm{width:42px;height:42px;border-radius:9px;}
 .brand-logo-mark.lg{width:66px;height:66px;border-radius:14px;}
-.brand-logo-img{width:100%;height:100%;object-fit:contain;display:block;transform:translateY(-5px) scale(1.55);transform-origin:center;}
+.brand-logo-img{width:100%;height:100%;object-fit:contain;display:block;transform:translateY(-7px) scale(1.55);transform-origin:center;}
 .official-contact-icons{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .official-contact-icons a{width:34px;height:34px;border:1px solid var(--border);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:var(--text2);background:rgba(255,255,255,0.02);transition:all .2s;}
 .official-contact-icons a:hover{border-color:var(--accent);color:var(--accent);background:rgba(196,145,92,0.1);}
