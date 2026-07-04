@@ -1323,9 +1323,9 @@ async function createConversation(req, res) {
   }
   if (profile.role !== 'client') throw fail(403, 'Only clients can start conversations with photographers');
   const sb = supabaseService();
-  let photographerId = cleanString(body.photographerId);
+  let photographerId = '';
   const photographerLink = cleanString(body.photographerLink || body.customLink);
-  if (!photographerId && photographerLink) {
+  if (photographerLink) {
     const { data: byLink, error: linkError } = await sb
       .from('photographer_directory')
       .select('id')
@@ -1335,9 +1335,11 @@ async function createConversation(req, res) {
       .maybeSingle();
     if (linkError) throw fail(422, linkError.message);
     photographerId = byLink?.id || '';
+  } else {
+    photographerId = cleanString(body.photographerId);
+    if (photographerId) assertUuid(photographerId, 'photographerId');
   }
   if (!photographerId) throw fail(422, 'Could not identify the photographer to message');
-  assertUuid(photographerId, 'photographerId');
   const { data: photographer, error: photographerError } = await sb
     .from('photographer_directory')
     .select('id')
@@ -1458,7 +1460,8 @@ async function listMessages(req, res, conversationId) {
 async function sendMessage(req, res, conversationId) {
   const { profile } = await requireUser(req);
   const body = await readJson(req);
-  required(body, ['content']);
+  const content = cleanString(body.content);
+  if (!content) throw fail(422, 'Message cannot be empty');
   const sb = supabaseService();
   const { data: conversation } = await sb.from('conversations').select('*').eq('id', conversationId).single();
   if (!conversation || ![conversation.client_id, conversation.photographer_id].includes(profile.id)) throw fail(404, 'Conversation not found');
@@ -1466,7 +1469,7 @@ async function sendMessage(req, res, conversationId) {
 
   const { data, error } = await sb
     .from('messages')
-    .insert({ conversation_id: conversationId, sender_id: profile.id, content: cleanString(body.content) })
+    .insert({ conversation_id: conversationId, sender_id: profile.id, content })
     .select('*')
     .single();
   if (error) throw fail(422, error.message);
@@ -2168,14 +2171,14 @@ async function handle(req, res) {
   if (req.method === 'PATCH' && first === 'bookings' && second && third === 'confirm') return confirmBooking(req, res, second);
   if (req.method === 'PATCH' && first === 'bookings' && second && third === 'complete') return completeBooking(req, res, second);
 
-  if (req.method === 'GET' && first === 'conversations') return listConversations(req, res);
   if (req.method === 'POST' && first === 'conversations' && second === 'from-booking') return createConversationFromBooking(req, res);
-  if (req.method === 'POST' && first === 'conversations') return createConversation(req, res);
   if (req.method === 'PATCH' && first === 'conversations' && second && third === 'block') return updateConversationState(req, res, second, 'block');
   if (req.method === 'PATCH' && first === 'conversations' && second && third === 'archive') return updateConversationState(req, res, second, 'archive');
   if (req.method === 'GET' && first === 'conversations' && second && third === 'messages') return listMessages(req, res, second);
   if (req.method === 'POST' && first === 'conversations' && second && third === 'messages') return sendMessage(req, res, second);
   if (req.method === 'DELETE' && first === 'conversations' && second && third === 'messages' && fourth) return deleteMessage(req, res, second, fourth);
+  if (req.method === 'GET' && first === 'conversations' && !second) return listConversations(req, res);
+  if (req.method === 'POST' && first === 'conversations' && !second) return createConversation(req, res);
   if (req.method === 'POST' && first === 'reports') return createReport(req, res);
 
   if (req.method === 'POST' && first === 'subscriptions' && second === 'paymob' && third === 'start') return startSubscription(req, res);

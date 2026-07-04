@@ -12,7 +12,7 @@ var S={lang:'ar',view:'landing',tab:'overview',
   trialDaysLeft:7,isSubscribed:false,subscriptionPrice:4,subscriptionCurrency:'USD',subscriptionDueAt:null,paymentWarningSentAt:null,portfolioSuspended:false,subscriptionPaymentMethod:'card',
   emailNotifs:true,smsNotifs:false,
   exploreFilter:{search:'',region:'',specialty:''},
-  categories:[],authCategorySlugs:[],authCategoryOpen:false,settingsCategorySlugs:[],
+  categories:[],authCategorySlugs:[],authCategoryOpen:false,authRegionOpen:false,settingsCategorySlugs:[],
   packageSort:'newest',packageFilter:'all',
   tempPackageFeatures:[],tempPackageFiles:[],deletePackageId:null,
   portfolioPublished:[],portfolioDirty:false,isPortfolioPreview:false,
@@ -769,6 +769,64 @@ function toggleCategoryChoice(context,slug){
   }
   renderCategoryPicker(context==='settings'?'settings-category-picker':'reg-category-picker',context);
 }
+function regionLabel(region){
+  if(!region)return'';
+  return S.lang==='ar'?(region.nameAr||region.nameEn):(region.nameEn||region.nameAr);
+}
+function renderAuthRegionPicker(){
+  var host=document.getElementById('reg-region-picker');
+  var select=document.getElementById('reg-region');
+  if(!host||!select)return;
+  var selected=select.value||'';
+  var current=S.egyptRegions.find(function(region){return region.id===selected;});
+  var summary=current?regionLabel(current):(S.lang==='ar'?'اختر المنطقة':'Choose area');
+  host.className='auth-category-picker auth-region-picker '+(S.authRegionOpen?'open':'');
+  host.innerHTML='<button type="button" class="auth-category-toggle" onclick="toggleAuthRegionList()">'+
+    '<span class="auth-category-summary">'+summary+'</span>'+
+    '<span class="auth-category-count">'+(S.lang==='ar'?'منطقة':'Area')+'</span>'+
+    '<i class="fas fa-chevron-down"></i>'+
+  '</button>'+
+  '<div class="auth-category-list">'+S.egyptRegions.map(function(region){
+    var active=region.id===selected;
+    return'<button type="button" class="auth-category-row '+(active?'selected':'')+'" onclick="chooseAuthRegion(\''+region.id+'\')">'+
+      '<span>'+regionLabel(region)+'</span>'+
+      '<i class="fas '+(active?'fa-check':'fa-map-marker-alt')+'"></i>'+
+    '</button>';
+  }).join('')+'</div>';
+}
+function toggleAuthRegionList(){
+  S.authRegionOpen=!S.authRegionOpen;
+  renderAuthRegionPicker();
+}
+function chooseAuthRegion(regionId){
+  var select=document.getElementById('reg-region');
+  if(select)select.value=regionId;
+  S.authRegionOpen=false;
+  renderAuthRegionPicker();
+}
+function upgradeRegisterRegionPicker(){
+  var select=document.getElementById('reg-region');
+  if(!select)return;
+  select.classList.add('hidden');
+  if(!select.value)select.value='';
+  var knownValues=Array.prototype.map.call(select.options||[],function(opt){return opt.value;});
+  S.egyptRegions.forEach(function(region){
+    if(knownValues.indexOf(region.id)===-1){
+      var opt=document.createElement('option');
+      opt.value=region.id;
+      opt.textContent=regionLabel(region);
+      select.appendChild(opt);
+    }
+  });
+  var host=document.getElementById('reg-region-picker');
+  if(!host){
+    host=document.createElement('div');
+    host.id='reg-region-picker';
+    host.className='auth-category-picker auth-region-picker';
+    select.insertAdjacentElement('afterend',host);
+  }
+  renderAuthRegionPicker();
+}
 function upgradeRegisterCategoryPicker(){
   var select=document.getElementById('reg-spec');
   if(!select)return;
@@ -786,6 +844,7 @@ function upgradeRegisterCategoryPicker(){
     host.insertAdjacentElement('afterend',hint);
   }
   renderCategoryPicker('reg-category-picker','auth');
+  upgradeRegisterRegionPicker();
 }
 function checkPassStrength(val){
   var bar=document.getElementById('pass-strength'),hint=document.getElementById('pass-hint');
@@ -806,6 +865,8 @@ async function handleLogin(e){
     setApiToken(data.session&&data.session.access_token);
     saveApiProfile(data.profile);
     S.user=normalizeProfile(data.profile);
+    S.conversations=[];S.messages={};S.blockedUsers=[];
+    await refreshConversations().catch(function(){});
     if(S.user&&S.user.role==='photographer'){
       await refreshMyPackages();
       await refreshMyPortfolio().catch(function(){});
@@ -857,6 +918,8 @@ async function handleRegister(e){
     setApiToken(loginData.session&&loginData.session.access_token);
     saveApiProfile(loginData.profile);
     S.user=normalizeProfile(loginData.profile);
+    S.conversations=[];S.messages={};S.blockedUsers=[];
+    await refreshConversations().catch(function(){});
     closeModal('auth-modal');
     if(S.user.role==='photographer'){S.appointments=[];S.bookings=[];S.portfolio=[];S.packages=[];S.portfolioPublished=[];navigate('dashboard');}
     else{
@@ -910,6 +973,8 @@ function toggleLang(){
   if(sidebarChatLabel){sidebarChatLabel.textContent=S.lang==='ar'?'الرسائل':'Messages';}
   var chatPanelTitle=document.getElementById('chat-panel-title');
   if(chatPanelTitle){chatPanelTitle.textContent=S.chatActiveConv?t('convWith')+' '+(S.conversations.find(function(c){return c.id===S.chatActiveConv;})||{}).clientName:t('chatTitle');}
+  if(document.getElementById('reg-category-picker'))renderCategoryPicker('reg-category-picker','auth');
+  if(document.getElementById('reg-region-picker'))renderAuthRegionPicker();
   if(S.chatActiveConv)renderChatMessages();
   else renderChatConvList();
   updateChatBadge();
@@ -2277,13 +2342,11 @@ function ensureCoverPositionModal(){
   modal.id='cover-position-modal';
   modal.className='modal-overlay cover-position-modal';
   modal.innerHTML='<div class="modal-box lg cover-position-box">'+
-    '<div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold">'+(S.lang==='ar'?'موضع البانر':'Cover Position')+'</h3>'+
+    '<div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold">'+(S.lang==='ar'?'قص البانر':'Crop Cover')+'</h3>'+
     '<button onclick="closeCoverPositionModal()" class="text-[var(--text2)] hover:text-[var(--text)] text-xl"><i class="fas fa-times"></i></button></div>'+
-    '<div class="cover-position-frame" id="cover-position-frame"><img id="cover-position-img" alt=""></div>'+
+    '<div class="cover-position-frame" id="cover-position-frame"><img id="cover-position-img" alt=""><div class="cover-crop-box" id="cover-crop-box"><span class="cover-crop-handle" id="cover-crop-handle"></span></div></div>'+
     '<div class="cover-position-actions">'+
-    '<button type="button" class="btn-secondary btn-sm" onclick="setCoverPositionDraft(50,20)">'+(S.lang==='ar'?'أعلى':'Top')+'</button>'+
-    '<button type="button" class="btn-secondary btn-sm" onclick="setCoverPositionDraft(50,50)">'+(S.lang==='ar'?'وسط':'Center')+'</button>'+
-    '<button type="button" class="btn-secondary btn-sm" onclick="setCoverPositionDraft(50,80)">'+(S.lang==='ar'?'أسفل':'Bottom')+'</button>'+
+    '<button type="button" class="btn-secondary btn-sm" onclick="resetCoverCrop()">'+(S.lang==='ar'?'إعادة':'Reset')+'</button>'+
     '<button type="button" class="btn-primary btn-sm" onclick="confirmCoverPosition()">'+(S.lang==='ar'?'حفظ':'Save')+'</button>'+
     '</div></div>';
   document.body.appendChild(modal);
@@ -2293,10 +2356,14 @@ function openCoverPositionModal(src,file){
   if(!S.user)return;
   var imageSrc=src||S.user.cover;
   if(!imageSrc){openMediaPicker('cover');return;}
-  S.coverPositionDraft={src:imageSrc,file:file||null,position:normalizeCoverPosition(S.user.coverPosition)};
+  S.coverPositionDraft={src:imageSrc,file:file||null,position:'50% 50%',crop:null};
   var modal=ensureCoverPositionModal();
   var img=document.getElementById('cover-position-img');
-  if(img){img.src=imageSrc;img.style.objectPosition=S.coverPositionDraft.position;}
+  if(img){
+    img.crossOrigin='anonymous';
+    img.onload=function(){resetCoverCrop();};
+    img.src=imageSrc;
+  }
   modal.classList.add('active');
   document.body.style.overflow='hidden';
   bindCoverPositionDrag();
@@ -2307,48 +2374,139 @@ function closeCoverPositionModal(){
   document.body.style.overflow='';
   S.coverPositionDraft=null;
 }
-function setCoverPositionDraft(x,y){
-  if(!S.coverPositionDraft)return;
-  x=Math.max(0,Math.min(100,Math.round(x)));
-  y=Math.max(0,Math.min(100,Math.round(y)));
-  S.coverPositionDraft.position=x+'% '+y+'%';
+function coverCropImageRect(){
+  var frame=document.getElementById('cover-position-frame');
   var img=document.getElementById('cover-position-img');
-  if(img)img.style.objectPosition=S.coverPositionDraft.position;
+  if(!frame||!img)return null;
+  var fr=frame.getBoundingClientRect();
+  var ir=img.getBoundingClientRect();
+  if(!ir.width||!ir.height)return null;
+  return {left:ir.left-fr.left,top:ir.top-fr.top,width:ir.width,height:ir.height};
+}
+function applyCoverCropBox(){
+  var box=document.getElementById('cover-crop-box');
+  var crop=S.coverPositionDraft&&S.coverPositionDraft.crop;
+  if(!box||!crop)return;
+  box.style.display='block';
+  box.style.left=crop.x+'px';
+  box.style.top=crop.y+'px';
+  box.style.width=crop.w+'px';
+  box.style.height=crop.h+'px';
+}
+function setCoverCropRect(rect){
+  if(!S.coverPositionDraft)return;
+  var bounds=coverCropImageRect();
+  if(!bounds)return;
+  var aspect=16/7;
+  var minW=Math.min(140,bounds.width);
+  var w=Math.max(minW,Math.min(rect.w,bounds.width));
+  var h=w/aspect;
+  if(h>bounds.height){
+    h=bounds.height;
+    w=h*aspect;
+  }
+  var x=Math.max(bounds.left,Math.min(rect.x,bounds.left+bounds.width-w));
+  var y=Math.max(bounds.top,Math.min(rect.y,bounds.top+bounds.height-h));
+  S.coverPositionDraft.crop={x:x,y:y,w:w,h:h};
+  applyCoverCropBox();
+}
+function resetCoverCrop(){
+  if(!S.coverPositionDraft)return;
+  var bounds=coverCropImageRect();
+  if(!bounds){setTimeout(resetCoverCrop,60);return;}
+  var aspect=16/7;
+  var w=bounds.width*.86;
+  var h=w/aspect;
+  if(h>bounds.height*.86){
+    h=bounds.height*.86;
+    w=h*aspect;
+  }
+  setCoverCropRect({x:bounds.left+(bounds.width-w)/2,y:bounds.top+(bounds.height-h)/2,w:w,h:h});
 }
 function bindCoverPositionDrag(){
   var frame=document.getElementById('cover-position-frame');
+  var box=document.getElementById('cover-crop-box');
+  var handle=document.getElementById('cover-crop-handle');
   if(!frame||frame.dataset.bound==='1')return;
   frame.dataset.bound='1';
-  var dragging=false;
-  function updateFromEvent(e){
+  var drag=null;
+  function beginDrag(mode,e){
+    if(!S.coverPositionDraft||!S.coverPositionDraft.crop)return;
+    e.preventDefault();
     var point=e.touches&&e.touches[0]?e.touches[0]:e;
-    var rect=frame.getBoundingClientRect();
-    setCoverPositionDraft(((point.clientX-rect.left)/rect.width)*100,((point.clientY-rect.top)/rect.height)*100);
+    drag={mode:mode,startX:point.clientX,startY:point.clientY,start:Object.assign({},S.coverPositionDraft.crop)};
   }
-  frame.addEventListener('mousedown',function(e){dragging=true;updateFromEvent(e);});
-  window.addEventListener('mousemove',function(e){if(dragging)updateFromEvent(e);});
-  window.addEventListener('mouseup',function(){dragging=false;});
-  frame.addEventListener('touchstart',function(e){dragging=true;updateFromEvent(e);},{passive:true});
-  frame.addEventListener('touchmove',function(e){if(dragging)updateFromEvent(e);},{passive:true});
-  frame.addEventListener('touchend',function(){dragging=false;});
+  function moveDrag(e){
+    if(!drag)return;
+    var point=e.touches&&e.touches[0]?e.touches[0]:e;
+    var dx=point.clientX-drag.startX;
+    var dy=point.clientY-drag.startY;
+    if(drag.mode==='move'){
+      setCoverCropRect({x:drag.start.x+dx,y:drag.start.y+dy,w:drag.start.w,h:drag.start.h});
+    }else{
+      var delta=Math.abs(dx)>Math.abs(dy*16/7)?dx:dy*16/7;
+      setCoverCropRect({x:drag.start.x,y:drag.start.y,w:drag.start.w+delta,h:drag.start.h+(delta*7/16)});
+    }
+  }
+  if(box)box.addEventListener('pointerdown',function(e){if(e.target===handle)return;beginDrag('move',e);});
+  if(handle)handle.addEventListener('pointerdown',function(e){beginDrag('resize',e);});
+  window.addEventListener('pointermove',moveDrag);
+  window.addEventListener('pointerup',function(){drag=null;});
+  window.addEventListener('resize',function(){
+    var modal=document.getElementById('cover-position-modal');
+    if(modal&&modal.classList.contains('active'))resetCoverCrop();
+  });
+}
+function exportCoverCropBlob(){
+  return new Promise(function(resolve,reject){
+    var draft=S.coverPositionDraft;
+    var img=document.getElementById('cover-position-img');
+    var bounds=coverCropImageRect();
+    if(!draft||!draft.crop||!img||!bounds||!img.naturalWidth){reject(new Error('Crop is not ready'));return;}
+    try{
+      var crop=draft.crop;
+      var sx=((crop.x-bounds.left)/bounds.width)*img.naturalWidth;
+      var sy=((crop.y-bounds.top)/bounds.height)*img.naturalHeight;
+      var sw=(crop.w/bounds.width)*img.naturalWidth;
+      var sh=(crop.h/bounds.height)*img.naturalHeight;
+      var canvas=document.createElement('canvas');
+      canvas.width=1600;
+      canvas.height=700;
+      var ctx=canvas.getContext('2d');
+      ctx.drawImage(img,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
+      canvas.toBlob(function(blob){
+        if(blob)resolve(blob);
+        else reject(new Error('Unable to crop this image'));
+      },'image/jpeg',0.92);
+    }catch(err){reject(err);}
+  });
+}
+function blobToDataUrl(blob){
+  return new Promise(function(resolve,reject){
+    var reader=new FileReader();
+    reader.onload=function(){resolve(reader.result);};
+    reader.onerror=function(){reject(reader.error||new Error('Unable to read crop'));};
+    reader.readAsDataURL(blob);
+  });
+}
+function coverCropFileName(file){
+  var base=file&&file.name?file.name.replace(/\.[^.]+$/,''):'cover';
+  return base+'-cropped-cover.jpg';
 }
 async function confirmCoverPosition(){
   if(!S.coverPositionDraft||!S.user)return;
   var draft=S.coverPositionDraft;
-  var position=normalizeCoverPosition(draft.position);
-  closeCoverPositionModal();
-  applyMediaUpdate('cover',draft.src,position);
-  if(draft.file){
-    uploadMediaFile('cover',draft.file,position);
-    return;
-  }
   try{
-    await apiRequest('/api/me/profile',{method:'PATCH',body:{coverPosition:position}});
-    saveFrontendSession();
-    showToast(S.lang==='ar'?'تم تحديث موضع البانر':'Cover position updated','success');
+    var blob=await exportCoverCropBlob();
+    var preview=await blobToDataUrl(blob);
+    var croppedFile;
+    try{croppedFile=new File([blob],coverCropFileName(draft.file),{type:'image/jpeg'});}
+    catch(e){croppedFile=blob;croppedFile.name=coverCropFileName(draft.file);croppedFile.type='image/jpeg';}
+    closeCoverPositionModal();
+    applyMediaUpdate('cover',preview,'50% 50%');
+    uploadMediaFile('cover',croppedFile,'50% 50%');
   }catch(err){
-    saveFrontendSession();
-    showToast(err.message||'تعذر حفظ موضع البانر','error');
+    showToast(S.lang==='ar'?'تعذر قص هذه الصورة، أعد رفع الصورة الأصلية':'Could not crop this image. Re-upload the original image.','error');
   }
 }
 async function handleSubscribe(){
@@ -3226,12 +3384,19 @@ function getClientId(){
   return S.clientSessionId;
 }
 function persistChatData(){
+  if(apiToken()&&S.user)return;
   try{
     var data={conversations:S.conversations||[],messages:S.messages||{},blockedUsers:S.blockedUsers||[],reportedConversations:S.reportedConversations||[]};
     localStorage.setItem('dof_chat_data_v1',JSON.stringify(data));
   }catch(e){}
 }
 function loadChatData(){
+  if(apiToken()&&S.user){
+    S.conversations=[];
+    S.messages={};
+    S.blockedUsers=[];
+    return;
+  }
   try{
     var raw=localStorage.getItem('dof_chat_data_v1');
     if(raw){
@@ -3247,6 +3412,19 @@ async function refreshConversations(){
   if(!apiToken()||!S.user)return;
   var data=await apiRequest('/api/conversations');
   S.conversations=(data.conversations||[]).map(normalizeConversation);
+}
+async function loadConversationMessages(convId){
+  var conv=S.conversations.find(function(c){return String(c.id)===String(convId);});
+  if(!conv)return [];
+  if(!apiToken()||!S.user)return getConvMessages(convId);
+  var data=await apiRequest('/api/conversations/'+convId+'/messages');
+  var messages=(data.messages||[]).map(function(m){return normalizeMessage(m,conv);});
+  setConvMessages(convId,messages);
+  return messages;
+}
+function isConversationBlocked(conv){
+  if(!conv)return false;
+  return !!conv.blockedBy||S.blockedUsers.indexOf(conv.clientId)>-1||S.blockedUsers.indexOf('photo_'+conv.photographerId)>-1;
 }
 function getConvMessages(convId){
   return (S.messages[String(convId)]||[]);
@@ -3365,14 +3543,13 @@ async function renderChatConvList(){
     return;
   }
   container.innerHTML=filtered.map(function(c){
-    var isBlocked=S.blockedUsers.indexOf(c.clientId)>-1;
-    var isBlockedByPhoto=S.blockedUsers.indexOf('photo_'+c.photographerId)>-1;
-    var blockedLabel=isBlocked||isBlockedByPhoto?'<span class="badge badge-cancelled" style="font-size:9px;padding:1px 6px;">'+t('chatBlocked')+'</span>':'';
+    var isBlocked=isConversationBlocked(c);
+    var blockedLabel=isBlocked?'<span class="badge badge-cancelled" style="font-size:9px;padding:1px 6px;">'+t('chatBlocked')+'</span>':'';
     var peer=getConversationPeer(c);
     return'<div class="chat-conv-item'+(c.id===S.chatActiveConv?' selected':'')+'" onclick="openChatConversation(\''+c.id+'\')">'+
     '<img class="conv-avatar" src="'+peer.avatar+'" alt="">'+
     '<div class="info"><div class="name">'+peer.name+blockedLabel+'</div>'+
-    '<div class="preview">'+(isBlocked?t('chatBlocked'):(isBlockedByPhoto?t('chatBlockedByUser'):(c.lastMessage||'')))+'</div></div>'+
+    '<div class="preview">'+(isBlocked?t('chatBlocked'):(c.lastMessage||''))+'</div></div>'+
     '<div class="meta">'+
     (c.unread>0?'<div class="unread-badge">'+(c.unread>99?'99+':c.unread)+'</div>':'')+
     '<div class="time-sm">'+timeAgo(c.lastMessageAt)+'</div></div></div>';
@@ -3393,28 +3570,26 @@ function timeAgo(iso){
   var d=new Date(iso);
   return S.lang==='ar'?d.toLocaleDateString('ar-SA',{month:'short',day:'numeric'}):d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
 }
-async function renderChatMessages(){
+async function renderChatMessages(skipFetch){
   var area=document.getElementById('chat-msg-area');
   if(!area||!S.chatActiveConv)return;
   var conv=S.conversations.find(function(c){return c.id===S.chatActiveConv;});
   if(!conv)return;
-  if(apiToken()){
+  if(apiToken()&&!skipFetch){
     try{
-      var data=await apiRequest('/api/conversations/'+S.chatActiveConv+'/messages');
-      setConvMessages(S.chatActiveConv,(data.messages||[]).map(function(m){return normalizeMessage(m,conv);}));
+      await loadConversationMessages(S.chatActiveConv);
     }catch(e){}
   }
   var msgs=getConvMessages(S.chatActiveConv);
   var au=authUser();
   var pId=au&&au.role==='photographer'?au.id:null;
   var isClient=!(pId&&pId===conv.photographerId);
-  var isBlocked=S.blockedUsers.indexOf(conv.clientId)>-1;
-  var isBlockedByPhoto=S.blockedUsers.indexOf('photo_'+conv.photographerId)>-1;
+  var isBlocked=isConversationBlocked(conv);
   var inputArea=document.querySelector('#chat-panel-footer, .chat-panel-footer');
   var input=document.getElementById('chat-input');
   if(input){
-    input.disabled=isBlocked||isBlockedByPhoto;
-    input.placeholder=isBlocked||isBlockedByPhoto?t('chatBlocked'):t('chatInput');
+    input.disabled=isBlocked;
+    input.placeholder=isBlocked?t('chatBlocked'):t('chatInput');
   }
   if(msgs.length===0){
     area.innerHTML='<div class="chat-empty-state" style="padding:20px;"><i class="fas fa-comment" style="font-size:2rem;"></i><p style="font-size:13px;">'+t('chatNoMsg')+'</p></div>';
@@ -3429,7 +3604,7 @@ async function renderChatMessages(){
     return'<div class="chat-msg '+(m.sender==='photographer'?'photographer':'client')+' '+(isMine?'mine':'theirs')+'">'+
     '<div class="bubble">'+
     (isMine?'<div class="chat-msg-actions"><button onclick="deleteChatMessage(\''+m.id+'\')" title="'+t('chatDeleteMsg')+'"><i class="fas fa-trash-alt"></i></button></div>':'')+
-    m.content+'<div class="time">'+timeStr+'</div></div></div>';
+    escapeHtml(m.content)+'<div class="time">'+timeStr+'</div></div></div>';
   }).join('');
   area.scrollTop=area.scrollHeight;
   /* Mark messages as read */
@@ -3467,9 +3642,8 @@ function openChatConversation(convId){
   if(name){name.textContent=peer.name;}
   var status=document.getElementById('chat-conv-status');
   if(status){
-    var isBlocked=S.blockedUsers.indexOf(conv.clientId)>-1;
-    var isBlockedByPhoto=S.blockedUsers.indexOf('photo_'+conv.photographerId)>-1;
-    if(isBlocked||isBlockedByPhoto){
+    var isBlocked=isConversationBlocked(conv);
+    if(isBlocked){
       status.className='chat-header-status offline';status.innerHTML='<i class="fas fa-circle" style="font-size:6px;"></i><span>'+t('chatBlocked')+'</span>';
     }else{
       status.className='chat-header-status online';status.innerHTML='<i class="fas fa-circle" style="font-size:6px;"></i><span>'+t('chatOnline')+'</span>';
@@ -3495,50 +3669,48 @@ function openChatConversation(convId){
 }
 async function sendChatMessage(){
   if(!S.chatActiveConv)return;
+  if(!apiToken()||!S.user){showToast(S.lang==='ar'?'يرجى تسجيل الدخول أولاً':'Please login first','error');return;}
   var input=document.getElementById('chat-input');
   var text=input.value.trim();
   if(!text)return;
   var conv=S.conversations.find(function(c){return c.id===S.chatActiveConv;});
   if(!conv)return;
-  var isBlocked=S.blockedUsers.indexOf(conv.clientId)>-1;
-  var isBlockedByPhoto=S.blockedUsers.indexOf('photo_'+conv.photographerId)>-1;
-  if(isBlocked||isBlockedByPhoto){showToast(t('chatBlocked'),'error');return;}
-  var au=authUser();
-  var pId=au&&au.role==='photographer'?au.id:null;
-  var isClient=!(pId&&pId===conv.photographerId);
+  if(isConversationBlocked(conv)){showToast(t('chatBlocked'),'error');return;}
+  input.disabled=true;
   try{
-    var msg={id:Date.now(),conversationId:S.chatActiveConv,sender:isClient?'client':'photographer',content:text,timestamp:new Date().toISOString(),read:false,deleted:false};
-    if(apiToken()){
-      var saved=await apiRequest('/api/conversations/'+S.chatActiveConv+'/messages',{method:'POST',body:{content:text}});
-      msg=normalizeMessage(saved.message,conv);
-    }
+    var saved=await apiRequest('/api/conversations/'+S.chatActiveConv+'/messages',{method:'POST',body:{content:text}});
+    var msg=normalizeMessage(saved.message,conv);
     var msgs=getConvMessages(S.chatActiveConv);
     msgs.push(msg);
     setConvMessages(S.chatActiveConv,msgs);
+    input.value='';
   }catch(err){showToast(err.message||'تعذر إرسال الرسالة','error');return;}
+  finally{input.disabled=false;}
   updateConvPreview(S.chatActiveConv,text,msg.timestamp);
-  /* Update unread for the other party */
-  if(isClient){conv.unread=(conv.unread||0)+1;}
   updateChatBadge();
-  persistChatData();
-  input.value='';
-  renderChatMessages();
+  renderChatMessages(true);
   updateChatConvListPreview();
 }
 async function findOrCreateConversation(photographerId,photographerLink){
   var link=String(photographerLink||publicProfileLinkFromState()||publicProfileLinkFromUrl()||rememberedPublicPhotographerLink()||'').trim();
-  photographerId=await resolvePhotographerIdForChat(photographerId,link);
-  if(!photographerId&&!link)return null;
   if(apiToken()){
+    photographerId=String(photographerId||'').trim();
+    if(!link&&(!photographerId||!isUuidLike(photographerId))){
+      photographerId=await resolvePhotographerIdForChat(photographerId,link);
+    }
+    if(!photographerId&&!link)return null;
     var body={};
-    if(photographerId)body.photographerId=photographerId;
     if(link)body.photographerLink=link;
+    else if(photographerId&&isUuidLike(photographerId))body.photographerId=photographerId;
+    else return null;
     var data=await apiRequest('/api/conversations',{method:'POST',body:body});
     var conv=normalizeConversation(data.conversation);
     var existingIndex=S.conversations.findIndex(function(c){return c.id===conv.id;});
     if(existingIndex>-1)S.conversations[existingIndex]=conv;else S.conversations.push(conv);
     return conv;
   }
+  photographerId=await resolvePhotographerIdForChat(photographerId,link);
+  if(!photographerId&&!link)return null;
   var clientId=getClientId();
   var existing=S.conversations.find(function(c){
     return c.photographerId===photographerId&&c.clientId===clientId;
@@ -3670,7 +3842,7 @@ function renderChatDashboard(){
   }
   
   html+='<div class="space-y-3">'+filtered.map(function(c){
-    var isBlocked=S.blockedUsers.indexOf(c.clientId)>-1;
+    var isBlocked=isConversationBlocked(c);
     var peer=getConversationPeer(c);
     var msgs=getConvMessages(c.id);
     var lastMsg=msgs.length>0?msgs[msgs.length-1]:null;
@@ -3728,7 +3900,10 @@ async function archiveConversation(convId){
 async function blockUserFromDashboard(clientId){
   if(S.blockedUsers.indexOf(clientId)===-1)S.blockedUsers.push(clientId);
   var conv=S.conversations.find(function(c){return c.clientId===clientId;});
-  if(apiToken()&&conv)await apiRequest('/api/conversations/'+conv.id+'/block',{method:'PATCH',body:{blocked:true}}).catch(function(e){showToast(e.message,'error');});
+  if(apiToken()&&conv){
+    await apiRequest('/api/conversations/'+conv.id+'/block',{method:'PATCH',body:{blocked:true}}).catch(function(e){showToast(e.message,'error');});
+    conv.blockedBy=(authUser()||{}).id||conv.blockedBy;
+  }
   persistChatData();
   renderTab();
   showToast(t('chatBlockSuccess'),'success');
@@ -3736,7 +3911,10 @@ async function blockUserFromDashboard(clientId){
 async function unblockUser(clientId){
   S.blockedUsers=S.blockedUsers.filter(function(id){return id!==clientId;});
   var conv=S.conversations.find(function(c){return c.clientId===clientId;});
-  if(apiToken()&&conv)await apiRequest('/api/conversations/'+conv.id+'/block',{method:'PATCH',body:{blocked:false}}).catch(function(e){showToast(e.message,'error');});
+  if(apiToken()&&conv){
+    await apiRequest('/api/conversations/'+conv.id+'/block',{method:'PATCH',body:{blocked:false}}).catch(function(e){showToast(e.message,'error');});
+    if(conv.blockedBy===(authUser()||{}).id)conv.blockedBy=null;
+  }
   persistChatData();
   if(S.tab==='chat')renderTab();
   else renderChatConvList();
@@ -3754,7 +3932,10 @@ async function confirmBlockConversation(){
   var conv=S.conversations.find(function(c){return c.id===S.chatActiveConv;});
   if(!conv){closeModal('chat-block-modal');return;}
   if(S.blockedUsers.indexOf(conv.clientId)===-1)S.blockedUsers.push(conv.clientId);
-  if(apiToken())await apiRequest('/api/conversations/'+conv.id+'/block',{method:'PATCH',body:{blocked:true}}).catch(function(e){showToast(e.message,'error');});
+  if(apiToken()){
+    await apiRequest('/api/conversations/'+conv.id+'/block',{method:'PATCH',body:{blocked:true}}).catch(function(e){showToast(e.message,'error');});
+    conv.blockedBy=(authUser()||{}).id||conv.blockedBy;
+  }
   persistChatData();
   closeModal('chat-block-modal');
   showToast(t('chatBlockSuccess'),'success');
@@ -3789,7 +3970,7 @@ async function confirmDeleteChatMessage(){
   S.chatDeleteTargetMsgId=null;
   try{
     await apiRequest('/api/conversations/'+convId+'/messages/'+msgId,{method:'DELETE'});
-  }catch(e){showToast(t('chatMsgDeleted')+' (local)','info');}
+  }catch(e){showToast(e.message||'فشل حذف الرسالة','error');return;}
   var msgs=getConvMessages(convId);
   var msg=msgs.find(function(m){return String(m.id)===String(msgId);});
   if(msg){msg.deleted=true;}
@@ -3828,8 +4009,7 @@ async function openChatModal(convId){
   modal.classList.remove('hidden');
   document.body.style.overflow='hidden';
   try{
-    var data=await apiRequest('/api/conversations/'+convId+'/messages');
-    setConvMessages(convId,(data.messages||[]).map(function(m){return normalizeMessage(m,conv);}));
+    await loadConversationMessages(convId);
   }catch(e){}
   renderChatModalMessages(getConvMessages(convId));
   var input=document.getElementById('chat-modal-input');
@@ -3876,9 +4056,11 @@ async function sendChatModalMessage(){
   var input=document.getElementById('chat-modal-input');
   var text=input?input.value.trim():'';
   if(!text||!S.chatActiveConv)return;
+  if(!apiToken()||!S.user){showToast(S.lang==='ar'?'يرجى تسجيل الدخول أولاً':'Please login first','error');return;}
   input.value='';
+  input.disabled=true;
   var conv=S.conversations.find(function(c){return String(c.id)===String(S.chatActiveConv);});
-  if(!conv)return;
+  if(!conv){input.disabled=false;return;}
   try{
     var data=await apiRequest('/api/conversations/'+S.chatActiveConv+'/messages',{method:'POST',body:{content:text}});
     var msg=normalizeMessage(data.message,conv);
@@ -3886,21 +4068,29 @@ async function sendChatModalMessage(){
     msgs.push(msg);
     setConvMessages(S.chatActiveConv,msgs);
     updateConvPreview(S.chatActiveConv,text,msg.timestamp);
-    persistChatData();
     renderChatModalMessages(msgs);
   }catch(e){showToast(e.message||'فشل إرسال الرسالة','error');input.value=text;}
+  finally{input.disabled=false;}
 }
 function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function jsString(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r/g,'').replace(/\n/g,'\\n');}
 /* ===== END CHAT MODAL ===== */
 
 function initChatSystem(){
-  loadChatData();
-  if(!S.clientSessionId)getClientId();
+  if(apiToken()&&S.user){
+    S.conversations=[];
+    S.messages={};
+    S.blockedUsers=[];
+    refreshConversations().then(function(){updateChatBadge();}).catch(function(){});
+  }else{
+    loadChatData();
+    if(!S.clientSessionId)getClientId();
+  }
   setupChatFAB();
   updateChatBadge();
   /* Listen for localStorage changes from other tabs */
   window.addEventListener('storage',function(e){
+    if(apiToken()&&S.user)return;
     if(e.key==='dof_chat_data_v1'){
       loadChatData();
       if(S.chatActiveConv){renderChatMessages();}
@@ -3916,12 +4106,14 @@ function initChatSystem(){
      - the user is logged in (apiToken() is present)
      - the tab is visible (skip background tabs to save battery/quota)
 */
-var _pollIntervals={bookings:null,convs:null};
+var _pollIntervals={bookings:null,convs:null,messages:null};
 function initRealtimePolling(){
   if(_pollIntervals.bookings)clearInterval(_pollIntervals.bookings);
   if(_pollIntervals.convs)clearInterval(_pollIntervals.convs);
+  if(_pollIntervals.messages)clearInterval(_pollIntervals.messages);
   _pollIntervals.bookings=setInterval(pollBookings,30000);
   _pollIntervals.convs=setInterval(pollConversations,20000);
+  _pollIntervals.messages=setInterval(pollActiveMessages,10000);
 }
 async function pollBookings(){
   if(!apiToken()||!S.user)return;
@@ -3947,13 +4139,30 @@ async function pollConversations(){
     if(S.view==='dashboard'&&S.tab==='chat')renderTab();
     var modal=document.getElementById('chat-modal');
     if(modal&&!modal.classList.contains('hidden')&&S.chatActiveConv){
-      var data=await apiRequest('/api/conversations/'+S.chatActiveConv+'/messages');
       var conv=S.conversations.find(function(c){return String(c.id)===String(S.chatActiveConv);});
       if(conv){
-        setConvMessages(S.chatActiveConv,(data.messages||[]).map(function(m){return normalizeMessage(m,conv);}));
+        await loadConversationMessages(S.chatActiveConv);
         renderChatModalMessages(getConvMessages(S.chatActiveConv));
       }
     }
+  }catch(e){}
+}
+async function pollActiveMessages(){
+  if(!apiToken()||!S.user||!S.chatActiveConv)return;
+  if(document.visibilityState==='hidden')return;
+  var panel=document.getElementById('chat-panel');
+  var modal=document.getElementById('chat-modal');
+  var panelOpen=panel&&panel.classList.contains('open');
+  var modalOpen=modal&&!modal.classList.contains('hidden');
+  if(!panelOpen&&!modalOpen)return;
+  try{
+    var before=JSON.stringify(getConvMessages(S.chatActiveConv).map(function(m){return {id:m.id,deleted:m.deleted,content:m.content};}));
+    await loadConversationMessages(S.chatActiveConv);
+    var after=JSON.stringify(getConvMessages(S.chatActiveConv).map(function(m){return {id:m.id,deleted:m.deleted,content:m.content};}));
+    if(before===after)return;
+    if(modalOpen)renderChatModalMessages(getConvMessages(S.chatActiveConv));
+    else renderChatMessages(true);
+    updateChatConvListPreview();
   }catch(e){}
 }
 async function manualRefreshBookings(){
