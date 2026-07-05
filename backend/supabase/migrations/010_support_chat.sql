@@ -77,3 +77,5 @@ with check (
       )
   )
 );
+
+notify pgrst, 'reload schema';

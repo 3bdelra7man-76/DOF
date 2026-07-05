@@ -1003,6 +1003,8 @@ function toggleLang(){
   /* Update chat UI labels */
   var sidebarChatLabel=document.getElementById('sidebar-chat-label');
   if(sidebarChatLabel){sidebarChatLabel.textContent=S.lang==='ar'?'الرسائل':'Messages';}
+  var sidebarSupportLabel=document.getElementById('sidebar-support-label');
+  if(sidebarSupportLabel){sidebarSupportLabel.textContent=S.lang==='ar'?'دعم العملاء':'Customer Support';}
   var chatPanelTitle=document.getElementById('chat-panel-title');
   if(chatPanelTitle){chatPanelTitle.textContent=S.chatActiveConv?t('convWith')+' '+(S.conversations.find(function(c){return c.id===S.chatActiveConv;})||{}).clientName:t('chatTitle');}
   if(document.getElementById('reg-category-picker'))renderCategoryPicker('reg-category-picker','auth');
@@ -4377,6 +4379,16 @@ async function startSupportChat(e){
     renderSupportChat();
     var input=document.getElementById('support-chat-input');
     if(input)setTimeout(function(){input.focus();},60);
+  }
+}
+function openDashboardSupport(e){
+  if(e&&e.preventDefault)e.preventDefault();
+  startSupportChat(e);
+  var sidebar=document.getElementById('sidebar');
+  var overlay=document.getElementById('sidebar-overlay');
+  if(window.innerWidth<1024){
+    if(sidebar)sidebar.classList.remove('open');
+    if(overlay)overlay.classList.add('hidden');
   }
 }
 function closeSupportChat(){
