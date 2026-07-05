@@ -47,6 +47,20 @@ const DEFAULT_PLATFORM_SETTINGS = {
   maxFreePortfolioPhotos: 10,
   subscriptionPriceEgp: MONTHLY_SUBSCRIPTION_EGP
 };
+const RESERVED_PROFILE_SLUGS = new Set([
+  'api',
+  'assets',
+  'admin',
+  'index',
+  'homepage',
+  'explore',
+  'publicprofile',
+  'photographerdashboard',
+  'reset',
+  'favicon',
+  'robots',
+  'sitemap'
+]);
 
 function routePath(req) {
   // Try Vercel's injected query.path first (array or string)
@@ -124,6 +138,33 @@ function categorySlug(value) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 80);
+}
+
+function profileSlug(value) {
+  return cleanString(value)
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64);
+}
+
+function fallbackProfileSlug(body) {
+  return profileSlug(body.customLink || body.custom_link)
+    || profileSlug(body.displayName)
+    || profileSlug(cleanString(body.email).split('@')[0]);
+}
+
+async function assertProfileSlugAvailable(sb, slug, ownerId = '') {
+  if (!slug || slug.length < 3) throw fail(422, 'Profile link must be at least 3 characters');
+  if (RESERVED_PROFILE_SLUGS.has(slug) || slug.endsWith('.html')) throw fail(422, 'This profile link is reserved');
+  const { data, error } = await sb
+    .from('photographer_profiles')
+    .select('profile_id')
+    .eq('custom_link', slug)
+    .maybeSingle();
+  if (error) throw fail(422, error.message);
+  if (data && String(data.profile_id) !== String(ownerId || '')) throw fail(409, 'This profile link is already used');
 }
 
 function categoryComparable(value) {
@@ -448,6 +489,11 @@ async function register(req, res) {
   const categoryRows = body.role === 'photographer'
     ? await resolveCategoryRows(sb, body, { requiredSelection: true })
     : [];
+  const photographerCustomLink = body.role === 'photographer' ? fallbackProfileSlug(body) : '';
+  if (body.role === 'photographer') {
+    required(body, ['region']);
+    await assertProfileSlugAvailable(sb, photographerCustomLink);
+  }
 
   const { data: authData, error: authError } = await sb.auth.admin.createUser({
     email: cleanString(body.email).toLowerCase(),
@@ -469,13 +515,12 @@ async function register(req, res) {
   if (profileError) throw fail(422, profileError.message);
 
   if (body.role === 'photographer') {
-    required(body, ['region', 'customLink']);
     const primaryCategory = categoryRows[0];
     const { error } = await sb.from('photographer_profiles').insert({
       profile_id: authData.user.id,
       specialty: primaryCategory?.name_en || cleanString(body.specialty) || 'Photography',
       region: cleanString(body.region),
-      custom_link: cleanString(body.customLink).toLowerCase(),
+      custom_link: photographerCustomLink,
       bio: cleanString(body.bio),
       subscription_status: 'free',
       is_published: false
@@ -576,10 +621,11 @@ async function updateMe(req, res) {
       if (key === 'specialty' && categoryRows) return;
       if (body[key] !== undefined) {
         const dbKey = { customLink: 'custom_link', coverUrl: 'cover_url', coverPosition: 'cover_position', socialLinks: 'social_links', isPublished: 'is_published' }[key] || key;
-        photographerPatch[dbKey] = key === 'coverPosition' ? cleanPosition(body[key]) : body[key];
+        photographerPatch[dbKey] = key === 'coverPosition' ? cleanPosition(body[key]) : key === 'customLink' ? profileSlug(body[key]) : body[key];
       }
     });
     if (Object.keys(photographerPatch).length) {
+      if (photographerPatch.custom_link !== undefined) await assertProfileSlugAvailable(sb, photographerPatch.custom_link, profile.id);
       const { error } = await sb.from('photographer_profiles').update(photographerPatch).eq('profile_id', profile.id);
       if (error) throw fail(422, error.message);
     }
@@ -1543,6 +1589,215 @@ async function createReport(req, res) {
   created(res, { report: data });
 }
 
+async function enrichSupportConversations(sb, conversations) {
+  const rows = conversations || [];
+  const ids = Array.from(new Set(rows.flatMap((row) => [row.user_id, row.assigned_admin_id]).filter(Boolean)));
+  const { data: people } = ids.length
+    ? await sb.from('profiles').select('id, role, display_name, email, avatar_url').in('id', ids)
+    : { data: [] };
+  const peopleById = Object.fromEntries((people || []).map((person) => [person.id, person]));
+  return rows.map((row) => {
+    const user = peopleById[row.user_id];
+    const admin = peopleById[row.assigned_admin_id];
+    return {
+      ...row,
+      user_name: user?.display_name || 'User',
+      user_email: user?.email || '',
+      user_role: user?.role || '',
+      user_avatar: user?.avatar_url || null,
+      admin_name: admin?.display_name || 'Support',
+      admin_avatar: admin?.avatar_url || null
+    };
+  });
+}
+
+async function enrichSupportMessages(sb, messages) {
+  const rows = messages || [];
+  const ids = Array.from(new Set(rows.map((row) => row.sender_id).filter(Boolean)));
+  const { data: people } = ids.length
+    ? await sb.from('profiles').select('id, role, display_name, avatar_url').in('id', ids)
+    : { data: [] };
+  const peopleById = Object.fromEntries((people || []).map((person) => [person.id, person]));
+  return rows.map((row) => {
+    const sender = peopleById[row.sender_id];
+    return {
+      ...row,
+      sender_name: sender?.role === 'admin' ? 'Support' : sender?.display_name || 'User',
+      sender_role: sender?.role || '',
+      sender_avatar: sender?.avatar_url || null
+    };
+  });
+}
+
+async function getSupportConversationForUser(sb, profile, conversationId) {
+  assertUuid(conversationId, 'conversationId');
+  const { data, error } = await sb
+    .from('support_conversations')
+    .select('*')
+    .eq('id', conversationId)
+    .eq('user_id', profile.id)
+    .maybeSingle();
+  if (error) throw fail(422, error.message);
+  if (!data) throw fail(404, 'Support conversation not found');
+  return data;
+}
+
+async function getSupportConversationForAdmin(sb, conversationId) {
+  assertUuid(conversationId, 'conversationId');
+  const { data, error } = await sb
+    .from('support_conversations')
+    .select('*')
+    .eq('id', conversationId)
+    .maybeSingle();
+  if (error) throw fail(422, error.message);
+  if (!data) throw fail(404, 'Support conversation not found');
+  return data;
+}
+
+async function createSupportMessage(sb, conversation, senderId, content, patch = {}) {
+  const text = cleanString(content);
+  if (!text) throw fail(422, 'Message cannot be empty');
+  if (conversation.status === 'closed' && patch.status !== 'open') throw fail(403, 'Support conversation is closed');
+  const { data, error } = await sb
+    .from('support_messages')
+    .insert({ support_conversation_id: conversation.id, sender_id: senderId, content: text })
+    .select('*')
+    .single();
+  if (error) throw fail(422, error.message);
+  await sb.from('support_conversations').update({
+    last_message: text,
+    last_message_at: data.created_at,
+    ...patch
+  }).eq('id', conversation.id);
+  return data;
+}
+
+async function listSupportConversations(req, res) {
+  const { profile } = await requireUser(req);
+  const sb = supabaseService();
+  const { data, error } = await sb
+    .from('support_conversations')
+    .select('*')
+    .eq('user_id', profile.id)
+    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false });
+  if (error) throw fail(422, error.message);
+  ok(res, { conversations: await enrichSupportConversations(sb, data || []) });
+}
+
+async function createSupportConversation(req, res) {
+  const { profile } = await requireUser(req);
+  const body = await readJson(req).catch(() => ({}));
+  const sb = supabaseService();
+  let { data: conversation, error } = await sb
+    .from('support_conversations')
+    .select('*')
+    .eq('user_id', profile.id)
+    .eq('status', 'open')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw fail(422, error.message);
+
+  if (!conversation) {
+    const createdRow = await sb
+      .from('support_conversations')
+      .insert({ user_id: profile.id, subject: cleanString(body.subject) || 'Support' })
+      .select('*')
+      .single();
+    if (createdRow.error) throw fail(422, createdRow.error.message);
+    conversation = createdRow.data;
+  }
+
+  if (cleanString(body.message)) {
+    await createSupportMessage(sb, conversation, profile.id, body.message);
+    const { data: refreshed } = await sb.from('support_conversations').select('*').eq('id', conversation.id).single();
+    conversation = refreshed || conversation;
+  }
+
+  created(res, { conversation: (await enrichSupportConversations(sb, [conversation]))[0] });
+}
+
+async function listSupportMessages(req, res, conversationId) {
+  const { profile } = await requireUser(req);
+  const sb = supabaseService();
+  await getSupportConversationForUser(sb, profile, conversationId);
+  const { data, error } = await sb
+    .from('support_messages')
+    .select('*')
+    .eq('support_conversation_id', conversationId)
+    .order('created_at');
+  if (error) throw fail(422, error.message);
+  ok(res, { messages: await enrichSupportMessages(sb, data || []) });
+}
+
+async function sendSupportMessage(req, res, conversationId) {
+  const { profile } = await requireUser(req);
+  const body = await readJson(req);
+  const sb = supabaseService();
+  const conversation = await getSupportConversationForUser(sb, profile, conversationId);
+  const message = await createSupportMessage(sb, conversation, profile.id, body.content);
+  created(res, { message: (await enrichSupportMessages(sb, [message]))[0] });
+}
+
+async function adminListSupportConversations(req, res) {
+  await requireAdmin(req);
+  const sb = supabaseService();
+  const { page, pageSize, from, to } = pageParams(req, 25);
+  const status = cleanString(param(req, 'status'));
+  let query = sb
+    .from('support_conversations')
+    .select('*', { count: 'exact' })
+    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .range(from, to);
+  if (['open', 'closed'].includes(status)) query = query.eq('status', status);
+  const { data, error, count } = await query;
+  if (error) throw fail(422, error.message);
+  ok(res, { conversations: await enrichSupportConversations(sb, data || []), page, pageSize, total: count || 0 });
+}
+
+async function adminListSupportMessages(req, res, conversationId) {
+  await requireAdmin(req);
+  const sb = supabaseService();
+  await getSupportConversationForAdmin(sb, conversationId);
+  const { data, error } = await sb
+    .from('support_messages')
+    .select('*')
+    .eq('support_conversation_id', conversationId)
+    .order('created_at');
+  if (error) throw fail(422, error.message);
+  ok(res, { messages: await enrichSupportMessages(sb, data || []) });
+}
+
+async function adminSendSupportMessage(req, res, conversationId) {
+  const admin = await requireAdmin(req);
+  const body = await readJson(req);
+  const sb = supabaseService();
+  const conversation = await getSupportConversationForAdmin(sb, conversationId);
+  const message = await createSupportMessage(sb, conversation, admin.id, body.content, {
+    assigned_admin_id: conversation.assigned_admin_id || admin.id
+  });
+  created(res, { message: (await enrichSupportMessages(sb, [message]))[0] });
+}
+
+async function adminUpdateSupportConversation(req, res, conversationId) {
+  const admin = await requireAdmin(req);
+  assertUuid(conversationId, 'conversationId');
+  const body = await readJson(req);
+  const status = cleanString(body.status);
+  if (!['open', 'closed'].includes(status)) throw fail(422, 'Invalid support conversation status');
+  const sb = supabaseService();
+  const { data, error } = await sb
+    .from('support_conversations')
+    .update({ status, assigned_admin_id: body.assignedAdminId === null ? null : admin.id })
+    .eq('id', conversationId)
+    .select('*')
+    .single();
+  if (error) throw fail(422, error.message);
+  ok(res, { conversation: (await enrichSupportConversations(sb, [data]))[0] });
+}
+
 async function startSubscription(req, res) {
   const { profile } = await requireUser(req);
   requireRole(profile, 'photographer');
@@ -2230,6 +2485,11 @@ async function handle(req, res) {
   if (req.method === 'POST' && first === 'conversations' && !second) return createConversation(req, res);
   if (req.method === 'POST' && first === 'reports') return createReport(req, res);
 
+  if (req.method === 'GET' && first === 'support' && second === 'conversations' && third && fourth === 'messages') return listSupportMessages(req, res, third);
+  if (req.method === 'POST' && first === 'support' && second === 'conversations' && third && fourth === 'messages') return sendSupportMessage(req, res, third);
+  if (req.method === 'GET' && first === 'support' && second === 'conversations' && !third) return listSupportConversations(req, res);
+  if (req.method === 'POST' && first === 'support' && second === 'conversations' && !third) return createSupportConversation(req, res);
+
   if (req.method === 'POST' && first === 'subscriptions' && second === 'paymob' && third === 'start') return startSubscription(req, res);
   if (req.method === 'GET' && first === 'subscriptions' && second === 'current') return currentSubscription(req, res);
   if (req.method === 'POST' && first === 'webhooks' && second === 'paymob') return paymobWebhook(req, res);
@@ -2246,6 +2506,10 @@ async function handle(req, res) {
   if (req.method === 'PATCH' && first === 'admin' && second === 'bookings' && third && fourth === 'status') return adminUpdateBookingStatus(req, res, third);
   if (req.method === 'GET' && first === 'admin' && second === 'reports') return adminListReports(req, res);
   if (req.method === 'PATCH' && first === 'admin' && second === 'reports' && third) return adminUpdateReport(req, res, third);
+  if (req.method === 'GET' && first === 'admin' && second === 'support' && third && fourth === 'messages') return adminListSupportMessages(req, res, third);
+  if (req.method === 'POST' && first === 'admin' && second === 'support' && third && fourth === 'messages') return adminSendSupportMessage(req, res, third);
+  if (req.method === 'PATCH' && first === 'admin' && second === 'support' && third) return adminUpdateSupportConversation(req, res, third);
+  if (req.method === 'GET' && first === 'admin' && second === 'support' && !third) return adminListSupportConversations(req, res);
   if (req.method === 'GET' && first === 'admin' && second === 'subscriptions') return adminListSubscriptions(req, res);
   if (req.method === 'PATCH' && first === 'admin' && second === 'subscriptions' && third) return adminUpdateSubscription(req, res, third);
   if (req.method === 'GET' && first === 'admin' && second === 'analytics') return adminAnalytics(req, res);

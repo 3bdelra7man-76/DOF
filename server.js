@@ -33,6 +33,20 @@ const MIME = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
 };
+const PROFILE_ROUTE_RESERVED = new Set([
+  'api',
+  'assets',
+  'admin',
+  'index',
+  'homepage',
+  'explore',
+  'publicprofile',
+  'photographerdashboard',
+  'reset',
+  'favicon',
+  'robots',
+  'sitemap'
+]);
 
 // pathToFileURL handles the [ ] in the filename safely
 const { default: apiHandler } = await import(
@@ -59,7 +73,14 @@ const server = createServer(async (req, res) => {
 
   if (!extname(filePath)) {
     if (existsSync(filePath + '.html')) filePath += '.html';
-    else filePath = resolve(__dirname, 'index.html');
+    else {
+      const cleanSlug = pathname.replace(/^\/+|\/+$/g, '');
+      const isProfileSlug = cleanSlug
+        && !cleanSlug.includes('/')
+        && !cleanSlug.includes('.')
+        && !PROFILE_ROUTE_RESERVED.has(cleanSlug.toLowerCase());
+      filePath = resolve(__dirname, isProfileSlug ? 'publicprofile.html' : 'index.html');
+    }
   }
 
   if (!existsSync(filePath)) {

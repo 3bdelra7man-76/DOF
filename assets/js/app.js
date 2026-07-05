@@ -105,7 +105,8 @@ var S={lang:'ar',view:'landing',tab:'overview',
   /* Per-user runtime data (separate from directory) */
   appointments:[],bookings:[],portfolio:[],packages:[],workingHours:[],
   /* Chat system state */
-  conversations:[],messages:{},chatActiveConv:null,blockedUsers:[],reportedConversations:[],chatDeleteTargetMsgId:null,clientSessionId:null
+  conversations:[],messages:{},chatActiveConv:null,blockedUsers:[],reportedConversations:[],chatDeleteTargetMsgId:null,clientSessionId:null,
+  supportConversation:null,supportMessages:[],supportOpen:false,supportLoading:false
 };
 
 /* ===== UTILITY FUNCTIONS ===== */
@@ -562,6 +563,34 @@ function todayLocalISO(){
   var d=new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
+var PROFILE_ROUTE_RESERVED=['api','assets','admin','index','homepage','explore','publicprofile','photographerdashboard','reset','favicon','robots','sitemap'];
+function slugifyProfileLink(value){
+  return String(value||'').toLowerCase().trim().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,64);
+}
+function cleanPathProfileLink(value){
+  var slug=slugifyProfileLink(value);
+  return slug&&PROFILE_ROUTE_RESERVED.indexOf(slug)===-1?slug:'';
+}
+function formatDateForInput(iso){
+  var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m?m[3]+'/'+m[2]+'/'+m[1]:'';
+}
+function parseDisplayDate(value){
+  var raw=String(value||'').trim();
+  var m=raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if(!m)return'';
+  var day=parseInt(m[1],10),month=parseInt(m[2],10),year=parseInt(m[3],10);
+  if(!year||month<1||month>12||day<1||day>31)return'';
+  var d=new Date(year,month-1,day);
+  if(d.getFullYear()!==year||d.getMonth()!==month-1||d.getDate()!==day)return'';
+  return year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+}
+function setPublicDateValue(iso){
+  var hidden=document.getElementById('pub-date');
+  var display=document.getElementById('pub-date-display');
+  if(hidden)hidden.value=iso||'';
+  if(display)display.value=formatDateForInput(iso);
+}
 function statusBadge(st){var m={pending:'badge-pending',confirmed:'badge-confirmed',cancelled:'badge-cancelled',completed:'badge-confirmed'};var l={pending:t('pending'),confirmed:t('confirmed'),cancelled:t('cancelledStatus'),completed:S.lang==='ar'?'مكتمل':'Completed'};return'<span class="badge '+(m[st]||'badge-pending')+'">'+(l[st]||st)+'</span>';}
 var TIME_SLOTS_CACHE=null;
 function timeSlots(){
@@ -639,6 +668,7 @@ document.addEventListener('keydown',function(e){
     document.querySelectorAll('.modal-overlay.active').forEach(function(m){m.classList.remove('active');document.body.style.overflow='';});
     var cm=document.getElementById('chat-modal');
     if(cm&&!cm.classList.contains('hidden')){closeChatModal();}
+    if(S.supportOpen){closeSupportChat();}
     if(S.pubAvatarPreview){closePubAvatarPreview();}
     else if(S.pubViewCollection!==null&&S.pubViewCollection!==undefined){closePubLightbox();}
   }
@@ -711,7 +741,7 @@ function togglePassVis(id,btn){
   if(inp.type==='password'){inp.type='text';btn.innerHTML='<i class="fas fa-eye-slash"></i>';}
   else{inp.type='password';btn.innerHTML='<i class="fas fa-eye"></i>';}
 }
-function validateLink(inp){inp.value=inp.value.toLowerCase().replace(/[^a-z0-9-]/g,'');}
+function validateLink(inp){inp.value=slugifyProfileLink(inp.value);}
 function renderCategoryPicker(hostId,context){
   var host=document.getElementById(hostId);
   if(!host)return;
@@ -901,11 +931,13 @@ async function handleRegister(e){
       var selectedCategories=(S.authCategorySlugs&&S.authCategorySlugs.length?S.authCategorySlugs.slice():(spec?[spec]:[]));
       if(!selectedCategories.length){showToast(S.lang==='ar'?'اختر قسماً واحداً على الأقل':'Choose at least one category','error');return;}
       var primaryCategory=findCategory(selectedCategories[0]);
+      var linkInput=document.getElementById('reg-link');
+      var profileLink=slugifyProfileLink(linkInput&&linkInput.value?linkInput.value:(name||email.split('@')[0]));
       await apiRequest('/api/auth/register',{method:'POST',body:{
         role:'photographer',displayName:name,email:email,password:pass,phone:phone,
         specialty:primaryCategory?categoryTextValue(primaryCategory,'en'):(spec||'Photography'),
         categorySlugs:selectedCategories,
-        region:region||'cairo',customLink:email.split('@')[0]
+        region:region||'cairo',customLink:profileLink
       }});
     } else {
       name=document.getElementById('reg-client-name').value;
@@ -993,7 +1025,13 @@ function publicProfileLinkFromState(){
 function publicProfileLinkFromUrl(){
   try{
     var params=new URLSearchParams(window.location.search);
-    return String(params.get('photographer')||params.get('profile')||params.get('link')||'').trim();
+    var queryLink=cleanPathProfileLink(params.get('photographer')||params.get('profile')||params.get('link')||'');
+    if(queryLink)return queryLink;
+    var path=String(window.location.pathname||'').replace(/^\/+|\/+$/g,'');
+    if(!path||path.indexOf('/')>-1)return'';
+    path=decodeURIComponent(path);
+    if(/\.[a-z0-9]+$/i.test(path))return'';
+    return cleanPathProfileLink(path);
   }catch(e){return'';}
 }
 function rememberPublicPhotographerLink(link){
@@ -1010,14 +1048,12 @@ function rememberedPublicPhotographerLink(){
   try{return localStorage.getItem('dof_public_photographer_link')||'';}catch(e){return'';}
 }
 function syncPublicProfileUrl(link){
-  link=String(link||'').trim();
+  link=cleanPathProfileLink(link);
   if(!link||!hasPageContainer('public'))return;
   try{
-    var params=new URLSearchParams(window.location.search);
-    if(params.get('photographer')===link&&!params.get('profile')&&!params.get('link'))return;
-    params.set('photographer',link);
-    params.delete('profile');params.delete('link');
-    history.replaceState({},'',window.location.pathname+'?'+params.toString());
+    var nextPath='/'+encodeURIComponent(link);
+    if(window.location.pathname===nextPath&&!window.location.search)return;
+    history.replaceState({},'',nextPath);
   }catch(e){}
 }
 function mapApiCollections(data){
@@ -1068,12 +1104,16 @@ function hasPageContainer(v){
 function goToPage(v){
   var url=PAGE_URLS[v]||'homepage.html';
   if(v==='public'){
-    var link=publicProfileLinkFromState()||rememberedPublicPhotographerLink();
-    if(link)url+='?photographer='+encodeURIComponent(link);
+    var link=cleanPathProfileLink(publicProfileLinkFromState()||rememberedPublicPhotographerLink());
+    if(link)url='/'+encodeURIComponent(link);
   }
   saveFrontendSession();
   var current=(location.pathname.split('/').pop()||'index.html');
   var target=url.split('?')[0];
+  if(v==='public'&&url.charAt(0)==='/'){
+    if(location.pathname!==url||window.location.search){window.location.href=url;}
+    return;
+  }
   if(current!==target||window.location.search!==url.slice(target.length)){window.location.href=url;}
 }
 function updateNavBar(){
@@ -2230,6 +2270,7 @@ function renderSettings(){
   '</div><div class="flex flex-wrap gap-2"><button type="button" onclick="openMediaPicker(\'cover\')" class="btn-secondary btn-sm">تغيير صورة البانر</button>'+(u.cover?'<button type="button" onclick="openCoverPositionModal()" class="btn-secondary btn-sm">ضبط موضع البانر</button>':'')+'</div><input id="s-cover-input" type="file" accept="image/*" onchange="handleMediaFile(\'cover\',this)" class="hidden"></div>'+
   '</div>'+
   '<div><label class="block text-sm text-[var(--text2)] mb-1">الاسم الكامل</label><input class="input" id="s-nameAr" value="'+(u.nameAr||u.name||'')+'"></div>'+
+  '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourBookingLink')+'</label><div class="link-input-group"><span class="link-prefix">'+escapeHtml((location.origin||'')+'/')+'</span><input class="input" id="s-custom-link" dir="ltr" value="'+escapeHtml(u.customLink||'')+'" oninput="validateLink(this)" placeholder="your-name"><button type="button" class="btn-secondary btn-sm" onclick="copyMyProfileLink()"><i class="fas fa-copy"></i>'+t('copyLink')+'</button><button type="button" class="btn-secondary btn-sm" onclick="openMyProfileLink()"><i class="fas fa-arrow-up-right-from-square"></i>'+t('viewPublicProfile')+'</button></div><div class="category-picker-hint">'+(S.lang==='ar'?'استخدم حروف إنجليزية وأرقام وشرطة فقط.':'Use English letters, numbers, and hyphens only.')+'</div></div>'+
   '<div><label class="block text-sm text-[var(--text2)] mb-2">التخصصات</label><div id="settings-category-picker" class="category-picker"></div><div id="settings-category-hint" class="category-picker-hint"></div></div>'+
   '<div><label class="block text-sm text-[var(--text2)] mb-1">نبذة عنك</label><textarea class="input" id="s-bioAr">'+(u.bioAr||u.bio||'')+'</textarea></div>'+
   '<button type="submit" class="btn-primary w-full">'+t('updateProfile')+'</button></form></div>'+
@@ -2245,8 +2286,10 @@ async function updateProfile(e){
   e.preventDefault();var u=S.user;
   var nameVal=document.getElementById('s-nameAr').value;
   var bioVal=document.getElementById('s-bioAr').value;
+  var customLinkVal=slugifyProfileLink((document.getElementById('s-custom-link')||{}).value||'');
   var selectedCategories=(S.settingsCategorySlugs||[]).slice();
   if(!selectedCategories.length){showToast(S.lang==='ar'?'اختر قسماً واحداً على الأقل':'Choose at least one category','error');return;}
+  if(customLinkVal.length<3){showToast(S.lang==='ar'?'رابط الملف يجب أن يكون 3 أحرف على الأقل':'Profile link must be at least 3 characters','error');return;}
   var specValEn=categorySummaryFromSlugs(selectedCategories,'en')||u.specialty||'Photography';
   var specValAr=categorySummaryFromSlugs(selectedCategories,'ar')||u.specialtyAr||specValEn;
   u.name=nameVal;u.nameAr=nameVal;
@@ -2254,11 +2297,18 @@ async function updateProfile(e){
   u.categories=selectedCategoryRows(selectedCategories);
   u.categorySlugs=selectedCategories;
   u.bio=bioVal;u.bioAr=bioVal;
+  u.customLink=customLinkVal;
   var dirPhoto=S.photographers.find(function(p){return p.id===u.id;});
-  if(dirPhoto){Object.assign(dirPhoto,{name:nameVal,nameAr:nameVal,specialty:specValEn,specialtyAr:specValAr,categories:u.categories,categorySlugs:selectedCategories,bio:bioVal,bioAr:bioVal});}
+  if(dirPhoto){Object.assign(dirPhoto,{name:nameVal,nameAr:nameVal,specialty:specValEn,specialtyAr:specValAr,categories:u.categories,categorySlugs:selectedCategories,bio:bioVal,bioAr:bioVal,customLink:customLinkVal});}
   updateSidebarUser();
   try{
-    await apiRequest('/api/me/profile',{method:'PATCH',body:{displayName:nameVal,categorySlugs:selectedCategories,bio:bioVal}});
+    await apiRequest('/api/me/profile',{method:'PATCH',body:{displayName:nameVal,categorySlugs:selectedCategories,bio:bioVal,customLink:customLinkVal}});
+    var stored=readApiProfile();
+    if(stored){
+      if(Array.isArray(stored.photographer_profiles)&&stored.photographer_profiles[0])stored.photographer_profiles[0].custom_link=customLinkVal;
+      else if(stored.photographer_profiles)stored.photographer_profiles.custom_link=customLinkVal;
+      saveApiProfile(stored);
+    }
     showToast('تم تحديث الملف الشخصي','success');
   }catch(err){showToast(err.message||'فشل الحفظ','error');}
 }
@@ -2534,7 +2584,21 @@ async function handleSubscribe(){
     showToast(S.lang==='ar'?'تم بدء عملية الدفع':'Payment started','success');
   }catch(err){showToast(err.message||'تعذر بدء الاشتراك','error');}
 }
+function publicProfileUrl(link){
+  var slug=cleanPathProfileLink(link);
+  return slug?(location.origin||'')+'/'+encodeURIComponent(slug):'';
+}
 function copyLink(link){navigator.clipboard.writeText(link).then(function(){showToast('تم نسخ الرابط','success');}).catch(function(){showToast(link,'info');});}
+function copyMyProfileLink(){
+  if(!S.user||!S.user.customLink)return;
+  copyLink(publicProfileUrl(S.user.customLink));
+}
+function openMyProfileLink(){
+  if(!S.user||!S.user.customLink)return;
+  S.viewedPhotographer=null;
+  rememberPublicPhotographerLink(S.user.customLink);
+  navigate('public');
+}
 function normalizePhoneToWa(phone){
   return String(phone||'').replace(/[^\d]/g,'');
 }
@@ -2642,7 +2706,7 @@ function renderExploreCard(p,compact){
   '<div class="photo-card-region"><i class="fas fa-map-marker-alt"></i> '+gf(p,'region')+'</div>'+
   '<div class="photo-card-stats"><div class="photo-card-stat"><div class="photo-card-stat-value">'+p.bookings+'</div><div class="photo-card-stat-label">'+(S.lang==='ar'?'حجوزات':' bookings')+'</div></div><div class="photo-card-stat"><div class="photo-card-stat-value"><span class="stars">'+starsHTML(p.rating)+'</span></div><div class="photo-card-stat-label">'+p.rating+'</div></div></div>'+
   (lowestPrice!==null?'<div class="flex items-center gap-2 mb-3 text-sm"><i class="fas fa-tag text-[var(--accent)]"></i><span class="text-[var(--text2)]">'+t('startingFrom')+' </span><span class="font-bold gradient-text">'+formatPrice(lowestPrice)+'</span></div>':'')+
-  '<div class="photo-card-social">'+(p.social&&p.social.facebook?'<a href="'+p.social.facebook+'" target="_blank"><i class="fab fa-facebook"></i></a>':'')+(p.social&&p.social.instagram?'<a href="'+p.social.instagram+'" target="_blank"><i class="fab fa-instagram"></i></a>':'')+'</div>'+
+  '<div class="photo-card-social">'+(p.social&&p.social.facebook?'<a href="'+p.social.facebook+'" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook"></i></a>':'')+(p.social&&p.social.instagram?'<a href="'+p.social.instagram+'" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>':'')+(p.social&&p.social.whatsapp?'<a href="https://wa.me/'+normalizePhoneToWa(p.social.whatsapp)+'" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>':'')+'</div>'+
   '<button onclick="viewPhotographerProfile(\''+p.id+'\')" class="btn-primary w-full btn-sm">'+t('viewProfile')+'</button></div></div>';
 }
 function renderExploreMobileGroups(filtered){
@@ -2950,7 +3014,7 @@ function renderPublicProfile(){
   '<div class="profile-header-inner flex items-end gap-6 mb-6">'+avatarEl+'<div class="pb-2"><h1 class="text-3xl font-bold">'+nm+'</h1><p class="text-[var(--accent)] font-semibold">'+sp+'</p><div class="flex items-center gap-4 mt-2 text-sm text-[var(--text2)]"><span><i class="fas fa-map-marker-alt mr-1"></i>'+rg+'</span><span class="stars">'+starsHTML(u.rating||0)+'</span></div></div>'+
   profileActions+'</div>'+
   (bi?'<p class="bio-text text-[var(--text2)] mb-6 max-w-2xl leading-relaxed">'+bi+'</p>':'')+
-  (u.social?'<div class="social-icons-wrapper flex flex-wrap gap-3 mb-10">'+(u.social.facebook?'<a href="'+u.social.facebook+'" target="_blank" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-facebook"></i></a>':'')+(u.social.instagram?'<a href="'+u.social.instagram+'" target="_blank" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]"><i class="fab fa-instagram"></i></a>':'')+'</div>':'')+
+  (u.social?'<div class="social-icons-wrapper flex flex-wrap gap-3 mb-10">'+(u.social.facebook?'<a href="'+u.social.facebook+'" target="_blank" rel="noopener" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]" aria-label="Facebook"><i class="fab fa-facebook"></i></a>':'')+(u.social.instagram?'<a href="'+u.social.instagram+'" target="_blank" rel="noopener" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]" aria-label="Instagram"><i class="fab fa-instagram"></i></a>':'')+(u.social.whatsapp?'<a href="https://wa.me/'+normalizePhoneToWa(u.social.whatsapp)+'" target="_blank" rel="noopener" class="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--text2)] hover:text-[var(--accent)] hover:border-[var(--accent)]" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>':'')+'</div>':'')+
   
   /* Portfolio Gallery — collections drill-in */
   '<div class="pub-section mb-12 pt-8 border-t border-[var(--border)]"><h2 class="text-2xl font-bold mb-6">'+t('yourPortfolio')+'</h2><div id="pub-gallery-section">'+renderPubGallery()+'</div></div>'+
@@ -3029,7 +3093,7 @@ function renderPublicProfile(){
   (u.avatar?'<img src="'+u.avatar+'" class="w-14 h-14 rounded-xl object-cover border border-[var(--border)]" alt="">':'<div class="w-14 h-14 rounded-xl border border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-xl" style="color:var(--border)"></i></div>')+
   '<div><div id="pub-service-name" class="font-bold text-lg text-[var(--accent)]"></div><div id="pub-service-duration" class="text-sm text-[var(--text2)]"></div><div id="pub-service-features-preview" class="text-xs text-[var(--text2)] mt-1"></div></div><div class="text-right"><div id="pub-service-price" class="text-3xl font-bold gradient-text"></div><div class="text-xs text-[var(--text2)] mt-1">Total</div></div></div></div>'+
   '<div class="rounded-xl border border-[var(--border)] bg-[var(--bg2)] p-5 space-y-4">'+
-  '<div><label class="block text-sm font-semibold mb-2"><i class="fas fa-calendar-alt ml-2 text-[var(--accent)]"></i>'+t('selectDate')+'</label><input type="date" class="input" required id="pub-date" min="'+todayLocalISO()+'" onchange="onPubDateChange()"></div>'+
+  '<div><label class="block text-sm font-semibold mb-2"><i class="fas fa-calendar-alt ml-2 text-[var(--accent)]"></i>'+t('selectDate')+'</label><input type="text" class="input" required id="pub-date-display" inputmode="numeric" autocomplete="off" placeholder="'+(S.lang==='ar'?'يوم/شهر/سنة':'day/month/year')+'" oninput="handlePubDateTyping(this)" onblur="handlePubDateBlur(this)"><input type="hidden" id="pub-date"></div>'+
   '<div id="pub-time-area" class="hidden"><label class="block text-sm font-semibold mb-3"><i class="fas fa-clock ml-2 text-[var(--accent)]"></i>'+t('selectTime')+'</label><div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="pub-time-slots"></div></div>'+
   '</div>'+
   ((S.user&&S.user.role==='client')
@@ -3052,6 +3116,11 @@ async function onPubDateChange(){
   var dv=document.getElementById('pub-date').value,area=document.getElementById('pub-time-area'),sd=document.getElementById('pub-time-slots');
   S.selectedDate=dv;S.selectedTime=null;
   if(!dv){area.classList.add('hidden');return;}
+  if(dv<todayLocalISO()){
+    area.classList.add('hidden');
+    showToast(S.lang==='ar'?'اختر تاريخاً قادماً':'Choose a future date','error');
+    return;
+  }
   area.classList.remove('hidden');
   var selectedPkg=getPackageById(document.getElementById('pub-service').value);
   var phFor=S.viewedPhotographer||S.user;
@@ -3070,6 +3139,33 @@ async function onPubDateChange(){
     }
   }
   sd.innerHTML=timeSlots().map(function(s){return'<div class="time-slot" onclick="selectPubTime(this,\''+s+'\')">'+formatClock(s)+'</div>';}).join('');
+}
+function handlePubDateTyping(input){
+  var raw=String(input.value||'').replace(/[^\d\/\-.]/g,'').slice(0,10);
+  var digits=raw.replace(/\D/g,'').slice(0,8);
+  var formatted=raw;
+  if(!/[\/\-.]/.test(raw)){
+    formatted=digits;
+    if(digits.length>4)formatted=digits.slice(0,2)+'/'+digits.slice(2,4)+'/'+digits.slice(4);
+    else if(digits.length>2)formatted=digits.slice(0,2)+'/'+digits.slice(2);
+  }
+  input.value=formatted;
+  var iso=parseDisplayDate(formatted);
+  var hidden=document.getElementById('pub-date');
+  if(hidden)hidden.value=iso;
+  if(iso){onPubDateChange();}
+  else{
+    S.selectedDate=null;S.selectedTime=null;
+    var area=document.getElementById('pub-time-area');
+    if(area)area.classList.add('hidden');
+  }
+}
+function handlePubDateBlur(input){
+  var iso=parseDisplayDate(input.value);
+  if(!input.value)return;
+  if(!iso){showToast(S.lang==='ar'?'اكتب التاريخ بصيغة يوم/شهر/سنة':'Use day/month/year format','error');return;}
+  setPublicDateValue(iso);
+  onPubDateChange();
 }
 function selectPubTime(el,time){
   document.querySelectorAll('#pub-time-slots .time-slot').forEach(function(s){s.classList.remove('selected');});
@@ -3183,7 +3279,7 @@ function restorePendingBookingIntent(){
       var svc=document.getElementById('pub-service');
       if(svc&&intent.packageId){svc.value=intent.packageId;onPubServiceChange();}
       var dt=document.getElementById('pub-date');
-      if(dt&&intent.date){dt.value=intent.date;onPubDateChange().then(function(){
+      if(dt&&intent.date){setPublicDateValue(intent.date);onPubDateChange().then(function(){
         if(intent.time){S.selectedTime=intent.time;}
       });}
       scrollToBookingForm();
@@ -3196,10 +3292,12 @@ async function handlePublicBooking(e){
   if(!S.selectedTime){showToast(t('noTimes'),'error');return;}
   var selectedPkg=getPackageById(document.getElementById('pub-service').value);
   if(!selectedPkg){showToast(t('selectService'),'error');return;}
+  var bookingDate=(document.getElementById('pub-date')||{}).value||'';
+  if(!bookingDate){showToast(S.lang==='ar'?'اختر التاريخ بصيغة يوم/شهر/سنة':'Choose a date in day/month/year format','error');return;}
   if(!S.bookings)S.bookings=[];
   var phFor=S.viewedPhotographer||S.user;
   var newBooking={id:++S.nextId,clientName:document.getElementById('pub-name').value,
-    clientEmail:document.getElementById('pub-email').value,clientPhone:document.getElementById('pub-phone').value,date:document.getElementById('pub-date').value,
+    clientEmail:document.getElementById('pub-email').value,clientPhone:document.getElementById('pub-phone').value,date:bookingDate,
     time:S.selectedTime,serviceId:selectedPkg.id,service:gf(selectedPkg,'name'),servicePrice:selectedPkg.price,serviceDuration:gf(selectedPkg,'duration'),
     photographerName:gf(phFor,'name'),photographerAvatar:phFor.avatar||phFor.cover,status:'pending'};
   try{
@@ -4122,14 +4220,16 @@ function initChatSystem(){
      - the user is logged in (apiToken() is present)
      - the tab is visible (skip background tabs to save battery/quota)
 */
-var _pollIntervals={bookings:null,convs:null,messages:null};
+var _pollIntervals={bookings:null,convs:null,messages:null,support:null};
 function initRealtimePolling(){
   if(_pollIntervals.bookings)clearInterval(_pollIntervals.bookings);
   if(_pollIntervals.convs)clearInterval(_pollIntervals.convs);
   if(_pollIntervals.messages)clearInterval(_pollIntervals.messages);
+  if(_pollIntervals.support)clearInterval(_pollIntervals.support);
   _pollIntervals.bookings=setInterval(pollBookings,30000);
   _pollIntervals.convs=setInterval(pollConversations,20000);
   _pollIntervals.messages=setInterval(pollActiveMessages,10000);
+  _pollIntervals.support=setInterval(pollSupportChat,12000);
 }
 async function pollBookings(){
   if(!apiToken()||!S.user)return;
@@ -4188,6 +4288,132 @@ async function manualRefreshBookings(){
     renderTab();
     showToast('تم التحديث','success');
   }catch(e){showToast('فشل التحديث','error');}
+}
+
+/* ===== SUPPORT CHAT ===== */
+function normalizeSupportConversation(row){
+  row=row||{};
+  return {
+    id:row.id,userId:row.user_id,adminId:row.assigned_admin_id||null,status:row.status||'open',
+    subject:row.subject||'Support',lastMessage:row.last_message||'',lastMessageAt:row.last_message_at||row.created_at,
+    userName:row.user_name||'User',userEmail:row.user_email||'',adminName:row.admin_name||'Support'
+  };
+}
+function normalizeSupportMessage(row){
+  row=row||{};
+  return {
+    id:row.id,conversationId:row.support_conversation_id,senderId:row.sender_id,
+    senderName:row.sender_name||'User',senderRole:row.sender_role||'',content:row.content||'',
+    timestamp:row.created_at,deleted:row.is_deleted===true
+  };
+}
+async function ensureSupportConversation(){
+  if(!apiToken()||!S.user)throw new Error(S.lang==='ar'?'يرجى تسجيل الدخول أولاً':'Please login first');
+  if(S.supportConversation&&S.supportConversation.status==='open')return S.supportConversation;
+  var existing=await apiRequest('/api/support/conversations').catch(function(){return{conversations:[]};});
+  var rows=(existing.conversations||[]).map(normalizeSupportConversation);
+  var open=rows.find(function(c){return c.status==='open';})||rows[0];
+  if(open){S.supportConversation=open;return open;}
+  var created=await apiRequest('/api/support/conversations',{method:'POST',body:{subject:S.lang==='ar'?'دعم العملاء':'Customer support'}});
+  S.supportConversation=normalizeSupportConversation(created.conversation);
+  return S.supportConversation;
+}
+async function loadSupportMessages(){
+  var conv=await ensureSupportConversation();
+  var data=await apiRequest('/api/support/conversations/'+conv.id+'/messages');
+  S.supportMessages=(data.messages||[]).map(normalizeSupportMessage);
+  return S.supportMessages;
+}
+function supportLabels(){
+  return S.lang==='ar'
+    ?{title:'دعم العملاء',subtitle:'تحدث مباشرة مع فريق DOF STUDIOS',empty:'اكتب رسالتك وسيصلك الرد هنا.',input:'اكتب رسالتك...',send:'إرسال',login:'سجل الدخول أولاً للتواصل مع الدعم'}
+    :{title:'Customer Support',subtitle:'Talk directly with the DOF STUDIOS team',empty:'Write your message and the reply will appear here.',input:'Type your message...',send:'Send',login:'Sign in first to contact support'};
+}
+function renderSupportChat(){
+  var labels=supportLabels();
+  var overlay=document.getElementById('support-chat-overlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='support-chat-overlay';
+    overlay.className='support-chat-overlay';
+    overlay.onclick=function(e){if(e.target===overlay)closeSupportChat();};
+    document.body.appendChild(overlay);
+  }
+  var mineId=S.user&&S.user.id;
+  overlay.innerHTML='<div class="support-chat-pane" onclick="event.stopPropagation()">'+
+    '<div class="support-chat-head"><div><div class="support-chat-kicker">DOF STUDIOS</div><h3>'+labels.title+'</h3><p>'+labels.subtitle+'</p></div><button type="button" class="support-chat-close" onclick="closeSupportChat()" aria-label="Close"><i class="fas fa-xmark"></i></button></div>'+
+    '<div class="support-chat-body" id="support-chat-body">'+
+      (S.supportLoading?'<div class="support-chat-empty"><i class="fas fa-spinner fa-spin"></i></div>':(S.supportMessages&&S.supportMessages.length?S.supportMessages.map(function(m){
+        var mine=String(m.senderId||'')===String(mineId||'');
+        return'<div class="support-msg '+(mine?'mine':'theirs')+'"><div class="support-bubble">'+escapeHtml(m.content)+'<div class="support-time">'+formatClock(m.timestamp)+'</div></div></div>';
+      }).join(''):'<div class="support-chat-empty"><i class="fas fa-headset"></i><p>'+labels.empty+'</p></div>'))+
+    '</div>'+
+    '<form class="support-chat-compose" onsubmit="sendSupportChatMessage(event)"><input id="support-chat-input" type="text" placeholder="'+labels.input+'" autocomplete="off"><button type="submit"><i class="fas fa-paper-plane"></i><span>'+labels.send+'</span></button></form>'+
+  '</div>';
+  overlay.classList.add('open');
+  document.body.classList.add('support-chat-open');
+  document.body.style.overflow='hidden';
+  var body=document.getElementById('support-chat-body');
+  if(body)body.scrollTop=body.scrollHeight;
+}
+async function startSupportChat(e){
+  if(e&&e.preventDefault)e.preventDefault();
+  if(!apiToken()||!S.user){
+    showToast(supportLabels().login,'info');
+    setAuthRole('client');
+    switchAuthTab('login');
+    openModal('auth-modal');
+    return;
+  }
+  S.supportOpen=true;
+  S.supportLoading=true;
+  renderSupportChat();
+  try{
+    await loadSupportMessages();
+  }catch(err){
+    showToast(err.message||'Support unavailable','error');
+  }finally{
+    S.supportLoading=false;
+    renderSupportChat();
+    var input=document.getElementById('support-chat-input');
+    if(input)setTimeout(function(){input.focus();},60);
+  }
+}
+function closeSupportChat(){
+  S.supportOpen=false;
+  var overlay=document.getElementById('support-chat-overlay');
+  if(overlay)overlay.classList.remove('open');
+  document.body.classList.remove('support-chat-open');
+  document.body.style.overflow='';
+}
+async function sendSupportChatMessage(e){
+  if(e&&e.preventDefault)e.preventDefault();
+  var input=document.getElementById('support-chat-input');
+  var text=input?input.value.trim():'';
+  if(!text)return;
+  input.disabled=true;
+  try{
+    var conv=await ensureSupportConversation();
+    var data=await apiRequest('/api/support/conversations/'+conv.id+'/messages',{method:'POST',body:{content:text}});
+    S.supportMessages.push(normalizeSupportMessage(data.message));
+    input.value='';
+    renderSupportChat();
+  }catch(err){
+    showToast(err.message||'تعذر إرسال الرسالة','error');
+  }finally{
+    var nextInput=document.getElementById('support-chat-input');
+    if(nextInput){nextInput.disabled=false;nextInput.focus();}
+  }
+}
+async function pollSupportChat(){
+  if(!S.supportOpen||!apiToken()||!S.user||!S.supportConversation)return;
+  if(document.visibilityState==='hidden')return;
+  try{
+    var before=JSON.stringify((S.supportMessages||[]).map(function(m){return m.id;}));
+    await loadSupportMessages();
+    var after=JSON.stringify((S.supportMessages||[]).map(function(m){return m.id;}));
+    if(before!==after)renderSupportChat();
+  }catch(e){}
 }
 /* Expose init for use after login */
 function setupChatFAB(){

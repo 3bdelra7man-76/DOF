@@ -1,5 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/[...path]" }
+    { "source": "/api/(.*)", "destination": "/api/[...path]" },
+    { "source": "/:slug((?!api|assets|admin|index|homepage|explore|publicprofile|photographerdashboard|reset|favicon|robots|sitemap)[^/.]+)", "destination": "/publicprofile.html" }
   ]
 }

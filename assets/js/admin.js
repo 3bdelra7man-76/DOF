@@ -29,6 +29,7 @@
     photoPage:1,photoSearch:'',photoStatus:'all',photoSubscription:'',
     bookingPage:1,bookingSearch:'',bookingStatus:'all',
     reportPage:1,reportStatus:'open',
+    supportPage:1,supportStatus:'open',supportActiveId:null,
     subscriptionPage:1,subscriptionSearch:'',subscriptionStatus:'all',
     notifPage:1,logPage:1,
     revenueRange:'monthly',visitRange:'monthly',
@@ -36,6 +37,7 @@
     photographers:[],photoTotal:0,
     bookings:[],bookingTotal:0,
     reports:[],reportTotal:0,
+    supportConversations:[],supportTotal:0,supportMessages:[],
     subscriptions:[],subscriptionTotal:0,
     categories:[],
     notifications:[],notificationTotal:0,
@@ -55,6 +57,7 @@
     {id:'photographers',icon:'fa-camera-retro',label:'المصورون'},
     {id:'bookings',icon:'fa-bookmark',label:'الحجوزات'},
     {id:'reports',icon:'fa-flag',label:'البلاغات'},
+    {id:'support',icon:'fa-headset',label:'الدعم'},
     {id:'subscriptions',icon:'fa-crown',label:'الاشتراكات'},
     {id:'categories',icon:'fa-tags',label:'الأقسام'},
     {id:'content',icon:'fa-file-lines',label:'المحتوى'},
@@ -237,7 +240,7 @@
     var renderers={
       overview:renderOverview,revenue:renderRevenue,visits:renderVisits,customers:renderCustomers,
       photographers:renderPhotographers,bookings:renderBookings,reports:renderReports,
-      subscriptions:renderSubscriptions,categories:renderCategories,content:renderContent,notifications:renderNotifications,
+      support:renderSupport,subscriptions:renderSubscriptions,categories:renderCategories,content:renderContent,notifications:renderNotifications,
       settings:renderSettings,logs:renderLogs
     };
     c.innerHTML='<div class="scale-in">'+(renderers[S.tab]||renderOverview)()+'</div>';
@@ -258,6 +261,7 @@
     else if(id==='photographers')await loadPhotographers();
     else if(id==='bookings')await loadBookings();
     else if(id==='reports')await loadReports();
+    else if(id==='support')await loadSupport();
     else if(id==='subscriptions')await loadSubscriptions();
     else if(id==='categories')await loadCategories();
     else if(id==='content')await loadContent();
@@ -300,6 +304,21 @@
   async function loadReports(){
     var data=await api('/api/admin/reports'+params({status:S.reportStatus,page:S.reportPage,pageSize:PAGE_SIZE}));
     S.reports=data.reports||[];S.reportTotal=data.total||0;
+  }
+  async function loadSupport(){
+    var data=await api('/api/admin/support'+params({status:S.supportStatus,page:S.supportPage,pageSize:PAGE_SIZE}));
+    S.supportConversations=data.conversations||[];S.supportTotal=data.total||0;
+    if(S.supportActiveId&&!S.supportConversations.some(function(c){return c.id===S.supportActiveId;})){
+      S.supportActiveId=null;
+    }
+    if(!S.supportActiveId&&S.supportConversations.length)S.supportActiveId=S.supportConversations[0].id;
+    if(S.supportActiveId)await loadSupportMessages(S.supportActiveId);
+    else S.supportMessages=[];
+  }
+  async function loadSupportMessages(id){
+    if(!id){S.supportMessages=[];return;}
+    var data=await api('/api/admin/support/'+id+'/messages');
+    S.supportMessages=data.messages||[];
   }
   async function loadSubscriptions(){
     var data=await api('/api/admin/subscriptions'+params({search:S.subscriptionSearch,status:S.subscriptionStatus,page:S.subscriptionPage,pageSize:PAGE_SIZE}));
@@ -389,6 +408,29 @@
     (S.reports.length?'<div class="space-y-4">'+S.reports.map(function(r){return '<div class="card p-5"><div class="flex flex-wrap justify-between gap-4"><div><div class="flex items-center gap-2 mb-2">'+statusBadge(r.status)+'<span class="text-dim" style="font-size:12px">'+fmtDateTime(r.created_at)+'</span></div><div style="font-weight:700;margin-bottom:6px">'+h(r.reason)+'</div><div class="text-muted" style="font-size:13px">المبلّغ: '+h(r.reporter?.display_name||'غير معروف')+' • المبلّغ عنه: '+h(r.reported?.display_name||'غير محدد')+'</div></div><div class="flex gap-2"><button class="btn btn-secondary btn-sm" onclick="updateReportStatus(\''+r.id+'\',\'reviewing\')">مراجعة</button><button class="btn btn-primary btn-sm" onclick="updateReportStatus(\''+r.id+'\',\'closed\')">إغلاق</button>'+(r.reported&&r.reported.role==='photographer'?'<button class="btn btn-danger btn-sm" onclick="suspendReported(\''+r.reported.id+'\')">إيقاف</button>':'')+'</div></div></div>';}).join('')+'</div>':empty('fa-flag','لا توجد بلاغات'))+
     pagination(S.reportPage,S.reportTotal,'goReportPage');
   }
+  function renderSupport(){
+    var active=S.supportConversations.find(function(c){return c.id===S.supportActiveId;})||S.supportConversations[0]||null;
+    if(active&&S.supportActiveId!==active.id)S.supportActiveId=active.id;
+    var list=S.supportConversations.length?S.supportConversations.map(function(c){
+      var activeClass=c.id===S.supportActiveId?' active':'';
+      return '<button type="button" class="support-admin-item'+activeClass+'" onclick="openSupportThread(\''+c.id+'\')">'+
+        '<span class="support-admin-avatar">'+h((c.user_name||'?').charAt(0))+'</span>'+
+        '<span class="support-admin-meta"><strong>'+h(c.user_name||'User')+'</strong><small>'+h(c.user_email||c.user_role||'')+'</small><em>'+h(c.last_message||'لا توجد رسائل بعد')+'</em></span>'+
+        '<span class="support-admin-side">'+statusBadge(c.status)+'<small>'+timeAgo(c.last_message_at||c.created_at)+'</small></span>'+
+      '</button>';
+    }).join(''):'<div class="p-6">'+empty('fa-headset','لا توجد محادثات دعم')+'</div>';
+    var messages=active?S.supportMessages:[];
+    var thread=active?'<div class="support-admin-thread-head"><div><h3>'+h(active.user_name||'User')+'</h3><p>'+h(active.user_email||'')+' · '+h(active.user_role||'')+'</p></div><div class="flex gap-2">'+(active.status==='closed'?'<button class="btn btn-secondary btn-sm" onclick="setSupportStatus(\''+active.id+'\',\'open\')"><i class="fas fa-lock-open"></i>إعادة فتح</button>':'<button class="btn btn-secondary btn-sm" onclick="setSupportStatus(\''+active.id+'\',\'closed\')"><i class="fas fa-check"></i>إغلاق</button>')+'</div></div>'+
+      '<div class="support-admin-messages">'+(messages.length?messages.map(function(m){
+        var mine=m.sender_role==='admin';
+        return '<div class="support-admin-msg '+(mine?'mine':'theirs')+'"><div><span>'+h(m.content)+'</span><small>'+h(m.sender_name||'')+' · '+fmtDateTime(m.created_at)+'</small></div></div>';
+      }).join(''):'<div class="support-admin-empty"><i class="fas fa-comments"></i><p>لا توجد رسائل في هذه المحادثة.</p></div>')+'</div>'+
+      (active.status==='closed'?'<div class="support-admin-closed">هذه المحادثة مغلقة. أعد فتحها للرد.</div>':'<form class="support-admin-compose" onsubmit="sendSupportReply(event)"><input class="input" id="support-reply-input" placeholder="اكتب رد الدعم..."><button class="btn btn-primary"><i class="fas fa-paper-plane"></i>إرسال</button></form>')
+      :'<div class="support-admin-empty"><i class="fas fa-headset"></i><p>اختر محادثة دعم لعرض الرسائل.</p></div>';
+    return '<div class="flex flex-wrap items-center justify-between gap-4 mb-6"><div><h2 class="font-display" style="font-size:26px;font-weight:700">دعم العملاء</h2><p class="text-muted mt-1" style="font-size:14px">'+fmt(S.supportTotal)+' محادثة</p></div></div>'+
+      '<div class="tab-filter mb-6 inline-flex"><button class="'+(S.supportStatus==='open'?'active':'')+'" onclick="S.supportStatus=\'open\';S.supportPage=1;S.supportActiveId=null;reloadTab()">مفتوح</button><button class="'+(S.supportStatus==='closed'?'active':'')+'" onclick="S.supportStatus=\'closed\';S.supportPage=1;S.supportActiveId=null;reloadTab()">مغلق</button><button class="'+(S.supportStatus==='all'?'active':'')+'" onclick="S.supportStatus=\'all\';S.supportPage=1;S.supportActiveId=null;reloadTab()">الكل</button></div>'+
+      '<div class="support-admin-layout"><div class="support-admin-list">'+list+'</div><div class="support-admin-thread">'+thread+'</div></div>'+pagination(S.supportPage,S.supportTotal,'goSupportPage');
+  }
   function renderSubscriptions(){
     return '<div class="flex flex-wrap items-center justify-between gap-4 mb-6"><div><h2 class="font-display" style="font-size:26px;font-weight:700">الاشتراكات</h2><p class="text-muted mt-1" style="font-size:14px">'+fmt(S.subscriptionTotal)+' سجل</p></div></div>'+
     '<div class="flex flex-wrap gap-3 mb-6"><div class="search-bar" style="max-width:360px;flex:1"><i class="fas fa-search"></i><input class="input" style="padding-right:42px;font-size:13px" placeholder="بحث بالمصور أو رقم الطلب..." value="'+h(S.subscriptionSearch)+'" oninput="S.subscriptionSearch=this.value;S.subscriptionPage=1;queueTabLoad()"></div><select class="input" style="width:auto" onchange="S.subscriptionStatus=this.value;S.subscriptionPage=1;reloadTab()"><option value="all">كل الحالات</option><option value="pending" '+(S.subscriptionStatus==='pending'?'selected':'')+'>معلق</option><option value="active" '+(S.subscriptionStatus==='active'?'selected':'')+'>نشط</option><option value="overdue" '+(S.subscriptionStatus==='overdue'?'selected':'')+'>متأخر</option><option value="cancelled" '+(S.subscriptionStatus==='cancelled'?'selected':'')+'>ملغي</option><option value="failed" '+(S.subscriptionStatus==='failed'?'selected':'')+'>فشل</option></select></div>'+
@@ -471,6 +513,45 @@
   async function updateReportStatus(id,status){
     await api('/api/admin/reports/'+id,{method:'PATCH',body:{status:status}});
     showToast('تم تحديث البلاغ','success');
+    reloadTab();
+  }
+  async function openSupportThread(id){
+    S.supportActiveId=id;
+    S.loading=true;renderTab();
+    try{
+      await loadSupportMessages(id);
+      S.loading=false;renderTab();
+      setTimeout(function(){
+        var box=document.querySelector('.support-admin-messages');
+        if(box)box.scrollTop=box.scrollHeight;
+      },40);
+    }catch(e){
+      S.error=e.message;S.loading=false;renderTab();
+    }
+  }
+  async function sendSupportReply(e){
+    e.preventDefault();
+    if(!S.supportActiveId)return;
+    var input=document.getElementById('support-reply-input');
+    var text=input?input.value.trim():'';
+    if(!text)return;
+    if(input)input.disabled=true;
+    try{
+      await api('/api/admin/support/'+S.supportActiveId+'/messages',{method:'POST',body:{content:text}});
+      if(input)input.value='';
+      await loadSupport();
+      showToast('تم إرسال الرد','success');
+    }catch(err){
+      showToast(err.message||'تعذر إرسال الرد','error');
+    }finally{
+      if(input)input.disabled=false;
+      renderTab();
+    }
+  }
+  async function setSupportStatus(id,status){
+    await api('/api/admin/support/'+id,{method:'PATCH',body:{status:status}});
+    showToast(status==='closed'?'تم إغلاق المحادثة':'تم إعادة فتح المحادثة','success');
+    S.supportActiveId=id;
     reloadTab();
   }
   async function suspendReported(id){
@@ -583,6 +664,7 @@
   function goPhotoPage(p){S.photoPage=p;reloadTab();}
   function goBookingPage(p){S.bookingPage=p;reloadTab();}
   function goReportPage(p){S.reportPage=p;reloadTab();}
+  function goSupportPage(p){S.supportPage=p;reloadTab();}
   function goSubscriptionPage(p){S.subscriptionPage=p;reloadTab();}
   function goNotifPage(p){S.notifPage=p;reloadTab();}
   function goLogPage(p){S.logPage=p;reloadTab();}
@@ -605,10 +687,11 @@
     buildSidebar:buildSidebar,switchTab:switchTab,toggleSidebar:toggleSidebar,checkMobile:checkMobile,
     renderTab:renderTab,reloadTab:reloadTab,queueTabLoad:queueTabLoad,globalSearch:globalSearch,
     updateNotifBadge:updateNotifBadge,addLog:addLog,setRevenueRange:setRevenueRange,
-    goCustomerPage:goCustomerPage,goPhotoPage:goPhotoPage,goBookingPage:goBookingPage,goReportPage:goReportPage,
+    goCustomerPage:goCustomerPage,goPhotoPage:goPhotoPage,goBookingPage:goBookingPage,goReportPage:goReportPage,goSupportPage:goSupportPage,
     goSubscriptionPage:goSubscriptionPage,goNotifPage:goNotifPage,goLogPage:goLogPage,
     viewUserDetail:viewUserDetail,viewPhotoDetail:viewPhotoDetail,togglePhotoStatus:togglePhotoStatus,togglePhotoPublished:togglePhotoPublished,
     updateBookingAdminStatus:updateBookingAdminStatus,updateReportStatus:updateReportStatus,suspendReported:suspendReported,
+    openSupportThread:openSupportThread,sendSupportReply:sendSupportReply,setSupportStatus:setSupportStatus,
     updateSubscriptionStatus:updateSubscriptionStatus,resetCategoryForm:resetCategoryForm,editCategory:editCategory,
     saveCategory:saveCategory,removeCategory:removeCategory,reactivateCategory:reactivateCategory,
     saveContent:saveContent,saveSettings:saveSettings,
@@ -622,5 +705,6 @@
     if(document.visibilityState==='hidden'||!S.admin)return;
     loadNotifications(true).catch(function(){});
     if(S.tab==='overview')loadOverview().then(renderTab).catch(function(){});
+    if(S.tab==='support')loadSupport().then(renderTab).catch(function(){});
   },60000);
 })();
