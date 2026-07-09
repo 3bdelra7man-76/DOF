@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=cover-crop-fix-20260704">
+<link rel="stylesheet" href="assets/css/styles.css?v=plans-routes-20260709">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="min-h-screen flex items-center justify-center p-6 bg-[var(--bg)]" style="font-family:'Cairo',sans-serif;">
@@ -34,7 +34,7 @@
     <div id="reset-msg" class="text-sm hidden"></div>
   </form>
   <div class="mt-6 text-center">
-    <a href="/index.html" class="text-sm text-[var(--accent)] hover:underline">العودة إلى الصفحة الرئيسية</a>
+    <a href="/" class="text-sm text-[var(--accent)] hover:underline">العودة إلى الصفحة الرئيسية</a>
   </div>
 </div>
 <script>
@@ -78,7 +78,7 @@
     var resp=await supabase.auth.updateUser({password:p1});
     if(resp.error){showMsg(resp.error.message||'فشل التحديث',true);return;}
     showMsg('تم تحديث كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.',false);
-    setTimeout(function(){window.location.href='/index.html';},2000);
+    setTimeout(function(){window.location.href='/';},2000);
   });
 })();
 </script>

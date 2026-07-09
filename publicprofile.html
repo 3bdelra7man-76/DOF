@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=support-chat-profile-links-20260705">
+<link rel="stylesheet" href="assets/css/styles.css?v=plans-routes-20260709">
 </head>
 <body data-page="public">
 
@@ -286,27 +286,22 @@
 <div id="sub-modal" class="modal-overlay">
   <div class="modal-box text-center">
     <div class="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center mx-auto mb-5"><i class="fas fa-crown text-2xl text-white"></i></div>
-    <h3 class="text-2xl font-bold mb-2" data-t="upgradeTitle">Upgrade to Pro</h3>
-    <p class="text-[var(--text2)] mb-6 text-sm" data-t="upgradeDesc">Unlock unlimited bookings and premium features.</p>
-    <div class="card p-5 mb-6 text-left">
-      <div class="text-3xl font-bold gradient-text mb-1" id="sub-price-label">200 <span class="text-lg font-normal">EGP</span> <span class="text-base text-[var(--text2)] font-normal">/ month</span></div>
-      <ul class="text-sm text-[var(--text2)] space-y-2 mt-4">
-        <li><i class="fas fa-check text-[var(--success)] mr-2"></i>Unlimited packages</li>
-        <li><i class="fas fa-check text-[var(--success)] mr-2"></i>Advanced analytics</li>
-        <li><i class="fas fa-check text-[var(--success)] mr-2"></i>Priority support</li>
-        <li><i class="fas fa-check text-[var(--success)] mr-2"></i>Remove DOF branding</li>
-      </ul>
-      <div class="mt-4">
-        <label class="block text-xs text-[var(--text2)] mb-2" id="payment-method-label">Payment Method</label>
-        <select id="subscription-payment-method" class="input">
-          <option value="card">Credit / Debit Card</option>
-          <option value="instapay">InstaPay</option>
-          <option value="wallet">Mobile Wallet</option>
-          <option value="bank">Bank Transfer</option>
-        </select>
+    <h3 class="text-2xl font-bold mb-2" data-t="upgradeTitle">Choose Your Plan</h3>
+    <p class="text-[var(--text2)] mb-6 text-sm" data-t="upgradeDesc">Unlock higher image limits, unlimited packages, and profile badges.</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 text-left">
+      <div class="card p-4">
+        <div class="text-sm font-semibold text-[var(--accent)] mb-1">Basic</div>
+        <div class="text-2xl font-bold gradient-text mb-3">400 <span class="text-sm font-normal">EGP / month</span></div>
+        <ul class="text-sm text-[var(--text2)] space-y-2"><li><i class="fas fa-check text-[var(--success)] mr-2"></i>25 gallery images</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Unlimited packages</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Badge 1</li></ul>
+        <button class="btn-primary w-full mt-4" onclick="handleSubscribe('basic')">Choose Basic</button>
+      </div>
+      <div class="card p-4 border-[var(--accent)]">
+        <div class="text-sm font-semibold text-[var(--accent)] mb-1">Premium</div>
+        <div class="text-2xl font-bold gradient-text mb-3">600 <span class="text-sm font-normal">EGP / month</span></div>
+        <ul class="text-sm text-[var(--text2)] space-y-2"><li><i class="fas fa-check text-[var(--success)] mr-2"></i>40 gallery images</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Priority support</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Badge 2</li></ul>
+        <button class="btn-primary w-full mt-4" onclick="handleSubscribe('premium')">Choose Premium</button>
       </div>
     </div>
-    <button class="btn-primary w-full text-lg py-3" onclick="handleSubscribe()" data-t="subscribeNow">Subscribe Now</button>
     <button onclick="closeModal('sub-modal')" class="text-[var(--text2)] text-sm mt-3 hover:text-[var(--text)] cursor-pointer block mx-auto" data-t="maybeLater">Maybe Later</button>
   </div>
 </div>
@@ -438,6 +433,6 @@
 <!-- ============================================================ -->
 <!-- ===== COMPLETE JAVASCRIPT ===== -->
 <!-- ============================================================ -->
-<script src="assets/js/app.js?v=support-chat-profile-links-20260705"></script>
+<script src="assets/js/app.js?v=plans-routes-20260709"></script>
 </body>
 </html>

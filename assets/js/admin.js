@@ -19,8 +19,10 @@
     registrationOpen:true,
     maintenanceMode:false,
     trialDays:7,
-    maxFreePortfolioPhotos:10,
-    subscriptionPriceEgp:200
+    maxFreePortfolioPhotos:6,
+    basicPlanPriceEgp:400,
+    premiumPlanPriceEgp:600,
+    subscriptionPriceEgp:400
   };
 
   window.S={
@@ -434,7 +436,7 @@
   function renderSubscriptions(){
     return '<div class="flex flex-wrap items-center justify-between gap-4 mb-6"><div><h2 class="font-display" style="font-size:26px;font-weight:700">الاشتراكات</h2><p class="text-muted mt-1" style="font-size:14px">'+fmt(S.subscriptionTotal)+' سجل</p></div></div>'+
     '<div class="flex flex-wrap gap-3 mb-6"><div class="search-bar" style="max-width:360px;flex:1"><i class="fas fa-search"></i><input class="input" style="padding-right:42px;font-size:13px" placeholder="بحث بالمصور أو رقم الطلب..." value="'+h(S.subscriptionSearch)+'" oninput="S.subscriptionSearch=this.value;S.subscriptionPage=1;queueTabLoad()"></div><select class="input" style="width:auto" onchange="S.subscriptionStatus=this.value;S.subscriptionPage=1;reloadTab()"><option value="all">كل الحالات</option><option value="pending" '+(S.subscriptionStatus==='pending'?'selected':'')+'>معلق</option><option value="active" '+(S.subscriptionStatus==='active'?'selected':'')+'>نشط</option><option value="overdue" '+(S.subscriptionStatus==='overdue'?'selected':'')+'>متأخر</option><option value="cancelled" '+(S.subscriptionStatus==='cancelled'?'selected':'')+'>ملغي</option><option value="failed" '+(S.subscriptionStatus==='failed'?'selected':'')+'>فشل</option></select></div>'+
-    (S.subscriptions.length?'<div class="card overflow-hidden"><table class="data-table"><thead><tr><th>المصور</th><th>المبلغ</th><th>الحالة</th><th>ينتهي في</th><th>الطلب</th><th>تحديث</th></tr></thead><tbody>'+S.subscriptions.map(function(s){return '<tr><td><div style="font-weight:600">'+h(s.photographer?.display_name||'-')+'</div><div class="text-dim" style="font-size:12px">'+h(s.photographer?.email||'')+'</div></td><td style="font-weight:700;color:var(--accent)">'+fmtMoney(s.amount)+'</td><td>'+statusBadge(s.status)+'</td><td>'+fmtDate(s.current_period_end)+'</td><td class="text-dim" style="font-size:12px">'+h(s.merchant_order_id||s.provider_order_id||'-')+'</td><td><select class="input" style="width:130px" onchange="updateSubscriptionStatus(\''+s.id+'\',this.value)"><option value="">اختر</option><option value="active">نشط</option><option value="pending">معلق</option><option value="overdue">متأخر</option><option value="cancelled">ملغي</option><option value="failed">فشل</option></select></td></tr>';}).join('')+'</tbody></table></div>':empty('fa-crown','لا توجد اشتراكات'))+
+    (S.subscriptions.length?'<div class="card overflow-hidden"><table class="data-table"><thead><tr><th>المصور</th><th>الخطة</th><th>المبلغ</th><th>الحالة</th><th>ينتهي في</th><th>الطلب</th><th>تحديث</th></tr></thead><tbody>'+S.subscriptions.map(function(s){var plan=s.plan_code||s.photographerProfile?.subscription_plan||'basic';return '<tr><td><div style="font-weight:600">'+h(s.photographer?.display_name||'-')+'</div><div class="text-dim" style="font-size:12px">'+h(s.photographer?.email||'')+'</div></td><td><span class="badge badge-active">'+h(String(plan).toUpperCase())+'</span></td><td style="font-weight:700;color:var(--accent)">'+fmtMoney(s.amount)+'</td><td>'+statusBadge(s.status)+'</td><td>'+fmtDate(s.current_period_end)+'</td><td class="text-dim" style="font-size:12px">'+h(s.merchant_order_id||s.provider_order_id||'-')+'</td><td><select class="input" style="width:130px" onchange="updateSubscriptionStatus(\''+s.id+'\',this.value)"><option value="">اختر</option><option value="active">نشط</option><option value="pending">معلق</option><option value="overdue">متأخر</option><option value="cancelled">ملغي</option><option value="failed">فشل</option></select></td></tr>';}).join('')+'</tbody></table></div>':empty('fa-crown','لا توجد اشتراكات'))+
     pagination(S.subscriptionPage,S.subscriptionTotal,'goSubscriptionPage');
   }
   function renderCategories(){
@@ -458,7 +460,7 @@
   function renderSettings(){
     var s=S.settings;
     return '<div class="mb-6"><h2 class="font-display" style="font-size:26px;font-weight:700">إعدادات النظام</h2><p class="text-muted mt-1" style="font-size:14px">إعدادات مؤثرة في التسجيل والاشتراك.</p></div>'+
-    '<form onsubmit="saveSettings(event)" class="card p-6 space-y-5"><div class="grid grid-3 gap-4"><div><label>أيام التجربة</label><input class="input" id="st-trialDays" type="number" min="0" value="'+h(s.trialDays)+'"></div><div><label>حد صور الخطة المجانية</label><input class="input" id="st-maxFreePortfolioPhotos" type="number" min="1" value="'+h(s.maxFreePortfolioPhotos)+'"></div><div><label>سعر الاشتراك الشهري (ج.م)</label><input class="input" id="st-subscriptionPriceEgp" type="number" min="1" value="'+h(s.subscriptionPriceEgp)+'"></div></div>'+
+    '<form onsubmit="saveSettings(event)" class="card p-6 space-y-5"><div class="grid grid-3 gap-4"><div><label>أيام التجربة</label><input class="input" id="st-trialDays" type="number" min="0" value="'+h(s.trialDays)+'"></div><div><label>حد صور الخطة المجانية</label><input class="input" id="st-maxFreePortfolioPhotos" type="number" min="1" value="'+h(s.maxFreePortfolioPhotos)+'"></div><div><label>سعر Basic الشهري (ج.م)</label><input class="input" id="st-basicPlanPriceEgp" type="number" min="1" value="'+h(s.basicPlanPriceEgp||s.subscriptionPriceEgp||400)+'"></div><div><label>سعر Premium الشهري (ج.م)</label><input class="input" id="st-premiumPlanPriceEgp" type="number" min="1" value="'+h(s.premiumPlanPriceEgp||600)+'"></div></div>'+
     '<div class="grid grid-2 gap-4" style="grid-template-columns:1fr 1fr"><label class="flex items-center justify-between p-4 rounded-md" style="background:var(--bg2);border:1px solid var(--border)"><span><strong>فتح التسجيل</strong><br><span class="text-dim" style="font-size:12px">إتاحة إنشاء حسابات جديدة</span></span><input type="checkbox" id="st-registrationOpen" '+(s.registrationOpen?'checked':'')+'></label><label class="flex items-center justify-between p-4 rounded-md" style="background:var(--bg2);border:1px solid var(--border)"><span><strong>وضع الصيانة</strong><br><span class="text-dim" style="font-size:12px">حقل محفوظ للاستخدام لاحقاً</span></span><input type="checkbox" id="st-maintenanceMode" '+(s.maintenanceMode?'checked':'')+'></label></div>'+
     '<button class="btn btn-primary"><i class="fas fa-floppy-disk"></i>حفظ الإعدادات</button></form>';
   }
@@ -634,7 +636,8 @@
       maintenanceMode:document.getElementById('st-maintenanceMode').checked,
       trialDays:Number(document.getElementById('st-trialDays').value||0),
       maxFreePortfolioPhotos:Number(document.getElementById('st-maxFreePortfolioPhotos').value||1),
-      subscriptionPriceEgp:Number(document.getElementById('st-subscriptionPriceEgp').value||1)
+      basicPlanPriceEgp:Number(document.getElementById('st-basicPlanPriceEgp').value||1),
+      premiumPlanPriceEgp:Number(document.getElementById('st-premiumPlanPriceEgp').value||1)
     };
     var data=await api('/api/admin/settings',{method:'PUT',body:{settings:settings}});
     S.settings=data.settings||settings;

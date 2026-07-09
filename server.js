@@ -36,7 +36,9 @@ const MIME = {
 const PROFILE_ROUTE_RESERVED = new Set([
   'api',
   'assets',
+  'adm',
   'admin',
+  'dashboard',
   'index',
   'homepage',
   'explore',
@@ -46,6 +48,20 @@ const PROFILE_ROUTE_RESERVED = new Set([
   'favicon',
   'robots',
   'sitemap'
+]);
+const CLEAN_ROUTES = new Map([
+  ['/explore', 'explore.html'],
+  ['/dashboard', 'photographerdashboard.html'],
+  ['/adm', 'admin.html'],
+  ['/reset', 'reset.html']
+]);
+const LEGACY_REDIRECTS = new Map([
+  ['/index.html', '/'],
+  ['/homepage.html', '/'],
+  ['/explore.html', '/explore'],
+  ['/photographerdashboard.html', '/dashboard'],
+  ['/admin.html', '/adm'],
+  ['/reset.html', '/reset']
 ]);
 
 // pathToFileURL handles the [ ] in the filename safely
@@ -68,8 +84,17 @@ const server = createServer(async (req, res) => {
     return apiHandler(req, res);
   }
 
+  if (LEGACY_REDIRECTS.has(pathname)) {
+    res.writeHead(308, { Location: LEGACY_REDIRECTS.get(pathname) + url.search });
+    return res.end();
+  }
+
   // Static file serving
-  let filePath = pathname === '/' ? resolve(__dirname, 'index.html') : resolve(__dirname, pathname.slice(1));
+  let filePath = pathname === '/'
+    ? resolve(__dirname, 'index.html')
+    : CLEAN_ROUTES.has(pathname)
+      ? resolve(__dirname, CLEAN_ROUTES.get(pathname))
+      : resolve(__dirname, pathname.slice(1));
 
   if (!extname(filePath)) {
     if (existsSync(filePath + '.html')) filePath += '.html';

@@ -135,8 +135,8 @@ For password reset emails, add these URLs in Supabase Dashboard -> Authenticatio
 ```text
 Site URL: https://your-domain.com
 Redirect URLs:
-https://your-domain.com/reset.html
-http://localhost:3000/reset.html
+https://your-domain.com/reset
+http://localhost:3000/reset
 ```
 
 ## 5. First Admin
@@ -152,7 +152,7 @@ where email = 'your@email.com';
 Then open:
 
 ```text
-http://localhost:3000/admin.html
+http://localhost:3000/adm
 ```
 
 Admin account creation is intentionally manual for now. The admin console uses the normal Supabase login session and accepts only profiles with `role = 'admin'`.
@@ -207,7 +207,7 @@ The frontend now calls the backend for auth, packages, working hours, bookings, 
 Recommended test order:
 
 1. Run `npx vercel dev`.
-2. Open `http://localhost:3000/homepage.html`.
+2. Open `http://localhost:3000/`.
 3. Register a photographer.
 4. Go to Calendar and save working hours.
 5. Go to Packages and create a package with a duration.

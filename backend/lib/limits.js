@@ -1,16 +1,24 @@
 export const PLAN_LIMITS = {
   free: {
-    portfolioCollections: 1,
-    portfolioPhotos: 10
+    portfolioCollections: Infinity,
+    portfolioPhotos: 6,
+    packages: 4
+  },
+  basic: {
+    portfolioCollections: Infinity,
+    portfolioPhotos: 25,
+    packages: Infinity
   },
   premium: {
-    portfolioCollections: 10,
-    portfolioPhotos: 250
+    portfolioCollections: Infinity,
+    portfolioPhotos: 40,
+    packages: Infinity
   }
 };
 
 export function planForPhotographer(photographerProfile) {
-  return photographerProfile?.subscription_status === 'active' ? 'premium' : 'free';
+  if (photographerProfile?.subscription_status !== 'active') return 'free';
+  return photographerProfile?.subscription_plan === 'premium' ? 'premium' : 'basic';
 }
 
 export function limitsForPlan(plan) {

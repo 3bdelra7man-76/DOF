@@ -1,6 +1,18 @@
 {
+  "redirects": [
+    { "source": "/index.html", "destination": "/", "permanent": true },
+    { "source": "/homepage.html", "destination": "/", "permanent": true },
+    { "source": "/explore.html", "destination": "/explore", "permanent": true },
+    { "source": "/photographerdashboard.html", "destination": "/dashboard", "permanent": true },
+    { "source": "/admin.html", "destination": "/adm", "permanent": true },
+    { "source": "/reset.html", "destination": "/reset", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/[...path]" },
-    { "source": "/:slug((?!api|assets|admin|index|homepage|explore|publicprofile|photographerdashboard|reset|favicon|robots|sitemap)[^/.]+)", "destination": "/publicprofile.html" }
+    { "source": "/explore", "destination": "/explore.html" },
+    { "source": "/dashboard", "destination": "/photographerdashboard.html" },
+    { "source": "/adm", "destination": "/admin.html" },
+    { "source": "/reset", "destination": "/reset.html" },
+    { "source": "/:slug((?!api|assets|adm|admin|dashboard|index|homepage|explore|publicprofile|photographerdashboard|reset|favicon|robots|sitemap)[^/.]+)", "destination": "/publicprofile.html" }
   ]
 }

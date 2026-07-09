@@ -33,7 +33,8 @@ export function publicProfileSelect() {
       social_links,
       is_published,
       is_suspended,
-      subscription_status
+      subscription_status,
+      subscription_plan
     )
   `;
 }

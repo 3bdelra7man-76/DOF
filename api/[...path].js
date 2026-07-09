@@ -9,10 +9,15 @@ import { asInt, assertUuid, required } from '../backend/lib/validation.js';
 
 const PORTFOLIO_BUCKET = 'portfolio';
 const PACKAGE_BUCKET = 'package-attachments';
-const MONTHLY_SUBSCRIPTION_EGP = 200;
+const BASIC_SUBSCRIPTION_EGP = 400;
+const PREMIUM_SUBSCRIPTION_EGP = 600;
 const ADMIN_PAGE_SIZE_MAX = 100;
 const INTERNAL_MANUAL_PACKAGE_KIND = 'manual_booking_internal';
 const MAX_PHOTOGRAPHER_CATEGORIES = 5;
+const SUBSCRIPTION_PLANS = {
+  basic: { label: 'Basic', priceEgp: BASIC_SUBSCRIPTION_EGP },
+  premium: { label: 'Premium', priceEgp: PREMIUM_SUBSCRIPTION_EGP }
+};
 const DEFAULT_PHOTOGRAPHER_CATEGORIES = [
   ['wedding', 'Wedding Photography', 'تصوير أعراس'],
   ['portrait', 'Portrait Photography', 'تصوير بورتريه'],
@@ -44,13 +49,17 @@ const DEFAULT_PLATFORM_SETTINGS = {
   registrationOpen: true,
   maintenanceMode: false,
   trialDays: 7,
-  maxFreePortfolioPhotos: 10,
-  subscriptionPriceEgp: MONTHLY_SUBSCRIPTION_EGP
+  maxFreePortfolioPhotos: 6,
+  basicPlanPriceEgp: BASIC_SUBSCRIPTION_EGP,
+  premiumPlanPriceEgp: PREMIUM_SUBSCRIPTION_EGP,
+  subscriptionPriceEgp: BASIC_SUBSCRIPTION_EGP
 };
 const RESERVED_PROFILE_SLUGS = new Set([
   'api',
   'assets',
+  'adm',
   'admin',
+  'dashboard',
   'index',
   'homepage',
   'explore',
@@ -257,6 +266,31 @@ function assertValidEmail(value) {
 function isInternalManualPackage(pkg) {
   const attachments = Array.isArray(pkg?.attachments) ? pkg.attachments : [];
   return attachments.some((item) => item && item.kind === INTERNAL_MANUAL_PACKAGE_KIND);
+}
+
+function subscriptionPlanCode(value) {
+  return cleanString(value).toLowerCase() === 'premium' ? 'premium' : 'basic';
+}
+
+function subscriptionPlanPrice(settings, planCode) {
+  const plan = subscriptionPlanCode(planCode);
+  const key = plan === 'premium' ? 'premiumPlanPriceEgp' : 'basicPlanPriceEgp';
+  const fallback = SUBSCRIPTION_PLANS[plan].priceEgp;
+  return Math.max(1, asInt(settings?.[key], fallback));
+}
+
+function isFreeTrialExpired(photographerProfile, settings) {
+  if (planForPhotographer(photographerProfile) !== 'free') return false;
+  const trialDays = Math.max(0, asInt(settings?.trialDays, DEFAULT_PLATFORM_SETTINGS.trialDays));
+  const createdAt = new Date(photographerProfile?.created_at || 0).getTime();
+  if (!createdAt || Number.isNaN(createdAt)) return false;
+  return Date.now() >= createdAt + trialDays * 24 * 60 * 60 * 1000;
+}
+
+function assertFreeTrialAvailable(photographerProfile, settings) {
+  if (isFreeTrialExpired(photographerProfile, settings)) {
+    throw fail(403, 'Free trial expired. Subscribe to Basic or Premium to continue.');
+  }
 }
 
 function pageParams(req, defaultPageSize = 25) {
@@ -523,6 +557,7 @@ async function register(req, res) {
       custom_link: photographerCustomLink,
       bio: cleanString(body.bio),
       subscription_status: 'free',
+      subscription_plan: 'free',
       is_published: false
     });
     if (error) throw fail(422, error.message);
@@ -537,7 +572,7 @@ async function resetPassword(req, res) {
   required(body, ['email']);
   const email = cleanString(body.email).toLowerCase();
   const resetBaseUrl = publicSiteBaseUrl(req);
-  const redirectTo = resetBaseUrl ? `${resetBaseUrl}/reset.html` : undefined;
+  const redirectTo = resetBaseUrl ? `${resetBaseUrl}/reset` : undefined;
   if (!redirectTo) {
     console.error('[auth/reset-password] missing public reset URL');
     throw fail(500, 'Password reset is not configured');
@@ -642,6 +677,7 @@ async function getPublicContent(req, res) {
 
 async function listPhotographers(req, res) {
   const sb = supabaseService();
+  const settings = await getPlatformSettings(sb);
   const search = cleanString(param(req, 'search')).toLowerCase();
   const region = cleanString(param(req, 'region'));
   const specialty = cleanString(param(req, 'specialty')).toLowerCase();
@@ -658,6 +694,7 @@ async function listPhotographers(req, res) {
   if (error) throw fail(422, error.message);
 
   const filtered = (data || []).filter((row) => {
+    if (isFreeTrialExpired(row, settings)) return false;
     const categories = Array.isArray(row.categories) ? row.categories : [];
     const categoryText = categories.map((category) => `${category.slug} ${category.name_en} ${category.name_ar}`).join(' ');
     const categorySlugs = Array.isArray(row.category_slugs) ? row.category_slugs : [];
@@ -673,6 +710,7 @@ async function listPhotographers(req, res) {
 
 async function getPublicPhotographer(req, res, customLink) {
   const sb = supabaseService();
+  const settings = await getPlatformSettings(sb);
   const { data: photographer, error } = await sb
     .from('photographer_directory')
     .select('*')
@@ -681,6 +719,7 @@ async function getPublicPhotographer(req, res, customLink) {
     .eq('is_suspended', false)
     .single();
   if (error || !photographer) throw fail(404, 'Photographer not found');
+  if (isFreeTrialExpired(photographer, settings)) throw fail(404, 'Photographer not found');
 
   const [{ data: collections }, { data: packages }, { data: workingHours }] = await Promise.all([
     sb.from('portfolio_collections').select('*, portfolio_photos(*)').eq('photographer_id', photographer.id).order('created_at'),
@@ -767,6 +806,8 @@ async function addPortfolioPhoto(req, res) {
   required(body, ['url']);
   const sb = supabaseService();
   const photographer = await getPhotographerProfile(sb, profile.id);
+  const settings = await getPlatformSettings(sb);
+  assertFreeTrialAvailable(photographer, settings);
   const plan = planForPhotographer(photographer);
   const limits = limitsForPlan(plan);
 
@@ -827,7 +868,11 @@ async function createCollection(req, res) {
   requireRole(profile, 'photographer');
   const body = await readJson(req);
   required(body, ['title']);
-  const { data, error } = await supabaseService()
+  const sb = supabaseService();
+  const photographer = await getPhotographerProfile(sb, profile.id);
+  const settings = await getPlatformSettings(sb);
+  assertFreeTrialAvailable(photographer, settings);
+  const { data, error } = await sb
     .from('portfolio_collections')
     .insert({ photographer_id: profile.id, title: cleanString(body.title) })
     .select('*')
@@ -856,6 +901,19 @@ async function createPackage(req, res) {
   requireRole(profile, 'photographer');
   const body = await readJson(req);
   required(body, ['name', 'price', 'durationMinutes']);
+  const sb = supabaseService();
+  const photographer = await getPhotographerProfile(sb, profile.id);
+  const settings = await getPlatformSettings(sb);
+  assertFreeTrialAvailable(photographer, settings);
+  const plan = planForPhotographer(photographer);
+  const limits = limitsForPlan(plan);
+  const { data: packageRows, error: countError } = await sb
+    .from('packages')
+    .select('id, attachments')
+    .eq('photographer_id', profile.id);
+  if (countError) throw fail(422, countError.message);
+  const packageCount = (packageRows || []).filter((pkg) => !isInternalManualPackage(pkg)).length;
+  if (packageCount >= limits.packages) throw fail(403, `Package limit reached for ${plan} plan`);
   const payload = {
     photographer_id: profile.id,
     name: cleanString(body.name),
@@ -867,7 +925,7 @@ async function createPackage(req, res) {
     status: body.status === 'draft' ? 'draft' : 'active',
     featured: body.featured === true
   };
-  const { data, error } = await supabaseService().from('packages').insert(payload).select('*').single();
+  const { data, error } = await sb.from('packages').insert(payload).select('*').single();
   if (error) throw fail(422, error.message);
   created(res, { package: data });
 }
@@ -994,6 +1052,9 @@ async function getAvailableSlots(req, res, photographerId) {
   if (!date || !packageId) throw fail(422, 'date and packageId are required');
 
   const sb = supabaseService();
+  const photographer = await getPhotographerProfile(sb, photographerId);
+  const settings = await getPlatformSettings(sb);
+  assertFreeTrialAvailable(photographer, settings);
   const [{ data: pkg }, { data: workingHours }, { data: bookings }, { data: blocks }] = await Promise.all([
     sb.from('packages').select('*').eq('id', packageId).eq('photographer_id', photographerId).eq('status', 'active').single(),
     sb.from('working_hours').select('*').eq('photographer_id', photographerId),
@@ -1073,6 +1134,9 @@ async function createBooking(req, res) {
     throw fail(401, 'يجب تسجيل الدخول كعميل للحجز');
   }
   const sb = supabaseService();
+  const photographer = await getPhotographerProfile(sb, body.photographerId);
+  const settings = await getPlatformSettings(sb);
+  assertFreeTrialAvailable(photographer, settings);
   const { data: pkg, error: pkgError } = await sb
     .from('packages')
     .select('*')
@@ -1132,6 +1196,9 @@ async function createManualBooking(req, res) {
   if (clientId) assertUuid(clientId, 'clientId');
 
   const sb = supabaseService();
+  const photographer = await getPhotographerProfile(sb, profile.id);
+  const settings = await getPlatformSettings(sb);
+  assertFreeTrialAvailable(photographer, settings);
   const requestedPackageId = cleanString(body.packageId);
   let pkg = null;
   let durationMinutes = 0;
@@ -1417,6 +1484,7 @@ async function createConversation(req, res) {
   }
   if (profile.role !== 'client') throw fail(403, 'Only clients can start conversations with photographers');
   const sb = supabaseService();
+  const settings = await getPlatformSettings(sb);
   let photographerId = '';
   const photographerLink = cleanString(body.photographerLink || body.customLink);
   if (photographerLink) {
@@ -1436,13 +1504,14 @@ async function createConversation(req, res) {
   if (!photographerId) throw fail(422, 'Could not identify the photographer to message');
   const { data: photographer, error: photographerError } = await sb
     .from('photographer_directory')
-    .select('id')
+    .select('*')
     .eq('id', photographerId)
     .eq('is_published', true)
     .eq('is_suspended', false)
     .maybeSingle();
   if (photographerError) throw fail(422, photographerError.message);
   if (!photographer) throw fail(404, 'Photographer not found');
+  assertFreeTrialAvailable(photographer, settings);
   const { data, error } = await sb
     .from('conversations')
     .upsert(
@@ -1801,9 +1870,11 @@ async function adminUpdateSupportConversation(req, res, conversationId) {
 async function startSubscription(req, res) {
   const { profile } = await requireUser(req);
   requireRole(profile, 'photographer');
+  const body = await readJson(req).catch(() => ({}));
+  const planCode = subscriptionPlanCode(body.plan || body.planCode);
   const settings = await getPlatformSettings();
-  const subscriptionPriceEgp = Math.max(1, asInt(settings.subscriptionPriceEgp, MONTHLY_SUBSCRIPTION_EGP));
-  const merchantOrderId = `dof-sub-${profile.id}-${Date.now()}`;
+  const subscriptionPriceEgp = subscriptionPlanPrice(settings, planCode);
+  const merchantOrderId = `dof-${planCode}-${profile.id}-${Date.now()}`;
   const intent = await createPaymobSubscriptionIntent({
     amountCents: subscriptionPriceEgp * 100,
     merchantOrderId,
@@ -1816,9 +1887,10 @@ async function startSubscription(req, res) {
     merchant_order_id: merchantOrderId,
     amount_cents: subscriptionPriceEgp * 100,
     currency: 'EGP',
-    status: 'pending'
+    status: 'pending',
+    plan_code: planCode
   });
-  ok(res, intent);
+  ok(res, { ...intent, plan: planCode, amountEgp: subscriptionPriceEgp });
 }
 
 async function currentSubscription(req, res) {
@@ -1856,8 +1928,10 @@ async function paymobWebhook(req, res) {
     .maybeSingle();
 
   if (subscription && status === 'active') {
+    const planCode = subscriptionPlanCode(subscription.plan_code);
     await sb.from('photographer_profiles').update({
       subscription_status: 'active',
+      subscription_plan: planCode,
       subscription_due_at: due.toISOString(),
       is_suspended: false
     }).eq('profile_id', subscription.photographer_id);
@@ -2266,7 +2340,7 @@ async function adminListSubscriptions(req, res) {
   const photographerIds = Array.from(new Set(subscriptions.map((row) => row.photographer_id).filter(Boolean)));
   const [{ data: people }, { data: photographerProfiles }] = photographerIds.length ? await Promise.all([
     sb.from('profiles').select('id, display_name, email, phone').in('id', photographerIds),
-    sb.from('photographer_profiles').select('profile_id, custom_link, subscription_status, subscription_due_at, is_suspended').in('profile_id', photographerIds)
+    sb.from('photographer_profiles').select('profile_id, custom_link, subscription_status, subscription_plan, subscription_due_at, is_suspended').in('profile_id', photographerIds)
   ]) : [{ data: [] }, { data: [] }];
   const peopleById = Object.fromEntries((people || []).map((person) => [person.id, person]));
   const photographerProfileById = Object.fromEntries((photographerProfiles || []).map((profile) => [profile.profile_id, profile]));
@@ -2292,6 +2366,7 @@ async function adminUpdateSubscription(req, res, subscriptionId) {
   const status = cleanString(body.status);
   if (!['pending', 'active', 'failed', 'cancelled', 'overdue'].includes(status)) throw fail(422, 'Invalid subscription status');
   const patch = { status };
+  if (body.plan !== undefined || body.planCode !== undefined) patch.plan_code = subscriptionPlanCode(body.plan || body.planCode);
   if (body.currentPeriodEnd !== undefined) patch.current_period_end = body.currentPeriodEnd || null;
   const sb = supabaseService();
   const { data, error } = await sb.from('subscriptions').update(patch).eq('id', subscriptionId).select('*').single();
@@ -2299,13 +2374,14 @@ async function adminUpdateSubscription(req, res, subscriptionId) {
   const photographerStatus = status === 'failed' ? 'overdue' : status;
   const profilePatch = {
     subscription_status: photographerStatus,
+    subscription_plan: status === 'active' ? subscriptionPlanCode(data.plan_code) : 'free',
     subscription_due_at: data.current_period_end || null
   };
   if (status === 'active') profilePatch.is_suspended = false;
   if (['pending', 'active', 'overdue', 'cancelled'].includes(photographerStatus)) {
     await sb.from('photographer_profiles').update(profilePatch).eq('profile_id', data.photographer_id);
   }
-  await writeAdminLog(sb, actor, 'subscription_status_update', 'subscription', subscriptionId, { status });
+  await writeAdminLog(sb, actor, 'subscription_status_update', 'subscription', subscriptionId, { status, plan: data.plan_code });
   ok(res, { subscription: data });
 }
 
@@ -2368,7 +2444,9 @@ async function adminSaveSettings(req, res) {
   settings.maintenanceMode = settings.maintenanceMode === true;
   settings.trialDays = Math.max(0, asInt(settings.trialDays, DEFAULT_PLATFORM_SETTINGS.trialDays));
   settings.maxFreePortfolioPhotos = Math.max(1, asInt(settings.maxFreePortfolioPhotos, DEFAULT_PLATFORM_SETTINGS.maxFreePortfolioPhotos));
-  settings.subscriptionPriceEgp = Math.max(1, asInt(settings.subscriptionPriceEgp, DEFAULT_PLATFORM_SETTINGS.subscriptionPriceEgp));
+  settings.basicPlanPriceEgp = Math.max(1, asInt(settings.basicPlanPriceEgp, DEFAULT_PLATFORM_SETTINGS.basicPlanPriceEgp));
+  settings.premiumPlanPriceEgp = Math.max(1, asInt(settings.premiumPlanPriceEgp, DEFAULT_PLATFORM_SETTINGS.premiumPlanPriceEgp));
+  settings.subscriptionPriceEgp = settings.basicPlanPriceEgp;
 
   const sb = supabaseService();
   const { data, error } = await sb

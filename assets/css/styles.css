@@ -112,6 +112,14 @@ textarea.input{resize:vertical;min-height:80px;}
 .badge-active{background:rgba(92,184,92,0.15);color:var(--success);}
 .badge-draft{background:rgba(154,148,144,0.15);color:var(--text2);}
 .badge-featured{background:rgba(196,145,92,0.15);color:var(--accent);}
+.profile-name-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.profile-plan-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:800;line-height:1;border:1px solid rgba(196,145,92,0.35);background:rgba(196,145,92,0.12);color:var(--accent-l);box-shadow:0 8px 24px rgba(196,145,92,0.12);}
+.profile-plan-badge i{font-size:11px;}
+.profile-plan-basic{background:rgba(196,145,92,0.12);}
+.profile-plan-premium{background:linear-gradient(135deg,rgba(196,145,92,0.22),rgba(212,165,116,0.12));border-color:rgba(212,165,116,0.58);box-shadow:0 10px 30px rgba(196,145,92,0.22);}
+.overview-lock-wrap{position:relative;min-height:520px;}
+.overview-lock-preview{filter:blur(7px);opacity:.46;pointer-events:none;user-select:none;}
+.overview-lock-panel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;z-index:2;background:linear-gradient(180deg,rgba(12,12,12,0.12),rgba(12,12,12,0.48));backdrop-filter:blur(2px);}
 
 /* ===== DOF STUDIOS BRANDING BADGE ===== */
 .dof-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:linear-gradient(135deg,var(--accent-d),var(--accent-l));border-radius:20px;font-size:0.75rem;font-weight:600;color:#fff;letter-spacing:0.5px;}
@@ -820,7 +828,9 @@ body.support-chat-open #landing-page>nav,body.support-chat-open #explore-page>na
   .pub-avatar{width:112px!important;height:112px!important;border-radius:18px!important;border-width:4px!important;}
   .profile-header-inner{flex-direction:column;align-items:center!important;text-align:center;gap:12px!important;margin-bottom:18px!important;}
   .profile-header-inner .pb-2{padding-bottom:0!important;}
+  .profile-name-row{justify-content:center;}
   .profile-header-inner .flex.items-center.gap-4{justify-content:center;gap:10px!important;flex-wrap:wrap;}
+  .overview-lock-wrap{min-height:460px;}
   .profile-actions{margin:0!important;justify-content:center;flex-wrap:wrap;width:100%;}
   .profile-actions .btn-secondary{flex:1 1 130px;max-width:180px;justify-content:center;}
   .bio-text{margin-inline:auto;text-align:center;}
