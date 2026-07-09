@@ -282,9 +282,9 @@ function subscriptionPlanPrice(settings, planCode) {
 function isFreeTrialExpired(photographerProfile, settings) {
   if (planForPhotographer(photographerProfile) !== 'free') return false;
   const trialDays = Math.max(0, asInt(settings?.trialDays, DEFAULT_PLATFORM_SETTINGS.trialDays));
-  const createdAt = new Date(photographerProfile?.created_at || 0).getTime();
-  if (!createdAt || Number.isNaN(createdAt)) return false;
-  return Date.now() >= createdAt + trialDays * 24 * 60 * 60 * 1000;
+  const trialStartedAt = new Date(photographerProfile?.trial_started_at || photographerProfile?.created_at || 0).getTime();
+  if (!trialStartedAt || Number.isNaN(trialStartedAt)) return false;
+  return Date.now() >= trialStartedAt + trialDays * 24 * 60 * 60 * 1000;
 }
 
 function assertFreeTrialAvailable(photographerProfile, settings) {

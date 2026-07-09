@@ -331,6 +331,7 @@ function normalizeProfile(profile){
     subscriptionPlan:normalizePlanKey(subscriptionPlan),
     isSubscribed:subscriptionStatus==='active',
     isPublished:pp?pp.is_published===true:false,
+    trialStartedAt:pp?(pp.trial_started_at||null):(profile.trialStartedAt||profile.trial_started_at||null),
     createdAt:pp?pp.created_at:profile.created_at||null
   };
 }
@@ -354,6 +355,7 @@ function normalizeDirectoryPhotographer(row){
     subscriptionStatus:subscriptionStatus,
     subscriptionPlan:normalizePlanKey(subscriptionPlan),
     isSubscribed:subscriptionStatus==='active',
+    trialStartedAt:row.trial_started_at||row.trialStartedAt||null,
     rating:row.rating||0,bookings:row.booking_count||0,packages:[],portfolio:[]
   };
 }
@@ -505,10 +507,11 @@ function recomputeTrial(){
   S.portfolioSuspended=S.user.portfolioSuspended===true;
   var trialDays=(S.siteSettings&&Number(S.siteSettings.trialDays))||7;
   if(S.user.isSubscribed){S.trialDaysLeft=0;return;}
-  if(!S.user.createdAt){S.trialDaysLeft=trialDays;return;}
-  var created=new Date(S.user.createdAt).getTime();
-  if(isNaN(created)){S.trialDaysLeft=trialDays;return;}
-  var daysSince=Math.floor((Date.now()-created)/(1000*60*60*24));
+  var trialStartValue=S.user.trialStartedAt||S.user.createdAt;
+  if(!trialStartValue){S.trialDaysLeft=trialDays;return;}
+  var trialStarted=new Date(trialStartValue).getTime();
+  if(isNaN(trialStarted)){S.trialDaysLeft=trialDays;return;}
+  var daysSince=Math.floor((Date.now()-trialStarted)/(1000*60*60*24));
   S.trialDaysLeft=Math.max(0,trialDays-daysSince);
 }
 function saveFrontendSession(){

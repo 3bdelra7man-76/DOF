@@ -34,7 +34,8 @@ export function publicProfileSelect() {
       is_published,
       is_suspended,
       subscription_status,
-      subscription_plan
+      subscription_plan,
+      trial_started_at
     )
   `;
 }
