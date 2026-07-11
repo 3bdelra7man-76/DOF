@@ -131,6 +131,9 @@ textarea.input{resize:vertical;min-height:80px;}
 .official-contact-icons{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .official-contact-icons a{width:34px;height:34px;border:1px solid var(--border);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:var(--text2);background:rgba(255,255,255,0.02);transition:all .2s;}
 .official-contact-icons a:hover{border-color:var(--accent);color:var(--accent);background:rgba(196,145,92,0.1);}
+.plan-card,.price-grid>.card,#sub-modal .grid>.card{display:flex;flex-direction:column;padding-bottom:16px!important;}
+.plan-card-action,.price-grid>.card>button,#sub-modal .grid>.card>.btn-primary{margin-top:auto!important;}
+.plan-card-action{padding-top:16px;}
 
 /* ===== CATEGORY PICKER ===== */
 .category-picker{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;}

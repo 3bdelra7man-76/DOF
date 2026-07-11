@@ -2280,10 +2280,10 @@ function renderSubscriptions(){
   '</div>';
 
   var planButton=function(plan,label,icon){
-    if(current===plan)return '<div class="text-center text-sm text-[var(--success)] font-semibold py-2"><i class="fas fa-check-circle ml-2"></i>'+(S.lang==='ar'?'خطتك الحالية':'Current plan')+'</div>';
-    return '<button onclick="handleSubscribe(\''+plan+'\')" class="btn-primary w-full text-lg py-3"><i class="fas '+icon+' ml-2"></i>'+label+'</button><p class="text-xs text-center text-[var(--text2)] mt-3">'+(S.lang==='ar'?'يمكنك الإلغاء في أي وقت':'Cancel anytime')+'</p>';
+    if(current===plan)return '<div class="plan-card-action text-center text-sm text-[var(--success)] font-semibold py-2"><i class="fas fa-check-circle ml-2"></i>'+(S.lang==='ar'?'خطتك الحالية':'Current plan')+'</div>';
+    return '<div class="plan-card-action"><button onclick="handleSubscribe(\''+plan+'\')" class="btn-primary w-full text-lg py-3"><i class="fas '+icon+' ml-2"></i>'+label+'</button><p class="text-xs text-center text-[var(--text2)] mt-3">'+(S.lang==='ar'?'يمكنك الإلغاء في أي وقت':'Cancel anytime')+'</p></div>';
   };
-  var freePlan='<div class="card p-8 '+(isSubscribed?'opacity-60':'')+'">'+
+  var freePlan='<div class="card plan-card p-8 '+(isSubscribed?'opacity-60':'')+'">'+
   '<div class="text-sm font-semibold text-[var(--text2)] mb-2">مجاني</div>'+
   '<div class="text-4xl font-bold mb-1">0 <span class="text-xl text-[var(--text2)] font-normal">ج.م</span></div>'+
   '<div class="text-sm text-[var(--text2)] mb-6">لمدة أسبوع واحد</div>'+
@@ -2295,10 +2295,10 @@ function renderSubscriptions(){
   '<li class="line-through opacity-40"><i class="fas fa-times text-[var(--danger)] ml-2"></i>النظرة العامة</li>'+
   '<li class="line-through opacity-40"><i class="fas fa-times text-[var(--danger)] ml-2"></i>دعم أولوية</li>'+
   '</ul>'+
-  '<div class="text-center text-sm text-[var(--text2)] py-2.5">'+(current==='free'?'خطتك الحالية':'الخطة المجانية')+'</div>'+
+  '<div class="plan-card-action text-center text-sm text-[var(--text2)] py-2.5">'+(current==='free'?'خطتك الحالية':'الخطة المجانية')+'</div>'+
   '</div>';
 
-  var basicPlan='<div class="card p-8 border border-[rgba(196,145,92,0.45)] relative">'+
+  var basicPlan='<div class="card plan-card p-8 border border-[rgba(196,145,92,0.45)] relative">'+
   '<div class="absolute -top-3 right-1/2 translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-[var(--accent-d)] to-[var(--accent-l)] text-xs font-bold text-white">الأكثر شعبية</div>'+
   '<div class="flex items-center gap-2 mb-2"><i class="fas fa-award text-[var(--accent)]"></i><div class="text-sm font-semibold text-[var(--accent)]">Basic</div></div>'+
   '<div class="text-4xl font-bold mb-1 gradient-text">'+basicPrice+' <span class="text-xl font-normal text-[var(--text2)]">ج.م</span></div>'+
@@ -2312,7 +2312,7 @@ function renderSubscriptions(){
   planButton('basic','اشترك في Basic — '+basicPrice+' ج.م/شهر','fa-award')+
   '</div>';
 
-  var premiumPlan='<div class="card p-8 border-2 border-[var(--accent)] relative">'+
+  var premiumPlan='<div class="card plan-card p-8 border-2 border-[var(--accent)] relative">'+
   '<div class="flex items-center gap-2 mb-2"><i class="fas fa-crown text-[var(--accent)]"></i><div class="text-sm font-semibold text-[var(--accent)]">Premium</div></div>'+
   '<div class="text-4xl font-bold mb-1 gradient-text">'+premiumPrice+' <span class="text-xl font-normal text-[var(--text2)]">ج.م</span></div>'+
   '<div class="text-sm text-[var(--text2)] mb-6">شهريًا • يجدد تلقائياً</div>'+
@@ -2328,7 +2328,7 @@ function renderSubscriptions(){
 
   return'<div class="mb-8"><h2 class="text-2xl font-bold mb-1">الاشتراك</h2><p class="text-sm text-[var(--text2)]">اختر الخطة المناسبة لعملك كمصور محترف</p></div>'+
   statusCard+
-  '<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">'+freePlan+basicPlan+premiumPlan+'</div>';
+  '<div class="plan-grid grid grid-cols-1 lg:grid-cols-3 gap-6">'+freePlan+basicPlan+premiumPlan+'</div>';
 }
 
 /* ===== DASHBOARD: SETTINGS ===== */
