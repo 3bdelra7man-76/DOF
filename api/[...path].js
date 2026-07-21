@@ -557,7 +557,7 @@ async function register(req, res) {
       custom_link: photographerCustomLink,
       bio: cleanString(body.bio),
       subscription_status: 'free',
-      subscription_plan: 'free',
+      // subscription_plan: 'free', // Temporarily commented out due to missing column
       is_published: false
     });
     if (error) throw fail(422, error.message);
@@ -652,11 +652,11 @@ async function updateMe(req, res) {
       categoryRows = await resolveCategoryRows(sb, body, { requiredSelection: true });
       photographerPatch.specialty = categoryRows.map((category) => category.name_en).join(', ');
     }
-    ['specialty', 'region', 'customLink', 'bio', 'coverUrl', 'coverPosition', 'socialLinks', 'isPublished'].forEach((key) => {
+    ['specialty', 'region', 'customLink', 'bio', 'coverUrl', 'socialLinks', 'isPublished'].forEach((key) => {
       if (key === 'specialty' && categoryRows) return;
       if (body[key] !== undefined) {
-        const dbKey = { customLink: 'custom_link', coverUrl: 'cover_url', coverPosition: 'cover_position', socialLinks: 'social_links', isPublished: 'is_published' }[key] || key;
-        photographerPatch[dbKey] = key === 'coverPosition' ? cleanPosition(body[key]) : key === 'customLink' ? profileSlug(body[key]) : body[key];
+        const dbKey = { customLink: 'custom_link', coverUrl: 'cover_url', socialLinks: 'social_links', isPublished: 'is_published' }[key] || key;
+        photographerPatch[dbKey] = key === 'customLink' ? profileSlug(body[key]) : body[key];
       }
     });
     if (Object.keys(photographerPatch).length) {
@@ -798,7 +798,7 @@ async function uploadProfileMedia(req, res) {
 
   const { error: profileError } = await sb
     .from('photographer_profiles')
-    .update({ cover_url: publicUrl, cover_position: coverPosition })
+    .update({ cover_url: publicUrl /*, cover_position: coverPosition */ }) // Bypassed due to missing schema column
     .eq('profile_id', profile.id);
   if (profileError) throw fail(422, profileError.message);
 
@@ -2346,7 +2346,7 @@ async function adminListSubscriptions(req, res) {
   const photographerIds = Array.from(new Set(subscriptions.map((row) => row.photographer_id).filter(Boolean)));
   const [{ data: people }, { data: photographerProfiles }] = photographerIds.length ? await Promise.all([
     sb.from('profiles').select('id, display_name, email, phone').in('id', photographerIds),
-    sb.from('photographer_profiles').select('profile_id, custom_link, subscription_status, subscription_plan, subscription_due_at, is_suspended').in('profile_id', photographerIds)
+    sb.from('photographer_profiles').select('profile_id, custom_link, subscription_status, subscription_due_at, is_suspended').in('profile_id', photographerIds)
   ]) : [{ data: [] }, { data: [] }];
   const peopleById = Object.fromEntries((people || []).map((person) => [person.id, person]));
   const photographerProfileById = Object.fromEntries((photographerProfiles || []).map((profile) => [profile.profile_id, profile]));
@@ -2380,7 +2380,7 @@ async function adminUpdateSubscription(req, res, subscriptionId) {
   const photographerStatus = status === 'failed' ? 'overdue' : status;
   const profilePatch = {
     subscription_status: photographerStatus,
-    subscription_plan: status === 'active' ? subscriptionPlanCode(data.plan_code) : 'free',
+    // subscription_plan: status === 'active' ? subscriptionPlanCode(data.plan_code) : 'free',
     subscription_due_at: data.current_period_end || null
   };
   if (status === 'active') profilePatch.is_suspended = false;

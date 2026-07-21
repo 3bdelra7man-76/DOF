@@ -65,43 +65,8 @@ var S={lang:'ar',view:'landing',tab:'overview',
     {id:'street',icon:'fa-city',en:'Street Photography',ar:'تصوير شوارع'}
   ],
 
-  /* Sample photographers data */
-  photographers:[
-    {id:1,name:'Lina Mansour',nameAr:'لينا منصور',specialty:'Wedding Photography',specialtyAr:'تصوير أعراس',region:'cairo',regionAr:'القاهرة',avatar:'https://picsum.photos/seed/photog1/200/200',cover:'https://picsum.photos/seed/cover1/800/400',bio:'Capturing love stories with elegance.',bioAr:'التقاط قصص الحب بأناقة.',rating:4.9,bookings:156,email:'lina@dof.eg',phone:'+20551234567',customLink:'lina-studio',
-      portfolio:[{id:1,url:'https://picsum.photos/seed/w1/600/400',title:'Wedding Day'},{id:2,url:'https://picsum.photos/seed/w2/600/400',title:'Bridal Portrait'},{id:3,url:'https://picsum.photos/seed/w3/600/400',title:'Couple Shot'}],
-      packages:[
-        {id:1,name:'Basic Wedding',nameAr:'زفاف أساسي',description:'Perfect for intimate weddings',descriptionAr:'مثالي للأعراس الحميمة',price:15000,duration:'4 hours',durationAr:'4 ساعات',features:['Professional photographer','50 edited photos','Online gallery'],featuresAr:['مصور محترف','50 صورة محررة','معرض إلكتروني'],status:'active',featured:false,files:[]},
-        {id:2,name:'Full Day Wedding',nameAr:'يوم كامل زفاف',description:'Complete coverage from preparation to reception',descriptionAr:'تغطية كاملة من التحضير إلى الحفل',price:25000,duration:'10 hours',durationAr:'10 ساعات',features:['Two photographers','200+ edited photos','Photo album','Drone footage'],featuresAr:['مصوران','+200 صورة محررة','ألبوم صور','تصوير جوي'],status:'active',featured:true,files:[]},
-        {id:3,name:'Engagement Session',nameAr:'جلسة خطوبة',description:'Pre-wedding couple photoshoot',descriptionAr:'تصوير ثنائي قبل الزفاف',price:5000,duration:'2 hours',durationAr:'ساعتان',features:['1 location','30 edited photos','Digital delivery'],featuresAr:['موقع واحد','30 صورة محررة','تسليم رقمي'],status:'active',featured:false,files:[]}
-      ],
-      social:{instagram:'https://instagram.com/lina',facebook:'https://facebook.com/lina',whatsapp:'+20551234567'}},
-    {id:2,name:'Khalid Hassan',nameAr:'خالد حسن',specialty:'Portrait Photography',specialtyAr:'تصوير بورتريه',region:'giza',regionAr:'الجيزة',avatar:'https://picsum.photos/seed/photog2/200/200',cover:'https://picsum.photos/seed/cover2/800/400',bio:'Creating stunning portraits that tell stories.',bioAr:'إنشاء صور بورتريه مذهلة تحكي قصصاً.',rating:4.8,bookings:98,email:'khalid@dof.eg',phone:'+20559876543',customLink:'khalid-portrait',
-      portfolio:[{id:4,url:'https://picsum.photos/seed/p1/600/400',title:'Studio Portrait'},{id:5,url:'https://picsum.photos/seed/p2/600/400',title:'Outdoor Portrait'},{id:6,url:'https://picsum.photos/seed/p3/600/400',title:'Family Portrait'}],
-      packages:[
-        {id:4,name:'Portrait Session',nameAr:'جلسة بورتريه',description:'Individual or couple portrait',descriptionAr:'بورتريه فردي أو ثنائي',price:5000,duration:'1 hour',durationAr:'ساعة واحدة',features:['Professional lighting','15 edited photos','Retouching included'],featuresAr:['إضاءة احترافية','15 صورة محررة','يشمل التحويل'],status:'active',featured:false,files:[]},
-        {id:5,name:'Family Package',nameAr:'باقة عائلية',description:'Family portrait session',descriptionAr:'جلسة تصوير عائلية',price:8000,duration:'2 hours',durationAr:'ساعتان',features:['Up to 6 people','40 edited photos','Print-ready files'],featuresAr:['حتى 6 أشخاص','40 صورة محررة','ملفات جاهزة للطباعة'],status:'active',featured:true,files:[]}
-      ],
-      social:{instagram:'https://instagram.com/khalid',whatsapp:'+20559876543'}},
-    {id:3,name:'Nora Helal',nameAr:'نورة هلال',specialty:'Event Photography',specialtyAr:'تصوير فعاليات',region:'alexandria',regionAr:'الإسكندرية',avatar:'https://picsum.photos/seed/photog3/200/200',cover:'https://picsum.photos/seed/cover3/800/400',bio:'Documenting special moments beautifully.',bioAr:'توثيق اللحظات الخاصة بجمال.',rating:4.7,bookings:75,email:'nora@dof.eg',phone:'+20557654321',customLink:'nora-events',
-      portfolio:[{id:7,url:'https://picsum.photos/seed/e1/600/400',title:'Corporate Event'},{id:8,url:'https://picsum.photos/seed/e2/600/400',title:'Birthday Party'},{id:9,url:'https://picsum.photos/seed/e3/600/400',title:'Conference'}],
-      packages:[{id:6,name:'Event Coverage',nameAr:'تغطية فعالية',description:'Full event documentation',descriptionAr:'توثيق كامل للفعالية',price:12000,duration:'4 hours',durationAr:'4 ساعات',features:['Event photographer','100 edited photos','Same-day highlights','Social media ready'],featuresAr:['مصور فعاليات','100 صورة محررة','مقتطفات في نفس اليوم','جاهز للسوشيال ميديا'],status:'active',featured:true,files:[]}],
-      social:{instagram:'https://instagram.com/nora',facebook:'https://facebook.com/nora',whatsapp:'+20557654321'}},
-    {id:4,name:'Ahmed Reda',nameAr:'أحمد رضا',specialty:'Wedding & Portrait',specialtyAr:'زفاف وبورتريه',region:'cairo',regionAr:'القاهرة',avatar:'https://picsum.photos/seed/photog4/200/200',cover:'https://picsum.photos/seed/cover4/800/400',bio:'10+ years of professional experience.',bioAr:'أكثر من 10 سنوات خبرة مهنية.',rating:5.0,bookings:210,email:'ahmad@dof.eg',phone:'+20551112233',customLink:'ahmad-studio',
-      portfolio:[{id:10,url:'https://picsum.photos/seed/a1/600/400',title:'Wedding'},{id:11,url:'https://picsum.photos/seed/a2/600/400',title:'Portrait'},{id:12,url:'https://picsum.photos/seed/a3/600/400',title:'Engagement'}],
-      packages:[
-        {id:7,name:'Wedding Package',nameAr:'باقة زفاف',description:'Complete wedding coverage',descriptionAr:'تغطية زفاف كاملة',price:18000,duration:'Full day',durationAr:'يوم كامل',features:['Lead photographer','Second shooter','300+ photos','Album design'],featuresAr:['مصور رئيسي','مصور ثانوي','+300 صورة','تصميم ألبوم'],status:'active',featured:true,files:[]},
-        {id:8,name:'Portrait Session',nameAr:'جلسة بورتريه',description:'Professional portrait session',descriptionAr:'جلسة بورتريه احترافية',price:3000,duration:'1 hour',durationAr:'ساعة',features:['Studio session','20 edited photos'],featuresAr:['جلسة استوديو','20 صورة محررة'],status:'active',featured:false,files:[]}
-      ],
-      social:{instagram:'https://instagram.com/ahmad',facebook:'https://facebook.com/ahmad',whatsapp:'+20551112233'}},
-    {id:5,name:'Sara Ahmed',nameAr:'سارة أحمد',specialty:'Fashion Photography',specialtyAr:'تصوير أزياء',region:'giza',regionAr:'الجيزة',avatar:'https://picsum.photos/seed/photog5/200/200',cover:'https://picsum.photos/seed/cover5/800/400',bio:'Bringing fashion visions to life.',bioAr:'إحياء رؤيات الموضة.',rating:4.6,bookings:62,email:'sara@dof.eg',phone:'+20553344556',customLink:'sara-fashion',
-      portfolio:[{id:13,url:'https://picsum.photos/seed/f1/600/400',title:'Fashion Editorial'},{id:14,url:'https://picsum.photos/seed/f2/600/400',title:'Lookbook'},{id:15,url:'https://picsum.photos/seed/f3/600/400',title:'Brand Shoot'}],
-      packages:[{id:9,name:'Fashion Shoot',nameAr:'تصوير أزياء',description:'Fashion editorial or lookbook',descriptionAr:'افتتاحية أزياء أو لوك بوك',price:10000,duration:'3 hours',durationAr:'3 ساعات',features:['Styling consultation','50 edited photos','Retouching','Commercial license'],featuresAr:['استشارة تنسيق','50 صورة محررة','تحويل','ترخيص تجاري'],status:'active',featured:true,files:[]}],
-      social:{instagram:'https://instagram.com/sara'}},
-    {id:6,name:'Omar Salah',nameAr:'عمر صلاح',specialty:'Newborn Photography',specialtyAr:'تصوير مواليد',region:'mansoura',regionAr:'المنصورة',avatar:'https://picsum.photos/seed/photog6/200/200',cover:'https://picsum.photos/seed/cover6/800/400',bio:'Capturing the tiniest miracles.',bioAr:'التقاط أصغر المعجزات بحب.',rating:4.9,bookings:130,email:'omar@dof.eg',phone:'+20554455667',customLink:'omar-newborn',
-      portfolio:[{id:16,url:'https://picsum.photos/seed/n1/600/400',title:'Newborn Session'},{id:17,url:'https://picsum.photos/seed/n2/600/400',title:'Baby Portrait'}],
-      packages:[{id:10,name:'Newborn Package',nameAr:'باقة مواليد',description:'Gentle newborn photography',descriptionAr:'تصوير مواليد لطيف',price:7000,duration:'2 hours',durationAr:'ساعتان',features:['Safe environment','30 edited photos','Props provided','Digital album'],featuresAr:['بيئة آمنة','30 صورة محررة','إكسسوارات متوفرة','ألبوم رقمي'],status:'active',featured:true,files:[]}],
-      social:{instagram:'https://instagram.com/omar',whatsapp:'+20554455667'}}
-  ],
+  /* Photographers loaded from API — no dummy data */
+  photographers:[],
   /* Per-user runtime data (separate from directory) */
   appointments:[],bookings:[],portfolio:[],packages:[],workingHours:[],
   /* Chat system state */
@@ -2438,6 +2403,10 @@ function handleMediaFile(type,input){
       openCoverPositionModal(e.target.result,file);
       return;
     }
+    if(type==='avatar'){
+      openAvatarPositionModal(e.target.result,file);
+      return;
+    }
     applyMediaUpdate(type,e.target.result);
     uploadMediaFile(type,file);
   };
@@ -2659,7 +2628,172 @@ async function confirmCoverPosition(){
   }catch(err){
     applyMediaUpdate('cover',previousCover,previousPosition,{silent:true});
     saveFrontendSession();
-    showToast(S.lang==='ar'?'فشل رفع البانر. لم يتم تحديث الملف العام.':'Cover upload failed. Public profile was not updated.','error');
+    var msg = S.lang === 'ar' ? 'فشل رفع البانر: ' : 'Cover upload failed: ';
+    showToast(msg + (err.message || 'Unknown error'), 'error');
+  }
+}
+function ensureAvatarPositionModal(){
+  var modal=document.getElementById('avatar-position-modal');
+  if(modal)return modal;
+  modal=document.createElement('div');
+  modal.id='avatar-position-modal';
+  modal.className='modal-overlay avatar-position-modal';
+  modal.innerHTML='<div class="modal-box lg avatar-position-box">'+
+    '<div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold">'+(S.lang==='ar'?'قص الصورة الشخصية':'Crop Avatar')+'</h3>'+
+    '<button onclick="closeAvatarPositionModal()" class="text-[var(--text2)] hover:text-[var(--text)] text-xl"><i class="fas fa-times"></i></button></div>'+
+    '<div class="avatar-position-frame" id="avatar-position-frame"><img id="avatar-position-img" alt=""><div class="avatar-crop-box" id="avatar-crop-box"><span class="avatar-crop-handle" id="avatar-crop-handle"></span></div></div>'+
+    '<div class="avatar-position-actions flex justify-end gap-3 mt-4">'+
+    '<button type="button" class="btn-secondary btn-sm" onclick="resetAvatarCrop()">'+(S.lang==='ar'?'إعادة':'Reset')+'</button>'+
+    '<button type="button" class="btn-primary btn-sm" onclick="confirmAvatarPosition()">'+(S.lang==='ar'?'حفظ':'Save')+'</button>'+
+    '</div></div>';
+  document.body.appendChild(modal);
+  return modal;
+}
+function openAvatarPositionModal(src,file){
+  if(!S.user)return;
+  var imageSrc=src||S.user.avatar;
+  if(!imageSrc){openMediaPicker('avatar');return;}
+  S.avatarPositionDraft={src:imageSrc,file:file||null,crop:null};
+  var modal=ensureAvatarPositionModal();
+  var img=document.getElementById('avatar-position-img');
+  if(img){
+    img.crossOrigin='anonymous';
+    img.onload=function(){resetAvatarCrop();};
+    img.src=imageSrc;
+  }
+  modal.classList.add('active');
+  document.body.style.overflow='hidden';
+  bindAvatarPositionDrag();
+}
+function closeAvatarPositionModal(){
+  var modal=document.getElementById('avatar-position-modal');
+  if(modal)modal.classList.remove('active');
+  document.body.style.overflow='';
+  S.avatarPositionDraft=null;
+}
+function avatarCropImageRect(){
+  var frame=document.getElementById('avatar-position-frame');
+  var img=document.getElementById('avatar-position-img');
+  if(!frame||!img)return null;
+  var fr=frame.getBoundingClientRect();
+  var ir=img.getBoundingClientRect();
+  if(!ir.width||!ir.height)return null;
+  return {left:ir.left-fr.left,top:ir.top-fr.top,width:ir.width,height:ir.height};
+}
+function applyAvatarCropBox(){
+  var box=document.getElementById('avatar-crop-box');
+  var crop=S.avatarPositionDraft&&S.avatarPositionDraft.crop;
+  if(!box||!crop)return;
+  box.style.display='block';
+  box.style.left=crop.x+'px';
+  box.style.top=crop.y+'px';
+  box.style.width=crop.w+'px';
+  box.style.height=crop.h+'px';
+}
+function setAvatarCropRect(rect){
+  if(!S.avatarPositionDraft)return;
+  var bounds=avatarCropImageRect();
+  if(!bounds)return;
+  var aspect=1;
+  var minW=Math.min(100,bounds.width);
+  var w=Math.max(minW,Math.min(rect.w,bounds.width));
+  var h=w/aspect;
+  if(h>bounds.height){
+    h=bounds.height;
+    w=h*aspect;
+  }
+  var x=Math.max(bounds.left,Math.min(rect.x,bounds.left+bounds.width-w));
+  var y=Math.max(bounds.top,Math.min(rect.y,bounds.top+bounds.height-h));
+  S.avatarPositionDraft.crop={x:x,y:y,w:w,h:h};
+  applyAvatarCropBox();
+}
+function resetAvatarCrop(){
+  if(!S.avatarPositionDraft)return;
+  var bounds=avatarCropImageRect();
+  if(!bounds){setTimeout(resetAvatarCrop,60);return;}
+  var aspect=1;
+  var w=Math.min(bounds.width,bounds.height)*.86;
+  var h=w/aspect;
+  setAvatarCropRect({x:bounds.left+(bounds.width-w)/2,y:bounds.top+(bounds.height-h)/2,w:w,h:h});
+}
+function bindAvatarPositionDrag(){
+  var frame=document.getElementById('avatar-position-frame');
+  var box=document.getElementById('avatar-crop-box');
+  var handle=document.getElementById('avatar-crop-handle');
+  if(!frame||frame.dataset.bound==='1')return;
+  frame.dataset.bound='1';
+  var drag=null;
+  function beginDrag(mode,e){
+    if(!S.avatarPositionDraft||!S.avatarPositionDraft.crop)return;
+    e.preventDefault();
+    var point=e.touches&&e.touches[0]?e.touches[0]:e;
+    drag={mode:mode,startX:point.clientX,startY:point.clientY,start:Object.assign({},S.avatarPositionDraft.crop)};
+  }
+  function moveDrag(e){
+    if(!drag)return;
+    var point=e.touches&&e.touches[0]?e.touches[0]:e;
+    var dx=point.clientX-drag.startX;
+    var dy=point.clientY-drag.startY;
+    if(drag.mode==='move'){
+      setAvatarCropRect({x:drag.start.x+dx,y:drag.start.y+dy,w:drag.start.w,h:drag.start.h});
+    }else{
+      var delta=Math.abs(dx)>Math.abs(dy)?dx:dy;
+      setAvatarCropRect({x:drag.start.x,y:drag.start.y,w:drag.start.w+delta,h:drag.start.h+delta});
+    }
+  }
+  if(box)box.addEventListener('pointerdown',function(e){if(e.target===handle)return;beginDrag('move',e);});
+  if(handle)handle.addEventListener('pointerdown',function(e){beginDrag('resize',e);});
+  window.addEventListener('pointermove',moveDrag);
+  window.addEventListener('pointerup',function(){drag=null;});
+  window.addEventListener('resize',function(){
+    var modal=document.getElementById('avatar-position-modal');
+    if(modal&&modal.classList.contains('active'))resetAvatarCrop();
+  });
+}
+function exportAvatarCropBlob(){
+  return new Promise(function(resolve,reject){
+    var draft=S.avatarPositionDraft;
+    var img=document.getElementById('avatar-position-img');
+    var bounds=avatarCropImageRect();
+    if(!draft||!draft.crop||!img||!bounds||!img.naturalWidth){reject(new Error('Crop is not ready'));return;}
+    try{
+      var crop=draft.crop;
+      var sx=((crop.x-bounds.left)/bounds.width)*img.naturalWidth;
+      var sy=((crop.y-bounds.top)/bounds.height)*img.naturalHeight;
+      var sw=(crop.w/bounds.width)*img.naturalWidth;
+      var sh=(crop.h/bounds.height)*img.naturalHeight;
+      var canvas=document.createElement('canvas');
+      canvas.width=500;
+      canvas.height=500;
+      var ctx=canvas.getContext('2d');
+      ctx.drawImage(img,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
+      canvas.toBlob(function(blob){
+        if(blob)resolve(blob);
+        else reject(new Error('Unable to crop this image'));
+      },'image/jpeg',0.92);
+    }catch(err){reject(err);}
+  });
+}
+async function confirmAvatarPosition(){
+  if(!S.avatarPositionDraft||!S.user)return;
+  var previousAvatar=S.user.avatar;
+  var preview;
+  var blob;
+  try{
+    blob=await exportAvatarCropBlob();
+    preview=await blobToDataUrl(blob);
+  }catch(err){
+    showToast(S.lang==='ar'?'تعذر قص هذه الصورة، أعد رفع الصورة الأصلية':'Could not crop this image. Re-upload the original image.','error');
+    return;
+  }
+  closeAvatarPositionModal();
+  applyMediaUpdate('avatar',preview);
+  try{
+    var croppedFile = new File([blob], 'avatar-cropped.jpg', { type: 'image/jpeg' });
+    await uploadMediaFile('avatar',croppedFile);
+  }catch(err){
+    applyMediaUpdate('avatar',previousAvatar);
+    saveFrontendSession();
   }
 }
 async function handleSubscribe(plan){

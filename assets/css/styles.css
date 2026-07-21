@@ -65,6 +65,14 @@ textarea.input{resize:vertical;min-height:80px;}
 .cover-crop-handle{position:absolute;right:-9px;bottom:-9px;width:18px;height:18px;border-radius:50%;border:2px solid var(--accent);background:var(--bg);box-shadow:0 4px 14px rgba(0,0,0,.35);cursor:nwse-resize;}
 .cover-position-actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:16px;}
 
+.avatar-position-box{max-width:600px!important;}
+.avatar-position-frame{position:relative;width:100%;height:min(60vh,500px);overflow:hidden;border:1px solid var(--border);border-radius:14px;background:var(--bg2);touch-action:none;display:flex;align-items:center;justify-content:center;}
+.avatar-position-frame img{max-width:100%;max-height:100%;object-fit:contain;display:block;user-select:none;pointer-events:none;}
+.avatar-crop-box{position:absolute;display:none;border:2px solid var(--accent);box-shadow:0 0 0 9999px rgba(0,0,0,.58);cursor:move;touch-action:none;border-radius:50%;}
+.avatar-crop-box::before{content:'';position:absolute;inset:33.333% 0;border-top:1px solid rgba(255,255,255,.2);border-bottom:1px solid rgba(255,255,255,.2);pointer-events:none;}
+.avatar-crop-box::after{content:'';position:absolute;inset:0 33.333%;border-left:1px solid rgba(255,255,255,.2);border-right:1px solid rgba(255,255,255,.2);pointer-events:none;}
+.avatar-crop-handle{position:absolute;right:14.6%;bottom:14.6%;transform:translate(50%,50%);width:18px;height:18px;border-radius:50%;border:2px solid var(--accent);background:var(--bg);box-shadow:0 4px 14px rgba(0,0,0,.35);cursor:nwse-resize;}
+
 /* ===== TOAST NOTIFICATIONS ===== */
 #toast-container{position:fixed;top:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:10px;}
 [dir="rtl"] #toast-container{right:auto;left:20px;}
@@ -1093,3 +1101,12 @@ body.support-chat-open #landing-page>nav,body.support-chat-open #explore-page>na
 .hero-slide-dots{display:flex;justify-content:center;gap:8px;margin-top:14px;}
 .hero-dot{width:8px;height:8px;border-radius:50%;background:var(--border);cursor:pointer;transition:background .3s,transform .3s;border:none;}
 .hero-dot.active{background:var(--accent);transform:scale(1.3);}
+
+/* Fix password fields text overlap with icons */
+.relative > input[type="password"],
+.relative > input[type="text"][id*="pass"] {
+    padding-left: 42px !important;
+    padding-right: 42px !important;
+    direction: ltr;
+    text-align: left;
+}
