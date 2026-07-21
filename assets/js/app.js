@@ -1292,7 +1292,7 @@ function updateSidebarUser(){
   if(avatar){avatar.src=S.user.avatar||'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 80 80\'%3E%3Crect width=\'80\' height=\'80\' rx=\'40\' fill=\'%231a1a1a\'/%3E%3Ccircle cx=\'40\' cy=\'30\' r=\'16\' fill=\'%23444\'/%3E%3Cellipse cx=\'40\' cy=\'72\' rx=\'26\' ry=\'22\' fill=\'%23444\'/%3E%3C/svg%3E';}
   if(name)name.textContent=(gf(S.user,'name')||'').split(' ')[0];
   if(spec)spec.textContent=gf(S.user,'specialty');
-  var pct=Math.round((S.trialDaysLeft/7)*100);
+  var pct=Math.round((S.trialDaysLeft/3)*100);
   var trialText=document.getElementById('trial-text');
   var trialProgress=document.getElementById('trial-progress');
   if(trialText)trialText.textContent=S.trialDaysLeft+' '+t('daysRemaining');
@@ -3195,7 +3195,7 @@ function renderPublicProfile(){
   /* Footer */
   renderPubAvatarViewer(u)+
 
-  '<footer class="border-t border-[var(--border)] py-8 bg-[var(--bg2)]"><div class="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-[var(--text2)]"><div class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</div><div class="official-contact-icons"><a href="mailto:dofstudios1@gmail.com" aria-label="Email DOF Studios"><i class="fas fa-envelope"></i></a><a href="https://www.facebook.com/share/183hWjknft/?mibextid=wwXIfr" target="_blank" rel="noopener" aria-label="DOF Studios Facebook"><i class="fab fa-facebook-f"></i></a><a href="https://www.instagram.com/dofstudioss?igsh=MXI2enBiaWR1MHVidg%3D%3D&utm_source=qr" target="_blank" rel="noopener" aria-label="DOF Studios Instagram"><i class="fab fa-instagram"></i></a></div><span>&copy; 2026 DOF STUDIOS. All rights reserved.</span></div></footer></div>';
+  '<footer class="border-t border-[var(--border)] py-8 bg-[var(--bg2)]"><div class="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-[var(--text2)]"><div class="dof-badge"><i class="fas fa-gem"></i> DOF STUDIOS</div><div class="official-contact-icons"><a href="mailto:dofstudios1@gmail.com" aria-label="Email DOF Studios"><i class="fas fa-envelope"></i></a><a href="https://www.facebook.com/share/183hWjknft/?mibextid=wwXIfr" target="_blank" rel="noopener" aria-label="DOF Studios Facebook"><i class="fab fa-facebook-f"></i></a><a href="https://www.instagram.com/dofstudioss?igsh=MXI2enBiaWR1MHVidg%3D%3D&utm_source=qr" target="_blank" rel="noopener" aria-label="DOF Studios Instagram"><i class="fab fa-instagram"></i></a></div><div class="flex flex-col sm:flex-row justify-between items-center gap-3 w-full sm:w-auto"><span>&copy; 2026 DOF STUDIOS. All rights reserved.</span><div class="flex gap-4"><a href="refund.html" class="hover:text-[var(--accent)]">'+(S.lang==='ar'?'سياسة الاسترجاع':'Refund Policy')+'</a><a href="privacy.html" class="hover:text-[var(--accent)]">'+(S.lang==='ar'?'الخصوصية':'Privacy')+'</a><a href="terms.html" class="hover:text-[var(--accent)]">'+(S.lang==='ar'?'الشروط':'Terms')+'</a></div></div></div></footer></div>';
   var container=document.getElementById('public-content');
   if(container){container.innerHTML=html;}
   return html;

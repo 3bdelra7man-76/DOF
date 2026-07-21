@@ -48,7 +48,7 @@ const DEFAULT_PUBLIC_CONTENT = {
 const DEFAULT_PLATFORM_SETTINGS = {
   registrationOpen: true,
   maintenanceMode: false,
-  trialDays: 7,
+  trialDays: 3,
   maxFreePortfolioPhotos: 6,
   basicPlanPriceEgp: BASIC_SUBSCRIPTION_EGP,
   premiumPlanPriceEgp: PREMIUM_SUBSCRIPTION_EGP,
@@ -752,12 +752,18 @@ async function signUpload(req, res) {
 }
 
 function decodeImageDataUrl(dataUrl) {
-  const match = cleanString(dataUrl).match(/^data:(image\/(?:jpeg|png|webp));base64,([a-z0-9+/=\s]+)$/i);
-  if (!match) throw fail(422, 'Invalid image data');
-  const buffer = Buffer.from(match[2].replace(/\s/g, ''), 'base64');
-  if (!buffer.length) throw fail(422, 'Invalid image data');
+  const str = cleanString(dataUrl);
+  const comma = str.indexOf(',');
+  if (comma === -1) throw fail(422, 'Invalid image data');
+  const header = str.slice(0, comma);
+  const match = header.match(/^data:(image\/(?:jpeg|jpg|png|webp));base64$/i);
+  if (!match) throw fail(422, 'Unsupported image type');
+  const buffer = Buffer.from(str.slice(comma + 1).replace(/\s/g, ''), 'base64');
+  if (!buffer.length) throw fail(422, 'Empty image data');
   if (buffer.length > 5 * 1024 * 1024) throw fail(422, 'Image must be 5MB or smaller');
-  return { mimeType: match[1].toLowerCase(), buffer };
+  let mimeType = match[1].toLowerCase();
+  if (mimeType === 'image/jpg') mimeType = 'image/jpeg';
+  return { mimeType, buffer };
 }
 
 function extensionForMime(mimeType) {

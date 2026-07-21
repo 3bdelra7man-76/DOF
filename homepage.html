@@ -464,14 +464,11 @@
           </div>
         </div>
         <div class="hero-img-wrap relative fade-up" style="animation-delay:.2s">
-          <div class="w-full aspect-[4/5] rounded-2xl overflow-hidden border border-[var(--border)]">
-            <img src="https://picsum.photos/seed/studiophoto/600/750" alt="Studio" class="w-full h-full object-cover" loading="lazy">
-          </div>
-          <div class="absolute -bottom-6 -left-6 card p-4 float-anim">
-            <div class="flex items-center gap-3"><img src="https://picsum.photos/seed/avatar1/80/80" class="w-10 h-10 rounded-full" alt=""><div><div class="text-sm font-semibold">Lina Mansour</div><div class="text-xs text-[var(--text2)]">Wedding Photographer</div></div></div>
-          </div>
-          <div class="absolute -top-4 -right-4 card p-4 float-anim" style="animation-delay:1s">
-            <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-[rgba(92,184,92,0.15)] flex items-center justify-center"><i class="fas fa-arrow-up text-[var(--success)] text-sm"></i></div><div><div class="text-sm font-semibold">+30%</div><div class="text-xs text-[var(--text2)]" data-t="thisMonth">This month</div></div></div>
+          <div class="w-full aspect-[4/5] rounded-2xl overflow-hidden border border-[var(--border)] hero-slideshow" id="hero-slideshow">
+            <img src="assets/images/hero/hero1.jpg" alt="DOF Studios" class="hero-slide active">
+            <img src="assets/images/hero/hero2.jpg" alt="DOF Studios" class="hero-slide">
+            <img src="assets/images/hero/hero3.jpg" alt="DOF Studios" class="hero-slide">
+            <img src="assets/images/hero/hero4.jpg" alt="DOF Studios" class="hero-slide">
           </div>
         </div>
       </div>
@@ -512,7 +509,7 @@
     <div class="max-w-5xl mx-auto px-6">
       <div class="text-center mb-16 fade-up"><h2 class="text-4xl font-bold mb-4" data-t="priceTitle">Simple Pricing</h2></div>
       <div class="price-grid grid grid-cols-3 gap-6">
-        <div class="card p-8 fade-up"><div class="text-sm text-[var(--text2)] font-semibold mb-2" data-t="planFree">Free</div><div class="text-4xl font-bold mb-1">0 EGP</div><div class="text-sm text-[var(--text2)] mb-6">7 days only</div><ul class="space-y-3 text-sm text-[var(--text2)] mb-8"><li><i class="fas fa-check text-[var(--success)] mr-2"></i>6 gallery images</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>4 packages max</li><li><i class="fas fa-times text-[var(--danger)] mr-2"></i>Overview locked</li></ul><button onclick="openModal('auth-modal')" class="btn-secondary w-full" data-t="startFree">Start Free</button></div>
+        <div class="card p-8 fade-up"><div class="text-sm text-[var(--text2)] font-semibold mb-2" data-t="planFree">Free</div><div class="text-4xl font-bold mb-1">0 EGP</div><div class="text-sm text-[var(--text2)] mb-6">3 days only</div><ul class="space-y-3 text-sm text-[var(--text2)] mb-8"><li><i class="fas fa-check text-[var(--success)] mr-2"></i>6 gallery images</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>4 packages max</li><li><i class="fas fa-times text-[var(--danger)] mr-2"></i>Overview locked</li></ul><button onclick="openModal('auth-modal')" class="btn-secondary w-full" data-t="startFree">Start Free</button></div>
         <div class="card p-8 border-[var(--accent)] relative fade-up"><div class="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-[var(--accent-d)] to-[var(--accent-l)] text-xs font-bold text-white" data-t="planPopular">Popular</div><div class="text-sm text-[var(--accent)] font-semibold mb-2">Basic</div><div class="text-4xl font-bold mb-1">400 <span class="text-lg font-normal">EGP</span><span class="text-base text-[var(--text2)] font-normal"> / month</span></div><ul class="space-y-3 text-sm text-[var(--text2)] mb-8"><li><i class="fas fa-check text-[var(--success)] mr-2"></i>25 gallery images</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Unlimited packages</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Badge 1</li></ul><button onclick="openModal('auth-modal')" class="btn-primary w-full" data-t="choosePlan">Choose Basic</button></div>
         <div class="card p-8 fade-up"><div class="text-sm text-[var(--accent)] font-semibold mb-2">Premium</div><div class="text-4xl font-bold mb-1">600 <span class="text-lg font-normal">EGP</span><span class="text-base text-[var(--text2)] font-normal"> / month</span></div><ul class="space-y-3 text-sm text-[var(--text2)] mb-8"><li><i class="fas fa-check text-[var(--success)] mr-2"></i>40 gallery images</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Priority support</li><li><i class="fas fa-check text-[var(--success)] mr-2"></i>Badge 2</li></ul><button onclick="openModal('auth-modal')" class="btn-primary w-full">Choose Premium</button></div>
       </div>
@@ -531,7 +528,7 @@
       <div class="glow-line mb-6"></div>
       <div class="flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-[var(--text2)]">
         <span>&copy; 2026 DOF STUDIOS. All rights reserved.</span>
-        <div class="flex gap-4"><a href="#" class="hover:text-[var(--accent)]">Privacy</a><a href="#" class="hover:text-[var(--accent)]">Terms</a></div>
+        <div class="flex gap-4"><a href="refund.html" class="hover:text-[var(--accent)]">Refund Policy</a><a href="privacy.html" class="hover:text-[var(--accent)]">Privacy</a><a href="terms.html" class="hover:text-[var(--accent)]">Terms</a></div>
       </div>
     </div>
   </footer>
@@ -542,5 +539,23 @@
 <!-- ===== COMPLETE JAVASCRIPT ===== -->
 <!-- ============================================================ -->
 <script src="assets/js/app.js?v=plan-card-actions-20260711"></script>
+<script>
+(function(){
+  var slides=document.querySelectorAll('#hero-slideshow .hero-slide');
+  var dots=document.querySelectorAll('.hero-dot');
+  if(!slides.length)return;
+  var current=0;
+  var total=slides.length;
+  function goTo(n){
+    slides[current].classList.remove('active');
+    if(dots[current])dots[current].classList.remove('active');
+    current=(n%total+total)%total;
+    slides[current].classList.add('active');
+    if(dots[current])dots[current].classList.add('active');
+  }
+  window.goToSlide=goTo;
+  setInterval(function(){goTo(current+1);},2000);
+})();
+</script>
 </body>
 </html>
