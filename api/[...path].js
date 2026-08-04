@@ -1,14 +1,25 @@
-import { requireRole, requireUser } from '../backend/lib/auth.js';
+﻿import { requireRole, requireUser } from '../backend/lib/auth.js';
 import { config } from '../backend/lib/config.js';
 import { created, fail, handleError, methodNotAllowed, noContent, ok, readJson } from '../backend/lib/http.js';
 import { limitsForPlan, planForPhotographer } from '../backend/lib/limits.js';
 import { createPaymobSubscriptionIntent, verifyPaymobHmac } from '../backend/lib/paymob.js';
 import { addMinutes, generateSlots, hasOverlap } from '../backend/lib/slots.js';
 import { supabaseAnon, supabaseService } from '../backend/lib/supabase.js';
+import { 
+  getAvailablePlans, 
+  activateFreeTrial, 
+  submitManualPaymentRequest, 
+  getPhotographerSubscription,
+  getAllManualPaymentRequests,
+  reviewManualPayment,
+  deleteManualPaymentRequest,
+  cancelPhotographerSubscription
+} from '../backend/lib/subscriptions.js';
 import { asInt, assertUuid, required } from '../backend/lib/validation.js';
 
 const PORTFOLIO_BUCKET = 'portfolio';
 const PACKAGE_BUCKET = 'package-attachments';
+const RECEIPT_BUCKET = 'subscription-receipts';
 const BASIC_SUBSCRIPTION_EGP = 400;
 const PREMIUM_SUBSCRIPTION_EGP = 600;
 const ADMIN_PAGE_SIZE_MAX = 100;
@@ -288,6 +299,9 @@ function isFreeTrialExpired(photographerProfile, settings) {
 }
 
 function assertFreeTrialAvailable(photographerProfile, settings) {
+  if (photographerProfile?.is_suspended) {
+    throw fail(403, 'Photographer account is suspended');
+  }
   if (isFreeTrialExpired(photographerProfile, settings)) {
     throw fail(403, 'Free trial expired. Subscribe to Basic or Premium to continue.');
   }
@@ -601,20 +615,54 @@ async function resetPassword(req, res) {
 async function login(req, res) {
   const body = await readJson(req);
   required(body, ['email', 'password']);
-  const { data, error } = await supabaseAnon().auth.signInWithPassword({
-    email: cleanString(body.email).toLowerCase(),
-    password: body.password
-  });
-  if (error) throw fail(401, error.message);
+  const email = cleanString(body.email).toLowerCase();
+  const password = body.password;
+
+  // First attempt: normal sign-in via anon client
+  let signInData = null;
+  let signInError = null;
+  ({ data: signInData, error: signInError } = await supabaseAnon().auth.signInWithPassword({ email, password }));
+
+  // If sign-in failed, check if user exists but email is unconfirmed
+  if (signInError) {
+    const lowerMsg = (signInError.message || '').toLowerCase();
+    const couldBeEmailConfirm = lowerMsg.includes('invalid login') || lowerMsg.includes('email not confirmed') || lowerMsg.includes('invalid credentials');
+
+    if (couldBeEmailConfirm) {
+      const sb = supabaseService();
+      // Find user by email via admin API
+      const { data: usersData } = await sb.auth.admin.listUsers({ perPage: 1000 });
+      const existingUser = (usersData?.users || []).find(u => (u.email || '').toLowerCase() === email);
+
+      if (existingUser) {
+        // User exists - confirm email if not already confirmed, then retry
+        if (!existingUser.email_confirmed_at) {
+          await sb.auth.admin.updateUserById(existingUser.id, { email_confirm: true });
+        }
+        // Retry sign-in
+        ({ data: signInData, error: signInError } = await supabaseAnon().auth.signInWithPassword({ email, password }));
+        if (signInError) {
+          console.error('[auth/login] sign-in failed after email confirm fix:', signInError.message, { email });
+          throw fail(401, 'بيانات الدخول غير صحيحة. تأكد من البريد الإلكتروني وكلمة المرور.');
+        }
+      } else {
+        console.error('[auth/login] user not found in supabase auth:', { email });
+        throw fail(401, 'لا يوجد حساب مرتبط بهذا البريد الإلكتروني.');
+      }
+    } else {
+      console.error('[auth/login] unexpected sign-in error:', signInError.message, { email });
+      throw fail(401, signInError.message);
+    }
+  }
 
   const sb = supabaseService();
   const { data: profile } = await sb
     .from('profiles')
     .select('*, photographer_profiles(*)')
-    .eq('id', data.user.id)
+    .eq('id', signInData.user.id)
     .single();
 
-  ok(res, { session: data.session, user: data.user, profile: await attachProfileCategories(sb, profile) });
+  ok(res, { session: signInData.session, user: signInData.user, profile: await attachProfileCategories(sb, profile) });
 }
 
 async function getMe(req, res) {
@@ -740,10 +788,20 @@ async function signUpload(req, res) {
   const body = await readJson(req);
   required(body, ['kind', 'filename']);
   const sb = supabaseService();
-  const isPackage = body.kind === 'package';
-  const bucket = isPackage ? PACKAGE_BUCKET : PORTFOLIO_BUCKET;
+  const kind = cleanString(body.kind);
+  let bucket = PORTFOLIO_BUCKET;
+  let folder = '';
+  if (kind === 'package') {
+    bucket = PACKAGE_BUCKET;
+  } else if (kind === 'receipt') {
+    requireRole(profile, 'photographer');
+    bucket = RECEIPT_BUCKET;
+    folder = 'receipts/';
+  } else if (kind !== 'portfolio') {
+    throw fail(422, 'Unsupported upload kind');
+  }
   const safeName = cleanString(body.filename).replace(/[^a-z0-9._-]/gi, '-').toLowerCase();
-  const path = `${profile.id}/${Date.now()}-${safeName}`;
+  const path = `${profile.id}/${folder}${Date.now()}-${safeName}`;
 
   const { data, error } = await sb.storage.from(bucket).createSignedUploadUrl(path);
   if (error) throw fail(422, error.message);
@@ -1935,11 +1993,13 @@ async function paymobWebhook(req, res) {
 
   if (subscription && status === 'active') {
     const planCode = subscriptionPlanCode(subscription.plan_code);
+    const startsAt = new Date().toISOString();
     await sb.from('photographer_profiles').update({
       subscription_status: 'active',
       subscription_plan: planCode,
       subscription_due_at: due.toISOString(),
-      is_suspended: false
+      subscription_starts_at: startsAt,
+      subscription_ends_at: due.toISOString()
     }).eq('profile_id', subscription.photographer_id);
   }
   ok(res, { received: true });
@@ -2346,7 +2406,7 @@ async function adminListSubscriptions(req, res) {
   const photographerIds = Array.from(new Set(subscriptions.map((row) => row.photographer_id).filter(Boolean)));
   const [{ data: people }, { data: photographerProfiles }] = photographerIds.length ? await Promise.all([
     sb.from('profiles').select('id, display_name, email, phone').in('id', photographerIds),
-    sb.from('photographer_profiles').select('profile_id, custom_link, subscription_status, subscription_due_at, is_suspended').in('profile_id', photographerIds)
+    sb.from('photographer_profiles').select('profile_id, custom_link, subscription_status, subscription_plan, subscription_due_at, subscription_ends_at, is_suspended').in('profile_id', photographerIds)
   ]) : [{ data: [] }, { data: [] }];
   const peopleById = Object.fromEntries((people || []).map((person) => [person.id, person]));
   const photographerProfileById = Object.fromEntries((photographerProfiles || []).map((profile) => [profile.profile_id, profile]));
@@ -2378,12 +2438,16 @@ async function adminUpdateSubscription(req, res, subscriptionId) {
   const { data, error } = await sb.from('subscriptions').update(patch).eq('id', subscriptionId).select('*').single();
   if (error) throw fail(422, error.message);
   const photographerStatus = status === 'failed' ? 'overdue' : status;
+  const activePlanCode = subscriptionPlanCode(data.plan_code);
+  const dueAt = data.current_period_end || null;
   const profilePatch = {
     subscription_status: photographerStatus,
-    // subscription_plan: status === 'active' ? subscriptionPlanCode(data.plan_code) : 'free',
-    subscription_due_at: data.current_period_end || null
+    subscription_plan: status === 'active' ? activePlanCode : 'free',
+    subscription_due_at: dueAt,
+    subscription_ends_at: dueAt
   };
-  if (status === 'active') profilePatch.is_suspended = false;
+  if (status === 'active') profilePatch.subscription_starts_at = new Date().toISOString();
+  else profilePatch.subscription_starts_at = null;
   if (['pending', 'active', 'overdue', 'cancelled'].includes(photographerStatus)) {
     await sb.from('photographer_profiles').update(profilePatch).eq('profile_id', data.photographer_id);
   }
@@ -2573,6 +2637,81 @@ async function handle(req, res) {
   if (req.method === 'POST' && first === 'support' && second === 'conversations' && third && fourth === 'messages') return sendSupportMessage(req, res, third);
   if (req.method === 'GET' && first === 'support' && second === 'conversations' && !third) return listSupportConversations(req, res);
   if (req.method === 'POST' && first === 'support' && second === 'conversations' && !third) return createSupportConversation(req, res);
+
+  // Subscription routes
+  if (req.method === 'GET' && first === 'subscriptions' && second === 'plans') {
+    const plans = await getAvailablePlans();
+    return ok(res, { success: true, plans });
+  }
+  if (req.method === 'POST' && first === 'subscriptions' && second === 'activate-trial') {
+    const { profile } = await requireUser(req);
+    requireRole(profile, 'photographer');
+    const result = await activateFreeTrial(profile.id);
+    return ok(res, { success: true, subscription: result });
+  }
+  if (req.method === 'POST' && first === 'subscriptions' && second === 'manual-payment') {
+    const { profile } = await requireUser(req);
+    requireRole(profile, 'photographer');
+    const body = await readJson(req);
+    const result = await submitManualPaymentRequest(profile.id, body);
+    return ok(res, { success: true, request: result });
+  }
+  if (req.method === 'GET' && first === 'subscriptions' && second === 'my-subscription') {
+    const { profile } = await requireUser(req);
+    requireRole(profile, 'photographer');
+    const subscription = await getPhotographerSubscription(profile.id);
+    return ok(res, { success: true, subscription });
+  }
+  
+  // Admin manual payment routes
+  if (req.method === 'GET' && first === 'admin' && second === 'manual-payments' && !third) {
+    await requireAdmin(req);
+    const status = param(req, 'status');
+    const planCode = param(req, 'planCode');
+    const page = param(req, 'page');
+    const pageSize = param(req, 'pageSize') || param(req, 'limit');
+    const filters = {};
+    if (status) filters.status = status;
+    if (planCode) filters.planCode = planCode;
+    if (page) filters.page = page;
+    if (pageSize) filters.pageSize = pageSize;
+    const result = await getAllManualPaymentRequests(filters);
+    return ok(res, { success: true, ...result });
+  }
+  if (req.method === 'PATCH' && first === 'admin' && second === 'manual-payments' && third && fourth === 'review') {
+    const actor = await requireAdmin(req);
+    const body = await readJson(req);
+    if (!body.action || !['approve', 'reject'].includes(body.action)) {
+      throw fail(400, 'Invalid action. Use "approve" or "reject"');
+    }
+    const result = await reviewManualPayment(third, actor.id, body.action, body.rejectionReason);
+    await writeAdminLog(supabaseService(), actor, 'manual_payment_review', 'manual_payment_request', third, {
+      action: body.action,
+      revoked: result.revoked?.revokedProfile === true
+    });
+    return ok(res, { success: true, ...result });
+  }
+  if (req.method === 'DELETE' && first === 'admin' && second === 'manual-payments' && third && !fourth) {
+    const actor = await requireAdmin(req);
+    await deleteManualPaymentRequest(third);
+    await writeAdminLog(supabaseService(), actor, 'manual_payment_delete', 'manual_payment_request', third, {});
+    return ok(res, { success: true, message: 'Payment request deleted' });
+  }
+  // Admin cancel subscription route
+  if (req.method === 'POST' && first === 'admin' && second === 'photographers' && third && fourth === 'cancel-subscription') {
+    const actor = await requireAdmin(req);
+    const body = await readJson(req);
+    const result = await cancelPhotographerSubscription(third, body.reason, { suspendAccount: body.suspendAccount === true });
+    await writeAdminLog(supabaseService(), actor, result.suspended ? 'photographer_fraud_suspend' : 'subscription_revoke', 'photographer', third, {
+      reason: cleanString(body.reason),
+      suspended: result.suspended === true,
+      previousPlan: result.previousPlan
+    });
+    if (result.suspended) {
+      await writeAdminNotification(supabaseService(), 'moderation', 'Photographer suspended for fraud review', `A photographer was suspended by ${actor.display_name}.`, { photographerId: third });
+    }
+    return ok(res, { success: true, ...result });
+  }
 
   if (req.method === 'POST' && first === 'subscriptions' && second === 'paymob' && third === 'start') return startSubscription(req, res);
   if (req.method === 'GET' && first === 'subscriptions' && second === 'current') return currentSubscription(req, res);

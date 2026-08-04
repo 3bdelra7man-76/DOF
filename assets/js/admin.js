@@ -33,6 +33,7 @@
     reportPage:1,reportStatus:'open',
     supportPage:1,supportStatus:'open',supportActiveId:null,
     subscriptionPage:1,subscriptionSearch:'',subscriptionStatus:'all',
+    manualPaymentPage:1,manualPaymentStatus:'pending',manualPaymentRequests:[],manualPaymentTotal:0,
     notifPage:1,logPage:1,
     revenueRange:'monthly',visitRange:'monthly',
     overview:null,customers:[],customerTotal:0,
@@ -61,6 +62,7 @@
     {id:'reports',icon:'fa-flag',label:'البلاغات'},
     {id:'support',icon:'fa-headset',label:'الدعم'},
     {id:'subscriptions',icon:'fa-crown',label:'الاشتراكات'},
+    {id:'manual-payments',icon:'fa-money-bill-wave',label:'الدفعات اليدوية'},
     {id:'categories',icon:'fa-tags',label:'الأقسام'},
     {id:'content',icon:'fa-file-lines',label:'المحتوى'},
     {id:'notifications',icon:'fa-bell',label:'الإشعارات'},
@@ -242,7 +244,7 @@
     var renderers={
       overview:renderOverview,revenue:renderRevenue,visits:renderVisits,customers:renderCustomers,
       photographers:renderPhotographers,bookings:renderBookings,reports:renderReports,
-      support:renderSupport,subscriptions:renderSubscriptions,categories:renderCategories,content:renderContent,notifications:renderNotifications,
+      support:renderSupport,subscriptions:renderSubscriptions,'manual-payments':renderManualPayments,categories:renderCategories,content:renderContent,notifications:renderNotifications,
       settings:renderSettings,logs:renderLogs
     };
     c.innerHTML='<div class="scale-in">'+(renderers[S.tab]||renderOverview)()+'</div>';
@@ -265,6 +267,7 @@
     else if(id==='reports')await loadReports();
     else if(id==='support')await loadSupport();
     else if(id==='subscriptions')await loadSubscriptions();
+    else if(id==='manual-payments')await loadManualPayments();
     else if(id==='categories')await loadCategories();
     else if(id==='content')await loadContent();
     else if(id==='settings')await loadSettings();
@@ -395,7 +398,7 @@
   function renderPhotographers(){
     return '<div class="flex flex-wrap items-center justify-between gap-4 mb-6"><div><h2 class="font-display" style="font-size:26px;font-weight:700">إدارة المصورين</h2><p class="text-muted mt-1" style="font-size:14px">'+fmt(S.photoTotal)+' مصور</p></div><button class="btn btn-primary btn-sm" onclick="exportPhotographers()"><i class="fas fa-download"></i>تصدير</button></div>'+
     '<div class="flex flex-wrap gap-3 mb-6"><div class="search-bar" style="max-width:360px;flex:1"><i class="fas fa-search"></i><input class="input" style="padding-right:42px;font-size:13px" placeholder="بحث بالاسم أو التخصص أو المنطقة..." value="'+h(S.photoSearch)+'" oninput="S.photoSearch=this.value;S.photoPage=1;queueTabLoad()"></div><select class="input" style="width:auto" onchange="S.photoStatus=this.value;S.photoPage=1;reloadTab()"><option value="all">كل الحالات</option><option value="published" '+(S.photoStatus==='published'?'selected':'')+'>منشور</option><option value="hidden" '+(S.photoStatus==='hidden'?'selected':'')+'>مخفي</option><option value="suspended" '+(S.photoStatus==='suspended'?'selected':'')+'>موقوف</option></select></div>'+
-    (S.photographers.length?'<div class="card overflow-hidden"><table class="data-table"><thead><tr><th>المصور</th><th>التخصص</th><th>المنطقة</th><th>الحجوزات</th><th>الإيرادات</th><th>الاشتراك</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>'+S.photographers.map(function(p){return '<tr><td><div class="flex items-center gap-3"><div class="avatar-initial sm" style="background:var(--accent-glow);color:var(--accent)">'+h((p.display_name||'?').charAt(0))+'</div><div><div style="font-size:13px;font-weight:600">'+h(p.display_name)+'</div><div class="text-dim" style="font-size:12px">'+h(p.email||'')+'</div></div></div></td><td>'+h(p.specialty||'-')+'</td><td>'+h(p.region||'-')+'</td><td>'+fmt(p.booking_count)+'</td><td style="font-weight:700;color:var(--accent)">'+fmtMoney(p.grossRevenue)+'</td><td>'+statusBadge(p.subscription_status)+'</td><td>'+statusBadge(p.status)+'</td><td><div class="flex gap-2"><button class="btn-icon" onclick="viewPhotoDetail(\''+p.id+'\')" title="تفاصيل"><i class="fas fa-eye" style="font-size:12px"></i></button><button class="btn-icon '+(p.is_suspended?'':'danger')+'" onclick="togglePhotoStatus(\''+p.id+'\')" title="'+(p.is_suspended?'تفعيل':'إيقاف')+'"><i class="fas '+(p.is_suspended?'fa-check':'fa-ban')+'" style="font-size:12px"></i></button><button class="btn-icon" onclick="togglePhotoPublished(\''+p.id+'\')" title="'+(p.is_published?'إخفاء':'نشر')+'"><i class="fas '+(p.is_published?'fa-eye-slash':'fa-eye')+'" style="font-size:12px"></i></button></div></td></tr>';}).join('')+'</tbody></table></div>':empty('fa-camera-retro','لا يوجد مصورون'))+
+    (S.photographers.length?'<div class="card overflow-hidden"><table class="data-table"><thead><tr><th>المصور</th><th>التخصص</th><th>المنطقة</th><th>الحجوزات</th><th>الإيرادات</th><th>الاشتراك</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>'+S.photographers.map(function(p){return '<tr><td><div class="flex items-center gap-3"><div class="avatar-initial sm" style="background:var(--accent-glow);color:var(--accent)">'+h((p.display_name||'?').charAt(0))+'</div><div><div style="font-size:13px;font-weight:600">'+h(p.display_name)+'</div><div class="text-dim" style="font-size:12px">'+h(p.email||'')+'</div></div></div></td><td>'+h(p.specialty||'-')+'</td><td>'+h(p.region||'-')+'</td><td>'+fmt(p.booking_count)+'</td><td style="font-weight:700;color:var(--accent)">'+fmtMoney(p.grossRevenue)+'</td><td>'+statusBadge(p.subscription_status)+'</td><td>'+statusBadge(p.status)+'</td><td><div class="flex gap-2"><button class="btn-icon" onclick="viewPhotoDetail(\''+p.id+'\')" title="تفاصيل"><i class="fas fa-eye" style="font-size:12px"></i></button><button class="btn-icon '+(p.is_suspended?'':'danger')+'" onclick="togglePhotoStatus(\''+p.id+'\')" title="'+(p.is_suspended?'تفعيل':'إيقاف')+'"><i class="fas '+(p.is_suspended?'fa-check':'fa-ban')+'" style="font-size:12px"></i></button><button class="btn-icon" onclick="togglePhotoPublished(\''+p.id+'\')" title="'+(p.is_published?'إخفاء':'نشر')+'"><i class="fas '+(p.is_published?'fa-eye-slash':'fa-eye')+'" style="font-size:12px"></i></button>'+((p.subscription_status==='active'||p.subscription_status==='overdue')?'<button class="btn-icon danger" onclick="cancelPhotographerSubscription(\''+p.id+'\')" title="إلغاء الاشتراك فقط"><i class="fas fa-times-circle" style="font-size:12px"></i></button>':'')+'<button class="btn-icon danger" onclick="fraudSuspendPhotographer(\''+p.id+'\')" title="إلغاء الاشتراك وإيقاف الحساب للاحتيال"><i class="fas fa-user-lock" style="font-size:12px"></i></button></div></td></tr>';}).join('')+'</tbody></table></div>':empty('fa-camera-retro','لا يوجد مصورون'))+
     pagination(S.photoPage,S.photoTotal,'goPhotoPage');
   }
   function renderBookings(){
@@ -503,6 +506,24 @@
     var next=!p.is_published;
     await api('/api/admin/photographers/'+id+'/moderation',{method:'PATCH',body:{isPublished:next,reason:'admin_console'}});
     showToast(next?'تم نشر الملف':'تم إخفاء الملف','success');
+    reloadTab();
+  }
+  async function cancelPhotographerSubscription(id){
+    var p=S.photographers.find(function(x){return x.id===id;});if(!p)return;
+    var reason=prompt('سبب إلغاء الاشتراك (اختياري):','');
+    if(reason===null)return; // user cancelled
+    if(!confirm('إلغاء اشتراك المصور وإرجاعه للباقة المجانية فقط؟'))return;
+    await api('/api/admin/photographers/'+id+'/cancel-subscription',{method:'POST',body:{reason:reason,suspendAccount:false}});
+    showToast('تم إلغاء الاشتراك وإرجاع المصور للباقة المجانية','warning');
+    reloadTab();
+  }
+  async function fraudSuspendPhotographer(id){
+    var p=S.photographers.find(function(x){return x.id===id;});if(!p)return;
+    var reason=prompt('سبب إيقاف الحساب للاشتباه بالاحتيال:','fraud');
+    if(reason===null)return;
+    if(!confirm('إلغاء الاشتراك وإيقاف حساب المصور بالكامل؟'))return;
+    await api('/api/admin/photographers/'+id+'/cancel-subscription',{method:'POST',body:{reason:reason||'fraud',suspendAccount:true}});
+    showToast('تم إلغاء الاشتراك وإيقاف الحساب','warning');
     reloadTab();
   }
   async function updateBookingAdminStatus(id,status){
@@ -695,7 +716,8 @@
     viewUserDetail:viewUserDetail,viewPhotoDetail:viewPhotoDetail,togglePhotoStatus:togglePhotoStatus,togglePhotoPublished:togglePhotoPublished,
     updateBookingAdminStatus:updateBookingAdminStatus,updateReportStatus:updateReportStatus,suspendReported:suspendReported,
     openSupportThread:openSupportThread,sendSupportReply:sendSupportReply,setSupportStatus:setSupportStatus,
-    updateSubscriptionStatus:updateSubscriptionStatus,resetCategoryForm:resetCategoryForm,editCategory:editCategory,
+    updateSubscriptionStatus:updateSubscriptionStatus,cancelPhotographerSubscription:cancelPhotographerSubscription,
+    fraudSuspendPhotographer:fraudSuspendPhotographer,resetCategoryForm:resetCategoryForm,editCategory:editCategory,
     saveCategory:saveCategory,removeCategory:removeCategory,reactivateCategory:reactivateCategory,
     saveContent:saveContent,saveSettings:saveSettings,
     markRead:markRead,markAllRead:markAllRead,
@@ -710,4 +732,73 @@
     if(S.tab==='overview')loadOverview().then(renderTab).catch(function(){});
     if(S.tab==='support')loadSupport().then(renderTab).catch(function(){});
   },60000);
+
+  /* ===== MANUAL PAYMENTS ===== */
+  async function loadManualPayments(){
+    var data=await api('/api/admin/manual-payments'+params({status:S.manualPaymentStatus,page:S.manualPaymentPage,pageSize:PAGE_SIZE}));
+    S.manualPaymentRequests=data.requests||[];
+    S.manualPaymentTotal=data.total||0;
+  }
+  function renderManualPayments(){
+    var pending=S.manualPaymentRequests.filter(function(r){return r.status==='pending';}).length;
+    return '<div class="flex flex-wrap items-center justify-between gap-4 mb-6"><div><h2 class="font-display" style="font-size:26px;font-weight:700">الدفعات اليدوية</h2><p class="text-muted mt-1" style="font-size:14px">'+fmt(S.manualPaymentTotal)+' طلب • '+fmt(pending)+' معلق</p></div></div>'+
+    '<div class="tab-filter mb-6 inline-flex"><button class="'+(S.manualPaymentStatus==='pending'?'active':'')+'" onclick="S.manualPaymentStatus=\'pending\';S.manualPaymentPage=1;reloadTab()">معلق</button><button class="'+(S.manualPaymentStatus==='approved'?'active':'')+'" onclick="S.manualPaymentStatus=\'approved\';S.manualPaymentPage=1;reloadTab()">مقبول</button><button class="'+(S.manualPaymentStatus==='rejected'?'active':'')+'" onclick="S.manualPaymentStatus=\'rejected\';S.manualPaymentPage=1;reloadTab()">مرفوض</button><button class="'+(S.manualPaymentStatus==='all'?'active':'')+'" onclick="S.manualPaymentStatus=\'all\';S.manualPaymentPage=1;reloadTab()">الكل</button></div>'+
+    (S.manualPaymentRequests.length?'<div class="card overflow-hidden"><table class="data-table"><thead><tr><th>المصور</th><th>الباقة</th><th>طريقة الدفع</th><th>اسم المرسل</th><th>رقم العملية</th><th>الإيصال</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th></tr></thead><tbody>'+S.manualPaymentRequests.map(function(r){
+      var photo=r.photographer||{};
+      var plan=r.plan||{};
+      var photoName=photo.display_name||'غير معروف';
+      var planName=(plan.name_ar||plan.code||'').toUpperCase();
+      var planPrice=plan.price_egp||0;
+      var paymentMethodLabels={vodafone_cash:'Vodafone Cash',instapay:'InstaPay',bank_transfer:'حوالة بنكية'};
+      var methodLabel=paymentMethodLabels[r.payment_method]||r.payment_method;
+      var statusBadgeHtml='';
+      if(r.status==='pending')statusBadgeHtml='<span class="badge badge-pending">مفعل - ينتظر المراجعة</span>';
+      else if(r.status==='approved')statusBadgeHtml='<span class="badge badge-active">مقبول</span>';
+      else if(r.status==='rejected')statusBadgeHtml='<span class="badge badge-cancelled">مرفوض</span>';
+      var receiptLink=r.receipt_url?'<a href="'+h(r.receipt_url)+'" target="_blank" class="text-gold" style="text-decoration:underline;font-size:12px">عرض</a>':'<span class="text-dim">-</span>';
+      var actions='';
+      if(r.status==='pending'){
+        actions='<div class="flex gap-2"><button class="btn-success btn-xs" onclick="reviewManualPayment(\''+r.id+'\',\'approve\')"><i class="fas fa-check"></i>اعتماد</button><button class="btn-danger btn-xs" onclick="reviewManualPayment(\''+r.id+'\',\'reject\')"><i class="fas fa-times"></i>رفض وإلغاء</button></div>';
+      }else{
+        actions='<button class="btn-icon danger" onclick="deleteManualPaymentRequest(\''+r.id+'\')" title="حذف"><i class="fas fa-trash-alt" style="font-size:12px"></i></button>';
+      }
+      return '<tr><td><div style="font-weight:600">'+h(photoName)+'</div><div class="text-dim" style="font-size:12px">'+h(photo.email||'')+'</div></td><td><span class="badge badge-featured">'+h(planName)+'</span><div class="text-dim" style="font-size:11px">'+planPrice+' ج.م</div></td><td class="text-muted" style="font-size:13px">'+h(methodLabel)+'</td><td style="font-size:13px">'+h(r.sender_name||'-')+'</td><td class="text-muted" style="font-size:12px;font-family:monospace">'+h(r.transaction_ref||'-')+'</td><td>'+receiptLink+'</td><td>'+statusBadgeHtml+'</td><td class="text-dim" style="font-size:12px">'+timeAgo(r.created_at)+'</td><td>'+actions+'</td></tr>';
+    }).join('')+'</tbody></table></div>':empty('fa-money-bill-wave','لا توجد طلبات دفع يدوي'))+
+    pagination(S.manualPaymentPage,S.manualPaymentTotal,'goManualPaymentPage');
+  }
+  async function reviewManualPayment(id,action){
+    var actionText=action==='approve'?'قبول':'رفض';
+    var reason='';
+    if(action==='reject'){
+      reason=prompt('سبب الرفض وإلغاء الاشتراك (اختياري):');
+      if(reason===null)return;
+    }
+    if(!confirm(action==='reject'?'رفض هذا الإيصال وإلغاء الاشتراك المرتبط؟':'اعتماد هذا الإيصال بدون تفعيل إضافي؟'))return;
+    try{
+      await api('/api/admin/manual-payments/'+id+'/review',{method:'PATCH',body:{action:action,rejectionReason:reason||null}});
+      showToast(action==='approve'?'تم اعتماد الإيصال':'تم رفض الإيصال وإلغاء الاشتراك','success');
+      reloadTab();
+    }catch(e){
+      showToast(e.message||'فشل '+actionText+' الطلب','error');
+    }
+  }
+  async function deleteManualPaymentRequest(id){
+    if(!confirm('حذف هذا الطلب نهائياً؟'))return;
+    try{
+      await api('/api/admin/manual-payments/'+id,{method:'DELETE'});
+      showToast('تم حذف الطلب','info');
+      reloadTab();
+    }catch(e){
+      showToast(e.message||'فشل حذف الطلب','error');
+    }
+  }
+  function goManualPaymentPage(p){S.manualPaymentPage=p;reloadTab();}
+
+  Object.assign(window,{
+    loadManualPayments:loadManualPayments,
+    renderManualPayments:renderManualPayments,
+    reviewManualPayment:reviewManualPayment,
+    deleteManualPaymentRequest:deleteManualPaymentRequest,
+    goManualPaymentPage:goManualPaymentPage
+  });
 })();

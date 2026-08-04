@@ -18,7 +18,9 @@ export const PLAN_LIMITS = {
 
 export function planForPhotographer(photographerProfile) {
   if (photographerProfile?.subscription_status !== 'active') return 'free';
-  return photographerProfile?.subscription_plan === 'premium' ? 'premium' : 'basic';
+  if (photographerProfile?.subscription_plan === 'premium') return 'premium';
+  if (photographerProfile?.subscription_plan === 'basic') return 'basic';
+  return 'free';
 }
 
 export function limitsForPlan(plan) {

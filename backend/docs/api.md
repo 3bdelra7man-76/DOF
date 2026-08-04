@@ -31,10 +31,10 @@ Authorization: Bearer <supabase_access_token>
 ## Portfolio And Packages
 
 - `POST /api/uploads/sign`
-  - Body: `kind` as `portfolio` or `package`, plus `filename`.
+  - Body: `kind` as `portfolio`, `package`, or `receipt`, plus `filename`.
 - `POST /api/portfolio/photos`
   - Body: `url`, optional `storagePath`, `title`, `collectionId`.
-  - Free photographers are limited to 10 photos.
+  - Free photographers are limited to 6 photos.
 - `DELETE /api/portfolio/photos/:id`
 - `GET /api/packages`
 - `POST /api/packages`
@@ -74,6 +74,10 @@ V1 chat is stored-message polling. The frontend should poll conversation message
 - `POST /api/subscriptions/paymob/start`
 - `GET /api/subscriptions/current`
 - `POST /api/webhooks/paymob`
+- `POST /api/subscriptions/manual-payment`
+  - Photographer only.
+  - Body: `planCode`, `paymentMethod`, `senderName`, `transactionRef`, `receiptUrl`, `receiptPath`.
+  - Activates Basic/Premium immediately and leaves the payment proof pending for admin review.
 
 Paymob webhook success activates premium for one month and updates the photographer profile.
 
@@ -95,6 +99,11 @@ Paymob webhook success activates premium for one month and updates the photograp
 - `GET /api/admin/subscriptions`
 - `PATCH /api/admin/subscriptions/:id`
   - Body: `status`, optional `currentPeriodEnd`.
+- `GET /api/admin/manual-payments`
+- `PATCH /api/admin/manual-payments/:id/review`
+  - Body: `action` as `approve` or `reject`, optional `rejectionReason`.
+- `POST /api/admin/photographers/:id/cancel-subscription`
+  - Body: optional `reason`, optional `suspendAccount`.
 - `GET /api/admin/analytics?range=daily|weekly|monthly`
 - `GET /api/admin/content`
 - `PUT /api/admin/content`

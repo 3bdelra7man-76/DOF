@@ -272,6 +272,8 @@ function normalizeProfile(profile){
   var subscriptionPlan=pp?(pp.subscription_plan||''):(profile.subscriptionPlan||profile.subscription_plan||'');
   if(subscriptionStatus==='active'&&!subscriptionPlan)subscriptionPlan='basic';
   if(subscriptionStatus!=='active')subscriptionPlan='free';
+  var normalizedSubscriptionPlan=normalizePlanKey(subscriptionPlan);
+  var hasPaidSubscription=subscriptionStatus==='active'&&(normalizedSubscriptionPlan==='basic'||normalizedSubscriptionPlan==='premium');
   return {
     id:profile.id,email:profile.email,role:profile.role,
     name:profile.display_name||profile.name||'',
@@ -290,11 +292,11 @@ function normalizeProfile(profile){
     coverPosition:normalizeCoverPosition(pp?(pp.cover_position||profile.coverPosition):(profile.cover_position||profile.coverPosition)),
     social:pp?(pp.social_links||{}):(profile.social||{}),
     rating:profile.rating||0,bookings:profile.booking_count||0,
-    subscriptionDueAt:pp?pp.subscription_due_at:null,
+    subscriptionDueAt:pp?(pp.subscription_due_at||pp.subscription_ends_at):null,
     portfolioSuspended:pp?pp.is_suspended===true:false,
     subscriptionStatus:subscriptionStatus,
-    subscriptionPlan:normalizePlanKey(subscriptionPlan),
-    isSubscribed:subscriptionStatus==='active',
+    subscriptionPlan:hasPaidSubscription?normalizedSubscriptionPlan:'free',
+    isSubscribed:hasPaidSubscription,
     isPublished:pp?pp.is_published===true:false,
     trialStartedAt:pp?(pp.trial_started_at||null):(profile.trialStartedAt||profile.trial_started_at||null),
     createdAt:pp?pp.created_at:profile.created_at||null
@@ -306,6 +308,8 @@ function normalizeDirectoryPhotographer(row){
   var subscriptionPlan=row.subscription_plan||row.subscriptionPlan||'';
   if(subscriptionStatus==='active'&&!subscriptionPlan)subscriptionPlan='basic';
   if(subscriptionStatus!=='active')subscriptionPlan='free';
+  var normalizedSubscriptionPlan=normalizePlanKey(subscriptionPlan);
+  var hasPaidSubscription=subscriptionStatus==='active'&&(normalizedSubscriptionPlan==='basic'||normalizedSubscriptionPlan==='premium');
   return {
     id:row.id,name:row.display_name,nameAr:row.display_name,
     specialty:categories.length?categories.map(function(cat){return categoryTextValue(cat,'en');}).join(', '):(row.specialty||'Photography'),
@@ -318,8 +322,8 @@ function normalizeDirectoryPhotographer(row){
     coverPosition:normalizeCoverPosition(row.cover_position||row.coverPosition),
     bio:row.bio||'',bioAr:row.bio||'',social:row.social_links||{},
     subscriptionStatus:subscriptionStatus,
-    subscriptionPlan:normalizePlanKey(subscriptionPlan),
-    isSubscribed:subscriptionStatus==='active',
+    subscriptionPlan:hasPaidSubscription?normalizedSubscriptionPlan:'free',
+    isSubscribed:hasPaidSubscription,
     trialStartedAt:row.trial_started_at||row.trialStartedAt||null,
     rating:row.rating||0,bookings:row.booking_count||0,packages:[],portfolio:[]
   };
@@ -468,10 +472,16 @@ async function hydrateAuthenticatedState(){
 function recomputeTrial(){
   if(!S.user||S.user.role!=='photographer')return;
   S.isSubscribed=S.user.isSubscribed===true;
-  S.subscriptionDueAt=S.user.subscriptionDueAt||null;
+  S.subscriptionDueAt=S.user.subscriptionDueAt||S.user.subscription_due_at||null;
   S.portfolioSuspended=S.user.portfolioSuspended===true;
   var trialDays=(S.siteSettings&&Number(S.siteSettings.trialDays))||7;
-  if(S.user.isSubscribed){S.trialDaysLeft=0;return;}
+  
+  if(S.user.isSubscribed){
+    // المستخدم مشترك - لا نحسب trial days
+    S.trialDaysLeft=0;
+    return;
+  }
+  
   var trialStartValue=S.user.trialStartedAt||S.user.createdAt;
   if(!trialStartValue){S.trialDaysLeft=trialDays;return;}
   var trialStarted=new Date(trialStartValue).getTime();
@@ -1257,11 +1267,51 @@ function updateSidebarUser(){
   if(avatar){avatar.src=S.user.avatar||'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 80 80\'%3E%3Crect width=\'80\' height=\'80\' rx=\'40\' fill=\'%231a1a1a\'/%3E%3Ccircle cx=\'40\' cy=\'30\' r=\'16\' fill=\'%23444\'/%3E%3Cellipse cx=\'40\' cy=\'72\' rx=\'26\' ry=\'22\' fill=\'%23444\'/%3E%3C/svg%3E';}
   if(name)name.textContent=(gf(S.user,'name')||'').split(' ')[0];
   if(spec)spec.textContent=gf(S.user,'specialty');
-  var pct=Math.round((S.trialDaysLeft/3)*100);
+  
+  // حساب الأيام المتبقية حسب نوع الاشتراك
+  var current=activePlan();
+  var isSubscribed=current!=='free';
+  var daysRemaining=0;
+  var maxDays=3;
+  
+  if(isSubscribed){
+    // اشتراك مدفوع - احسب من subscription_due_at
+    var subscriptionDueAt=S.user?.subscriptionDueAt||S.user?.subscription_due_at;
+    if(subscriptionDueAt){
+      var now=new Date();
+      var dueDate=new Date(subscriptionDueAt);
+      var diffMs=dueDate.getTime()-now.getTime();
+      daysRemaining=Math.max(0,Math.ceil(diffMs/(1000*60*60*24)));
+      maxDays=30; // شهر كامل
+    }
+  }else{
+    // تجربة مجانية
+    daysRemaining=S.trialDaysLeft||0;
+    maxDays=3;
+  }
+  
+  var pct=Math.round((daysRemaining/maxDays)*100);
   var trialText=document.getElementById('trial-text');
   var trialProgress=document.getElementById('trial-progress');
-  if(trialText)trialText.textContent=S.trialDaysLeft+' '+t('daysRemaining');
+  var trialBadge=document.getElementById('trial-badge');
+  
+  if(trialText){
+    if(isSubscribed){
+      trialText.innerHTML='<strong>'+daysRemaining+'</strong> '+(S.lang==='ar'?(daysRemaining===1?'يوم متبقي':'أيام متبقية'):'days remaining');
+    }else{
+      trialText.textContent=daysRemaining+' '+t('daysRemaining');
+    }
+  }
   if(trialProgress)trialProgress.style.width=pct+'%';
+  
+  // إخفاء الـ badge لو الاشتراك منتهي
+  if(trialBadge){
+    if(daysRemaining<=0&&isSubscribed){
+      trialBadge.style.opacity='0.5';
+    }else{
+      trialBadge.style.opacity='1';
+    }
+  }
 }
 function toggleSidebar(){var sidebar=document.getElementById('sidebar');var overlay=document.getElementById('sidebar-overlay');if(sidebar)sidebar.classList.toggle('open');if(overlay)overlay.classList.toggle('hidden');}
 function switchTab(tab){
@@ -1841,6 +1891,19 @@ async function handlePackageSubmit(e){
   if(!validatePackageForm()){return;}
   
   var editId=document.getElementById('pkg-edit-id').value;
+  
+  // التحقق من حدود الباقة (فقط عند الإضافة، ليس التعديل)
+  if(!editId){
+    var currentPlan=activePlan();
+    var planMeta=PLAN_META[currentPlan]||PLAN_META.free;
+    var currentPackageCount=S.packages.filter(function(p){return p.status!=='draft';}).length;
+    
+    if(planMeta.packages!=='unlimited'&&currentPackageCount>=planMeta.packages){
+      showToast('وصلت لحد '+planLimitText(currentPlan,'packages')+'. رقّي اشتراكك للمتابعة.','error');
+      return;
+    }
+  }
+  
   var nameVal=document.getElementById('pkg-name').value.trim();
   var descVal=document.getElementById('pkg-desc').value.trim();
   var durationValue=document.getElementById('pkg-duration').value.trim();
@@ -2236,59 +2299,83 @@ function renderSubscriptions(){
   var trialLeft=S.trialDaysLeft;
   var basicPrice=planPrice('basic');
   var premiumPrice=planPrice('premium');
+  
+  // حساب الأيام المتبقية من الاشتراك
+  var daysRemaining=0;
+  var subscriptionDueAt=S.user?.subscriptionDueAt||S.user?.subscription_due_at;
+  if(isSubscribed&&subscriptionDueAt){
+    var now=new Date();
+    var dueDate=new Date(subscriptionDueAt);
+    var diffMs=dueDate.getTime()-now.getTime();
+    daysRemaining=Math.max(0,Math.ceil(diffMs/(1000*60*60*24)));
+  }
+  
   var statusCard='<div class="card p-5 mb-8 flex items-center justify-between gap-4">'+
   '<div class="flex items-center gap-4">'+
   '<div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-d)] to-[var(--accent-l)] flex items-center justify-center shrink-0"><i class="fas '+(isSubscribed?'fa-crown':'fa-clock')+' text-white text-lg"></i></div>'+
-  '<div><div class="font-bold text-lg">'+(isSubscribed?planName(current):(S.lang==='ar'?'الخطة المجانية':'Free plan'))+'</div>'+
-  '<div class="text-sm text-[var(--text2)]">'+(isSubscribed?(S.lang==='ar'?'اشتراكك نشط وحدود خطتك مطبقة الآن':'Your subscription is active and your plan limits are applied'):(S.lang==='ar'?'متبقي '+trialLeft+' '+(trialLeft===1?'يوم':'أيام')+' من التجربة المجانية':'Free trial: '+trialLeft+' days left'))+'</div></div></div>'+
-  (isSubscribed?'<span class="badge badge-active" style="padding:8px 16px;">'+(S.lang==='ar'?'نشط':'Active')+' ✓</span>':'<span class="badge badge-pending" style="padding:8px 16px;">'+(S.lang==='ar'?'مجاني':'Free')+'</span>')+
+  '<div><div class="font-bold text-lg">'+(isSubscribed?planName(current):(S.lang==='ar'?'التجربة المجانية':'Free Trial'))+'</div>'+
+  '<div class="text-sm text-[var(--text2)]">'+
+  (isSubscribed?
+    (S.lang==='ar'?
+      (daysRemaining>0?'متبقي <strong class="text-[var(--accent)]">'+daysRemaining+'</strong> '+(daysRemaining===1?'يوم':'أيام'):'انتهى الاشتراك'):
+      (daysRemaining>0?'<strong class="text-[var(--accent)]">'+daysRemaining+'</strong> days remaining':'Subscription expired')
+    ):
+    (S.lang==='ar'?'متبقي '+trialLeft+' '+(trialLeft===1?'يوم':'أيام')+' من التجربة المجانية':'Free trial: '+trialLeft+' days left')
+  )+'</div></div></div>'+
+  (isSubscribed?
+    (daysRemaining>0?
+      '<span class="badge badge-active" style="padding:8px 16px;">'+(S.lang==='ar'?'نشط':'Active')+' ✓</span>':
+      '<span class="badge badge-danger" style="padding:8px 16px;">'+(S.lang==='ar'?'منتهي':'Expired')+'</span>'):
+    '<span class="badge badge-pending" style="padding:8px 16px;">'+(S.lang==='ar'?'مجاني':'Free')+'</span>'
+  )+
   '</div>';
 
   var planButton=function(plan,label,icon){
     if(current===plan)return '<div class="plan-card-action text-center text-sm text-[var(--success)] font-semibold py-2"><i class="fas fa-check-circle ml-2"></i>'+(S.lang==='ar'?'خطتك الحالية':'Current plan')+'</div>';
-    return '<div class="plan-card-action"><button onclick="handleSubscribe(\''+plan+'\')" class="btn-primary w-full text-lg py-3"><i class="fas '+icon+' ml-2"></i>'+label+'</button><p class="text-xs text-center text-[var(--text2)] mt-3">'+(S.lang==='ar'?'يمكنك الإلغاء في أي وقت':'Cancel anytime')+'</p></div>';
+    return '<div class="plan-card-action"><button onclick="openManualPaymentModal(\''+plan+'\')" class="btn-primary w-full text-lg py-3"><i class="fas '+icon+' ml-2"></i>'+label+'</button><p class="text-xs text-center text-[var(--text2)] mt-3">'+(S.lang==='ar'?'تفعيل فوري بعد إرسال إثبات الدفع':'Instant activation after submitting payment proof')+'</p></div>';
   };
-  var freePlan='<div class="card plan-card p-8 '+(isSubscribed?'opacity-60':'')+'">'+
-  '<div class="text-sm font-semibold text-[var(--text2)] mb-2">مجاني</div>'+
+  var freePlan='<div class="card plan-card p-8 '+(current!=='free'?'opacity-60':'')+'">'+
+  '<div class="flex items-center gap-2 mb-2"><i class="fas fa-gift text-[var(--accent)]"></i><div class="text-sm font-semibold text-[var(--accent)]">تجربة مجانية</div></div>'+
   '<div class="text-4xl font-bold mb-1">0 <span class="text-xl text-[var(--text2)] font-normal">ج.م</span></div>'+
-  '<div class="text-sm text-[var(--text2)] mb-6">لمدة أسبوع واحد</div>'+
+  '<div class="text-sm text-[var(--text2)] mb-6">لمدة 3 أيام</div>'+
   '<ul class="space-y-3 text-sm text-[var(--text2)] mb-8">'+
   '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>ملف شخصي أساسي</li>'+
-  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>6 صور في المعرض</li>'+
-  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>4 باقات كحد أقصى</li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i><strong>6 صور</strong> في المعرض</li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i><strong>4 باقات</strong> كحد أقصى</li>'+
   '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>حجوزات غير محدودة</li>'+
   '<li class="line-through opacity-40"><i class="fas fa-times text-[var(--danger)] ml-2"></i>النظرة العامة</li>'+
   '<li class="line-through opacity-40"><i class="fas fa-times text-[var(--danger)] ml-2"></i>دعم أولوية</li>'+
   '</ul>'+
-  '<div class="plan-card-action text-center text-sm text-[var(--text2)] py-2.5">'+(current==='free'?'خطتك الحالية':'الخطة المجانية')+'</div>'+
+  '<div class="plan-card-action text-center text-sm text-[var(--text2)] py-2.5">'+(current==='free'?(S.lang==='ar'?'خطتك الحالية':'Current plan'):(S.lang==='ar'?'الخطة المجانية':'Free plan'))+'</div>'+
   '</div>';
 
   var basicPlan='<div class="card plan-card p-8 border border-[rgba(196,145,92,0.45)] relative">'+
   '<div class="absolute -top-3 right-1/2 translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-[var(--accent-d)] to-[var(--accent-l)] text-xs font-bold text-white">الأكثر شعبية</div>'+
   '<div class="flex items-center gap-2 mb-2"><i class="fas fa-award text-[var(--accent)]"></i><div class="text-sm font-semibold text-[var(--accent)]">Basic</div></div>'+
   '<div class="text-4xl font-bold mb-1 gradient-text">'+basicPrice+' <span class="text-xl font-normal text-[var(--text2)]">ج.م</span></div>'+
-  '<div class="text-sm text-[var(--text2)] mb-6">شهريًا • يجدد تلقائياً</div>'+
+  '<div class="text-sm text-[var(--text2)] mb-6">شهريًا</div>'+
   '<ul class="space-y-3 text-sm text-[var(--text2)] mb-8">'+
   '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>حتى <strong>25 صورة</strong> في المعرض</li>'+
   '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>باقات <strong>غير محدودة</strong></li>'+
-  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>فتح النظرة العامة</li>'+
-  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>Badge 1 بجوار الاسم</li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>فتح النظرة العامة والإحصائيات</li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>Badge بجوار اسمك</li>'+
+  '<li class="line-through opacity-40"><i class="fas fa-times text-[var(--danger)] ml-2"></i>دعم أولوية</li>'+
   '</ul>'+
-  planButton('basic','اشترك في Basic — '+basicPrice+' ج.م/شهر','fa-award')+
+  planButton('basic','دفع يدوي — '+basicPrice+' ج.م','fa-money-bill-wave')+
   '</div>';
 
   var premiumPlan='<div class="card plan-card p-8 border-2 border-[var(--accent)] relative">'+
   '<div class="flex items-center gap-2 mb-2"><i class="fas fa-crown text-[var(--accent)]"></i><div class="text-sm font-semibold text-[var(--accent)]">Premium</div></div>'+
   '<div class="text-4xl font-bold mb-1 gradient-text">'+premiumPrice+' <span class="text-xl font-normal text-[var(--text2)]">ج.م</span></div>'+
-  '<div class="text-sm text-[var(--text2)] mb-6">شهريًا • يجدد تلقائياً</div>'+
+  '<div class="text-sm text-[var(--text2)] mb-6">شهريًا</div>'+
   '<ul class="space-y-3 text-sm text-[var(--text2)] mb-8">'+
   '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>حتى <strong>40 صورة</strong> في المعرض</li>'+
   '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>باقات <strong>غير محدودة</strong></li>'+
-  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>فتح النظرة العامة</li>'+
-  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>دعم أولوية</li>'+
-  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>Badge 2 مميز بجوار الاسم</li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>فتح النظرة العامة والإحصائيات</li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i><strong>دعم أولوية</strong></li>'+
+  '<li><i class="fas fa-check text-[var(--success)] ml-2"></i>Badge مميز بجوار اسمك</li>'+
   '</ul>'+
-  planButton('premium','اشترك في Premium — '+premiumPrice+' ج.م/شهر','fa-crown')+
+  planButton('premium','دفع يدوي — '+premiumPrice+' ج.م','fa-crown')+
   '</div>';
 
   return'<div class="mb-8"><h2 class="text-2xl font-bold mb-1">الاشتراك</h2><p class="text-sm text-[var(--text2)]">اختر الخطة المناسبة لعملك كمصور محترف</p></div>'+
@@ -2795,17 +2882,6 @@ async function confirmAvatarPosition(){
     applyMediaUpdate('avatar',previousAvatar);
     saveFrontendSession();
   }
-}
-async function handleSubscribe(plan){
-  try{
-    if(!apiToken()){openModal('auth-modal');return;}
-    plan=normalizePlanKey(plan||'basic');
-    if(plan==='free')plan='basic';
-    var data=await apiRequest('/api/subscriptions/paymob/start',{method:'POST',body:{plan:plan}});
-    closeModal('sub-modal');
-    if(data.iframeUrl){window.location.href=data.iframeUrl;return;}
-    showToast(S.lang==='ar'?'تم بدء عملية الدفع':'Payment started','success');
-  }catch(err){showToast(err.message||'تعذر بدء الاشتراك','error');}
 }
 function publicProfileUrl(link){
   var slug=cleanPathProfileLink(link);
@@ -3316,7 +3392,7 @@ function renderPublicProfile(){
   (u.avatar?'<img src="'+u.avatar+'" class="w-14 h-14 rounded-xl object-cover border border-[var(--border)]" alt="">':'<div class="w-14 h-14 rounded-xl border border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-xl" style="color:var(--border)"></i></div>')+
   '<div><div id="pub-service-name" class="font-bold text-lg text-[var(--accent)]"></div><div id="pub-service-duration" class="text-sm text-[var(--text2)]"></div><div id="pub-service-features-preview" class="text-xs text-[var(--text2)] mt-1"></div></div><div class="text-right"><div id="pub-service-price" class="text-3xl font-bold gradient-text"></div><div class="text-xs text-[var(--text2)] mt-1">Total</div></div></div></div>'+
   '<div class="rounded-xl border border-[var(--border)] bg-[var(--bg2)] p-5 space-y-4">'+
-  '<div><label class="block text-sm font-semibold mb-2"><i class="fas fa-calendar-alt ml-2 text-[var(--accent)]"></i>'+t('selectDate')+'</label><input type="text" class="input" required id="pub-date-display" inputmode="numeric" autocomplete="off" placeholder="'+(S.lang==='ar'?'يوم/شهر/سنة':'day/month/year')+'" oninput="handlePubDateTyping(this)" onblur="handlePubDateBlur(this)"><input type="hidden" id="pub-date"></div>'+
+  '<div><label class="block text-sm font-semibold mb-2"><i class="fas fa-calendar-alt ml-2 text-[var(--accent)]"></i>'+t('selectDate')+'</label><input type="date" class="input" required id="pub-date" min="'+todayLocalISO()+'" onchange="onPubDateChange()"></div>'+
   '<div id="pub-time-area" class="hidden"><label class="block text-sm font-semibold mb-3"><i class="fas fa-clock ml-2 text-[var(--accent)]"></i>'+t('selectTime')+'</label><div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="pub-time-slots"></div></div>'+
   '</div>'+
   ((S.user&&S.user.role==='client')
@@ -4563,8 +4639,15 @@ function renderSupportChat(){
     document.body.appendChild(overlay);
   }
   var mineId=S.user&&S.user.id;
+  
+  // Priority Support Badge for Premium users
+  var priorityBadge='';
+  if(S.user&&S.user.role==='photographer'&&activePlan()==='premium'){
+    priorityBadge='<span class="dof-badge" style="font-size:11px;padding:4px 10px;margin-right:8px;background:linear-gradient(135deg,#EF4444,#F59E0B);animation:pulse-glow 2s infinite"><i class="fas fa-bolt" style="font-size:10px;margin-left:4px"></i>دعم أولوية</span>';
+  }
+  
   overlay.innerHTML='<div class="support-chat-pane" onclick="event.stopPropagation()">'+
-    '<div class="support-chat-head"><div><div class="support-chat-kicker">DOF STUDIOS</div><h3>'+labels.title+'</h3><p>'+labels.subtitle+'</p></div><button type="button" class="support-chat-close" onclick="closeSupportChat()" aria-label="Close"><i class="fas fa-xmark"></i></button></div>'+
+    '<div class="support-chat-head"><div><div class="support-chat-kicker">DOF STUDIOS '+priorityBadge+'</div><h3>'+labels.title+'</h3><p>'+labels.subtitle+'</p></div><button type="button" class="support-chat-close" onclick="closeSupportChat()" aria-label="Close"><i class="fas fa-xmark"></i></button></div>'+
     '<div class="support-chat-body" id="support-chat-body">'+
       (S.supportLoading?'<div class="support-chat-empty"><i class="fas fa-spinner fa-spin"></i></div>':(S.supportMessages&&S.supportMessages.length?S.supportMessages.map(function(m){
         var mine=String(m.senderId||'')===String(mineId||'');
@@ -4709,3 +4792,212 @@ document.addEventListener('DOMContentLoaded',function(){
   applyTranslations();
   initializeCurrentPage().then(function(){initParticles();initScrollAnim();initChatSystem();});
 });
+
+
+/* ===== SUBSCRIPTION: MANUAL PAYMENT SYSTEM ===== */
+async function handleActivateTrial(){
+  if(!apiToken()){openModal('auth-modal');return;}
+  try{
+    showToast('جار تفعيل التجربة المجانية...','info');
+    var data=await apiRequest('/api/subscriptions/activate-trial',{method:'POST'});
+    if(data.success){
+      showToast('تم تفعيل التجربة المجانية! 🎉','success');
+      await hydrateAuthenticatedState();
+      renderTab();
+    }
+  }catch(err){
+    showToast(err.message||'تعذر تفعيل التجربة المجانية','error');
+  }
+}
+
+function openManualPaymentModal(planCode){
+  if(!apiToken()){openModal('auth-modal');return;}
+  S.selectedPlanForPayment=planCode;
+  var modal=document.getElementById('manual-payment-modal');
+  if(!modal){
+    var modalHTML='<div id="manual-payment-modal" class="modal-overlay">'+
+      '<div class="modal-box lg">'+
+      '<div class="flex justify-between items-center mb-6">'+
+      '<h3 class="text-xl font-bold">الدفع اليدوي</h3>'+
+      '<button onclick="closeManualPaymentModal()" class="text-[var(--text2)] hover:text-[var(--text)] text-xl">'+
+      '<i class="fas fa-times"></i></button>'+
+      '</div>'+
+      '<div id="manual-payment-content"></div>'+
+      '</div></div>';
+    document.body.insertAdjacentHTML('beforeend',modalHTML);
+    modal=document.getElementById('manual-payment-modal');
+  }
+  renderManualPaymentForm();
+  openModal('manual-payment-modal');
+}
+
+function renderManualPaymentForm(){
+  var planCode=S.selectedPlanForPayment||'basic';
+  var price=planPrice(planCode);
+  var planNameText=planName(planCode);
+  var content=document.getElementById('manual-payment-content');
+  if(!content)return;
+  content.innerHTML='<form onsubmit="submitManualPayment(event)" id="manual-payment-form" class="space-y-5">'+
+    '<div class="card p-5 bg-[var(--bg2)]">'+
+    '<div class="flex items-center justify-between">'+
+    '<div><div class="text-sm text-[var(--text2)]">الباقة المختارة</div>'+
+    '<div class="text-xl font-bold gradient-text">'+planNameText+'</div></div>'+
+    '<div class="text-2xl font-bold">'+price+' <span class="text-sm text-[var(--text2)]">ج.م</span></div>'+
+    '</div></div>'+
+    '<div><label class="block text-sm text-[var(--text2)] mb-2">طريقة الدفع *</label>'+
+    '<select class="input" id="mp-payment-method" required onchange="showPaymentInfo(this.value)">'+
+    '<option value="">اختر طريقة الدفع...</option>'+
+    '<option value="vodafone_cash">Vodafone Cash - 01007920913</option>'+
+    '<option value="instapay">InstaPay - 01063233791</option>'+
+    '<option value="bank_transfer">حوالة بنكية</option>'+
+    '</select>'+
+    '<div id="payment-info" class="mt-2 hidden"></div>'+
+    '</div>'+
+    '<div class="grid grid-cols-2 gap-4">'+
+    '<div><label class="block text-sm text-[var(--text2)] mb-2">اسم المرسل *</label>'+
+    '<input type="text" class="input" id="mp-sender-name" required placeholder="الاسم الكامل"></div>'+
+    '<div><label class="block text-sm text-[var(--text2)] mb-2">رقم العملية / الإيصال *</label>'+
+    '<input type="text" class="input" id="mp-transaction-ref" required placeholder="مثال: 123456789"></div>'+
+    '</div>'+
+    '<div><label class="block text-sm font-semibold text-[var(--text)] mb-3">صورة الإيصال *</label>'+
+    '<input type="file" accept="image/*" id="mp-receipt-file" onchange="previewReceiptImage(this)" style="display:none">'+
+    '<div onclick="document.getElementById(\'mp-receipt-file\').click()" class="card p-6 text-center cursor-pointer border-2 border-dashed border-[var(--border)] hover:border-[var(--accent)] transition-all" style="background:var(--bg2)">'+
+    '<i class="fas fa-cloud-arrow-up text-4xl text-[var(--accent)] mb-3"></i>'+
+    '<div class="text-sm font-semibold mb-1">اضغط لرفع صورة الإيصال</div>'+
+    '<div class="text-xs text-[var(--text2)]">PNG, JPG حتى 10MB</div>'+
+    '</div>'+
+    '<div id="mp-receipt-preview" class="mt-3 hidden"></div></div>'+
+    '<div class="card p-4 bg-[rgba(196,145,92,0.08)] border border-[var(--accent)]">'+
+    '<div class="flex items-start gap-3"><i class="fas fa-info-circle text-[var(--accent)] mt-0.5"></i>'+
+    '<div class="text-sm text-[var(--text2)]">سيتم تفعيل اشتراكك فور إرسال إثبات الدفع. سيبقى الإيصال في انتظار مراجعة الأدمن، ويمكن إلغاء الاشتراك إذا كانت بيانات الدفع غير صحيحة.</div>'+
+    '</div></div>'+
+    '<div class="flex gap-3 pt-2">'+
+    '<button type="button" onclick="closeManualPaymentModal()" class="btn-secondary flex-1">إلغاء</button>'+
+    '<button type="submit" class="btn-primary flex-1" id="mp-submit-btn">إرسال الطلب</button>'+
+    '</div></form>';
+}
+
+function showPaymentInfo(method){
+  var infoDiv=document.getElementById('payment-info');
+  if(!infoDiv)return;
+  var info='';
+  if(method==='vodafone_cash'){
+    info='<div class="card p-3 bg-[var(--bg3)] border border-[var(--border)]">'+
+      '<div class="text-sm"><i class="fas fa-phone text-[var(--accent)] ml-2"></i>'+
+      '<strong>رقم Vodafone Cash:</strong> <span style="direction:ltr;display:inline-block">01007920913</span></div>'+
+      '</div>';
+  }else if(method==='instapay'){
+    info='<div class="card p-3 bg-[var(--bg3)] border border-[var(--border)]">'+
+      '<div class="text-sm"><i class="fas fa-mobile-screen text-[var(--accent)] ml-2"></i>'+
+      '<strong>رقم InstaPay:</strong> <span style="direction:ltr;display:inline-block">01063233791</span></div>'+
+      '</div>';
+  }else if(method==='bank_transfer'){
+    info='<div class="card p-3 bg-[var(--bg3)] border border-[var(--border)]">'+
+      '<div class="text-sm"><i class="fas fa-building-columns text-[var(--accent)] ml-2"></i>'+
+      '<strong>تفاصيل الحوالة:</strong> تواصل مع الدعم للحصول على تفاصيل الحساب البنكي</div>'+
+      '</div>';
+  }
+  if(info){
+    infoDiv.innerHTML=info;
+    infoDiv.classList.remove('hidden');
+  }else{
+    infoDiv.classList.add('hidden');
+  }
+}
+
+function closeManualPaymentModal(){
+  closeModal('manual-payment-modal');
+  S.selectedPlanForPayment=null;
+  var form=document.getElementById('manual-payment-form');
+  if(form)form.reset();
+  var preview=document.getElementById('mp-receipt-preview');
+  if(preview){preview.innerHTML='';preview.classList.add('hidden');}
+}
+
+function previewReceiptImage(input){
+  var preview=document.getElementById('mp-receipt-preview');
+  if(!preview)return;
+  var file=input.files&&input.files[0];
+  if(!file){preview.innerHTML='';preview.classList.add('hidden');return;}
+  if(!/^image\//.test(file.type)){
+    input.value='';
+    preview.innerHTML='';
+    preview.classList.add('hidden');
+    showToast('يرجى رفع صورة إيصال صالحة','error');
+    return;
+  }
+  if(file.size>10*1024*1024){
+    input.value='';
+    preview.innerHTML='';
+    preview.classList.add('hidden');
+    showToast('حجم صورة الإيصال يجب ألا يتجاوز 10MB','error');
+    return;
+  }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    preview.innerHTML='<div class="card p-4 bg-[var(--bg3)] border border-[var(--accent)]">'+
+      '<div class="flex items-center gap-3 mb-3">'+
+      '<i class="fas fa-check-circle text-[var(--success)] text-xl"></i>'+
+      '<div class="flex-1"><div class="text-sm font-semibold">تم اختيار الصورة</div>'+
+      '<div class="text-xs text-[var(--text2)]">'+file.name+' ('+Math.round(file.size/1024)+' KB)</div></div>'+
+      '<button type="button" onclick="document.getElementById(\'mp-receipt-file\').value=\'\';previewReceiptImage(document.getElementById(\'mp-receipt-file\'))" class="text-[var(--danger)] hover:text-[var(--danger)] text-sm">'+
+      '<i class="fas fa-times"></i></button>'+
+      '</div>'+
+      '<img src="'+e.target.result+'" class="w-full h-auto rounded-lg border border-[var(--border)]" alt="Receipt preview" style="max-height:200px;object-fit:contain">'+
+      '</div>';
+    preview.classList.remove('hidden');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitManualPayment(e){
+  e.preventDefault();
+  if(!apiToken()){openModal('auth-modal');return;}
+  var planCode=S.selectedPlanForPayment||'basic';
+  var paymentMethod=document.getElementById('mp-payment-method').value.trim();
+  var senderName=document.getElementById('mp-sender-name').value.trim();
+  var transactionRef=document.getElementById('mp-transaction-ref').value.trim();
+  var receiptFile=document.getElementById('mp-receipt-file').files[0];
+  if(!paymentMethod||!senderName||!transactionRef||!receiptFile){
+    showToast('يرجى ملء جميع الحقول المطلوبة','error');
+    return;
+  }
+  var btn=document.getElementById('mp-submit-btn');
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>جار الإرسال...';}
+  try{
+    var receiptUrl='';
+    var receiptPath='';
+    showToast('جار رفع الإيصال...','info');
+    var sign=await apiRequest('/api/uploads/sign',{method:'POST',body:{kind:'receipt',filename:receiptFile.name}});
+    var uploadRes=await fetch(sign.signedUrl,{method:'PUT',headers:{'Content-Type':receiptFile.type},body:receiptFile});
+    if(!uploadRes.ok)throw new Error('فشل رفع الإيصال');
+    receiptUrl=sign.publicUrl||'';
+    receiptPath=sign.path||'';
+    var data=await apiRequest('/api/subscriptions/manual-payment',{
+      method:'POST',
+      body:{
+        planCode:planCode,
+        paymentMethod:paymentMethod,
+        senderName:senderName,
+        transactionRef:transactionRef,
+        receiptUrl:receiptUrl,
+        receiptPath:receiptPath
+      }
+    });
+    if(data.success){
+      showToast('تم تفعيل اشتراكك بنجاح، والإيصال بانتظار المراجعة','success');
+      closeManualPaymentModal();
+      await hydrateAuthenticatedState();
+      updateSidebarUser(); // تحديث عداد الأيام المتبقية
+      renderTab();
+    }
+  }catch(err){
+    showToast(err.message||'تعذر إرسال طلب الدفع','error');
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML='إرسال الطلب';}
+  }
+}
+
+async function handleSubscribe(plan){
+  openManualPaymentModal(plan);
+}
