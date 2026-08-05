@@ -11,7 +11,7 @@ import {
   deleteManualPaymentRequest 
 } from '../../backend/lib/subscriptions.js';
 import { requireRole, requireUser } from '../../backend/lib/auth.js';
-import { json, fail, readJson } from '../../backend/lib/http.js';
+import { ok, fail, readJson, handleError } from '../../backend/lib/http.js';
 
 export default async function handler(req, res) {
   try {
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       if (pageSize) filters.pageSize = pageSize;
       
       const result = await getAllManualPaymentRequests(filters);
-      return json(res, { success: true, ...result });
+      return ok(res, { success: true, ...result });
     }
 
     // PATCH /api/admin/manual-payments/:id/review
@@ -55,22 +55,20 @@ export default async function handler(req, res) {
         body.rejectionReason
       );
       
-      return json(res, { success: true, ...result });
+      return ok(res, { success: true, ...result });
     }
 
     // DELETE /api/admin/manual-payments/:id
     if (method === 'DELETE' && pathParts.length === 4) {
       const requestId = pathParts[3];
       await deleteManualPaymentRequest(requestId);
-      return json(res, { success: true, message: 'Payment request deleted' });
+      return ok(res, { success: true, message: 'Payment request deleted' });
     }
 
     throw fail(404, 'Endpoint not found');
 
   } catch (error) {
     console.error('Admin manual payments error:', error);
-    return res.status(error.status || 500).json({
-      error: error.message || 'Internal server error'
-    });
+    return handleError(res, error);
   }
 }
