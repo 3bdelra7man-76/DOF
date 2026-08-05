@@ -5,11 +5,11 @@
 
 import { submitManualPaymentRequest } from '../../backend/lib/subscriptions.js';
 import { requireRole, requireUser } from '../../backend/lib/auth.js';
-import { json, fail, readJson } from '../../backend/lib/http.js';
+import { ok, fail, readJson, methodNotAllowed, handleError } from '../../backend/lib/http.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return methodNotAllowed(res);
   }
 
   try {
@@ -19,11 +19,9 @@ export default async function handler(req, res) {
     const body = await readJson(req);
     const result = await submitManualPaymentRequest(profile.id, body);
     
-    return json(res, { success: true, request: result });
+    return ok(res, { success: true, request: result });
   } catch (error) {
     console.error('Failed to submit payment request:', error);
-    return res.status(error.status || 500).json({
-      error: error.message || 'Failed to submit payment request'
-    });
+    return handleError(res, error);
   }
 }

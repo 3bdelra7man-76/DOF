@@ -74,14 +74,28 @@ const server = createServer(async (req, res) => {
   const pathname = url.pathname;
 
   if (pathname.startsWith('/api/')) {
-    // Replicate Vercel's req.query.path shape
-    const pathParts = pathname.slice('/api/'.length).split('/').filter(Boolean);
-    req.query = { path: pathParts };
-    // Also forward any other query params (e.g. ?date=&packageId=)
-    for (const [key, value] of url.searchParams) {
-      if (key !== 'path') req.query[key] = value;
+    try {
+      // Replicate Vercel's req.query.path shape
+      const pathParts = pathname.slice('/api/'.length).split('/').filter(Boolean);
+      req.query = { path: pathParts };
+      // Also forward any other query params (e.g. ?date=&packageId=)
+      for (const [key, value] of url.searchParams) {
+        if (key !== 'path') req.query[key] = value;
+      }
+      return await apiHandler(req, res);
+    } catch (error) {
+      console.error('API handler error:', error);
+      // تأكد أن الاستجابة هي JSON صحيح
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ 
+          error: { 
+            message: 'Internal server error',
+            details: error.message
+          } 
+        }));
+      }
     }
-    return apiHandler(req, res);
   }
 
   if (LEGACY_REDIRECTS.has(pathname)) {
@@ -109,17 +123,18 @@ const server = createServer(async (req, res) => {
   }
 
   if (!existsSync(filePath)) {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    return res.end('Not found');
+    res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end('<!DOCTYPE html><html><head><title>404 - Page Not Found</title></head><body><h1>404 - Page Not Found</h1><p>The requested page could not be found.</p></body></html>');
   }
 
   try {
     if (statSync(filePath).isDirectory()) filePath = join(filePath, 'index.html');
     res.writeHead(200, { 'Content-Type': MIME[extname(filePath)] || 'application/octet-stream' });
     res.end(readFileSync(filePath));
-  } catch {
-    res.writeHead(500);
-    res.end('Server error');
+  } catch (error) {
+    console.error('Server file error:', error);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: { message: 'Server error' } }));
   }
 });
 

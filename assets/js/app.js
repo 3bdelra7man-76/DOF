@@ -152,7 +152,24 @@ async function apiRequest(path,options){
   if(token)headers.Authorization='Bearer '+token;
   var res=await fetch(path,{method:options.method||'GET',headers:headers,body:options.body?JSON.stringify(options.body):undefined});
   var text=await res.text();
-  var data=text?JSON.parse(text):{};
+  var data={};
+  
+  // محاولة تحليل JSON مع معالجة الأخطاء
+  if(text){
+    try{
+      data=JSON.parse(text);
+    }catch(jsonError){
+      console.error('JSON Parse Error:', jsonError);
+      console.error('Response Text:', text);
+      // إذا كان النص يبدأ بـ HTML، فهو صفحة خطأ من الخادم
+      if(text.trim().startsWith('<')){
+        throw new Error('خطأ في الخادم - تم إرجاع صفحة HTML بدلاً من JSON');
+      }
+      // خطأ JSON عام
+      throw new Error('خطأ في تحليل استجابة الخادم: ' + jsonError.message);
+    }
+  }
+  
   if(!res.ok){
     var msg=(data.error&&data.error.message)||'Request failed';
     throw new Error(msg);
@@ -4992,7 +5009,9 @@ async function submitManualPayment(e){
       renderTab();
     }
   }catch(err){
-    showToast(err.message||'تعذر إرسال طلب الدفع','error');
+    console.error('Payment submission error:', err);
+    var errorMsg = err.message || 'تعذر إرسال طلب الدفع';
+    showToast(errorMsg,'error');
   }finally{
     if(btn){btn.disabled=false;btn.innerHTML='إرسال الطلب';}
   }

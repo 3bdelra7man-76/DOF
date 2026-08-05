@@ -2758,6 +2758,7 @@ export default async function api(req, res) {
   try {
     await handle(req, res);
   } catch (error) {
+    console.error('API error:', error);
     handleError(res, error);
   }
 }
