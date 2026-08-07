@@ -44,6 +44,8 @@ const PROFILE_ROUTE_RESERVED = new Set([
   'explore',
   'publicprofile',
   'photographerdashboard',
+  'client',
+  'clientdashboard',
   'reset',
   'favicon',
   'robots',
@@ -52,6 +54,7 @@ const PROFILE_ROUTE_RESERVED = new Set([
 const CLEAN_ROUTES = new Map([
   ['/explore', 'explore.html'],
   ['/dashboard', 'photographerdashboard.html'],
+  ['/client', 'clientdashboard.html'],
   ['/adm', 'admin.html'],
   ['/reset', 'reset.html']
 ]);

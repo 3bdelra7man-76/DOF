@@ -1478,7 +1478,7 @@ async function confirmBooking(req, res, id) {
     if (conv) {
       conversationId = conv.id;
       const pkgName = booking.packages?.name || '';
-      const msgText = `📅 تم قبول حجزك!\nالخدمة: ${pkgName}\nالتاريخ: ${booking.booking_date}\nالوقت: ${formatClock(booking.start_time)}`;
+      const msgText = `📅 تم قبول حجزك!\nالخدمة: ${pkgName}\nالتاريخ: ${booking.booking_date}\nالوقت: ${booking.start_time.slice(0, 5)}`;
       await sb.from('messages').insert({
         conversation_id: conv.id,
         sender_id: profile.id,

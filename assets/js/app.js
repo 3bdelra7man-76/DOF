@@ -424,7 +424,7 @@ async function refreshMyBookings(){
   var data=await apiRequest('/api/bookings');
   S.bookings=(data.bookings||[]).map(normalizeBooking);
   S.appointments=S.bookings.filter(function(b){return b.status==='confirmed';}).map(function(b){
-    return {id:b.id,date:b.date,time:b.time,client:b.clientName,service:b.service,status:b.status,notes:b.notes||''};
+    return {id:b.id,date:b.date,time:b.time,client:b.clientName,clientPhone:b.clientPhone,clientEmail:b.clientEmail,service:b.service,status:b.status,notes:b.notes||''};
   });
 }
 async function refreshMyPortfolio(){
@@ -587,7 +587,7 @@ function checkSubscriptionStatus(){
   S.portfolioSuspended=true;
 }
 function gf(p,f){return S.lang==='ar'?(p[f+'Ar']||p[f]):p[f];}
-function fmtD(ds){if(!ds)return'';var d=new Date(ds+'T00:00:00');return S.lang==='ar'?d.toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'}):d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});}
+function fmtD(ds){if(!ds)return'';var d=new Date(ds+'T00:00:00');return S.lang==='ar'?d.toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'}):d.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});}
 function formatClock(value){
   var raw=String(value||'').trim();
   if(!raw)return'';
@@ -963,7 +963,7 @@ async function handleLogin(e){
       var hadBookingIntent=false;try{hadBookingIntent=!!sessionStorage.getItem('dof_pending_booking_intent');}catch(e){}
       var restoredChat=restorePendingChatIntent();
       if(hadBookingIntent){restorePendingBookingIntent();}
-      else if(!restoredChat){navigate('landing');}
+      else if(!restoredChat){navigate('clientdashboard');}
     }
     showToast(t('welcomeBack'),'success');
   }catch(err){
@@ -1013,7 +1013,7 @@ async function handleRegister(e){
       var hadBookingIntent=false;try{hadBookingIntent=!!sessionStorage.getItem('dof_pending_booking_intent');}catch(e){}
       var restoredChat=restorePendingChatIntent();
       if(hadBookingIntent){restorePendingBookingIntent();}
-      else if(!restoredChat){navigate('landing');}
+      else if(!restoredChat){navigate('clientdashboard');}
     }
   }catch(err){
     showToast(err.message||'فشل إنشاء الحساب','error');
@@ -1063,13 +1063,13 @@ function toggleLang(){
   else renderChatConvList();
   updateChatBadge();
   if(S.view==='explore')renderExplorePage();
-  else if(S.view==='dashboard')renderTab();
+  else if(S.view==='dashboard'||S.view==='clientdashboard')renderTab();
   else if(S.view==='public')renderPublicProfile();
   else if(S.view==='landing')renderClientBookingsPanel();
 }
 
 /* ===== NAVIGATION ===== */
-var PAGE_URLS={landing:'/',explore:'/explore',dashboard:'/dashboard',public:'/'};
+var PAGE_URLS={landing:'/',explore:'/explore',dashboard:'/dashboard',clientdashboard:'/client',public:'/'};
 function publicProfileLinkFromState(){
   var u=S.viewedPhotographer||{};
   return String(u.customLink||u.custom_link||'').trim();
@@ -1150,7 +1150,7 @@ function getPageView(){
   return (document.body&&document.body.dataset&&document.body.dataset.page)||'landing';
 }
 function hasPageContainer(v){
-  var ids={landing:'landing-page',explore:'explore-page',dashboard:'dashboard-page',public:'public-page'};
+  var ids={landing:'landing-page',explore:'explore-page',dashboard:'dashboard-page',clientdashboard:'dashboard-page',public:'public-page'};
   return !!document.getElementById(ids[v]);
 }
 function goToPage(v){
@@ -1173,7 +1173,20 @@ function updateNavBar(){
   var pricingLink=document.getElementById('nav-pricing-link');
   var pricingSection=document.getElementById('pricing-section');
   if(btnStart)btnStart.classList.toggle('hidden',!!u);
-  if(btnOut){btnOut.classList.toggle('hidden',!u);if(userName&&u)userName.textContent=u.name||'';}
+  if(btnOut){
+    btnOut.classList.toggle('hidden',!u);
+    if(userName&&u)userName.textContent=u.name||'';
+    var dashBtn1 = document.getElementById('nav-dash-link');
+    if(!dashBtn1 && u){
+      dashBtn1 = document.createElement('button');
+      dashBtn1.id = 'nav-dash-link';
+      dashBtn1.className = 'btn-primary btn-sm '+(S.lang==='ar'?'ml-2':'mr-2');
+      dashBtn1.innerHTML = S.lang==='ar'?'لوحة التحكم':'Dashboard';
+      dashBtn1.onclick = function(){ navigate(u.role==='client'?'clientdashboard':'dashboard'); };
+      btnOut.parentNode.insertBefore(dashBtn1, btnOut);
+    }
+    if(dashBtn1) dashBtn1.classList.toggle('hidden', !u);
+  }
   if(pricingLink)pricingLink.classList.toggle('hidden',isClient);
   if(pricingSection)pricingSection.classList.toggle('hidden',isClient);
 
@@ -1186,14 +1199,40 @@ function updateNavBar(){
   var btnOutExp=document.getElementById('nav-logout-exp');
   var userNameExp=document.getElementById('nav-user-name-exp');
   if(btnStartExp)btnStartExp.classList.toggle('hidden',!!u);
-  if(btnOutExp){btnOutExp.classList.toggle('hidden',!u);if(userNameExp&&u)userNameExp.textContent=u.name||'';}
+  if(btnOutExp){
+    btnOutExp.classList.toggle('hidden',!u);
+    if(userNameExp&&u)userNameExp.textContent=u.name||'';
+    var dashBtn2 = document.getElementById('nav-dash-link-exp');
+    if(!dashBtn2 && u){
+      dashBtn2 = document.createElement('button');
+      dashBtn2.id = 'nav-dash-link-exp';
+      dashBtn2.className = 'btn-primary btn-sm '+(S.lang==='ar'?'ml-2':'mr-2');
+      dashBtn2.innerHTML = S.lang==='ar'?'لوحة التحكم':'Dashboard';
+      dashBtn2.onclick = function(){ navigate(u.role==='client'?'clientdashboard':'dashboard'); };
+      btnOutExp.parentNode.insertBefore(dashBtn2, btnOutExp);
+    }
+    if(dashBtn2) dashBtn2.classList.toggle('hidden', !u);
+  }
 
   /* Public profile nav */
   var btnStartPub=document.getElementById('nav-get-started-pub');
   var btnOutPub=document.getElementById('nav-logout-pub');
   var userNamePub=document.getElementById('nav-user-name-pub');
   if(btnStartPub)btnStartPub.classList.toggle('hidden',!!u);
-  if(btnOutPub){btnOutPub.classList.toggle('hidden',!u);if(userNamePub&&u)userNamePub.textContent=u.name||'';}
+  if(btnOutPub){
+    btnOutPub.classList.toggle('hidden',!u);
+    if(userNamePub&&u)userNamePub.textContent=u.name||'';
+    var dashBtn3 = document.getElementById('nav-dash-link-pub');
+    if(!dashBtn3 && u){
+      dashBtn3 = document.createElement('button');
+      dashBtn3.id = 'nav-dash-link-pub';
+      dashBtn3.className = 'btn-primary btn-sm '+(S.lang==='ar'?'ml-2':'mr-2');
+      dashBtn3.innerHTML = S.lang==='ar'?'لوحة التحكم':'Dashboard';
+      dashBtn3.onclick = function(){ navigate(u.role==='client'?'clientdashboard':'dashboard'); };
+      btnOutPub.parentNode.insertBefore(dashBtn3, btnOutPub);
+    }
+    if(dashBtn3) dashBtn3.classList.toggle('hidden', !u);
+  }
 }
 function navigate(v){
   if(v!=='public'){S.viewedPhotographer=null;S.viewedPortfolio=null;S.viewedPackages=null;S.viewedCollections=[];S.viewedWorkingHours=[];S.pubViewCollection=null;S.pubLightboxIdx=null;S.pubAvatarPreview=false;syncPublicMediaOverlay();saveFrontendSession();}
@@ -1210,10 +1249,10 @@ function navigate(v){
   var publicPage=document.getElementById('public-page');
   if(landing)landing.classList.toggle('hidden',v!=='landing');
   if(explore)explore.classList.toggle('hidden',v!=='explore');
-  if(dashboard)dashboard.classList.toggle('hidden',v!=='dashboard');
+  if(dashboard)dashboard.classList.toggle('hidden',v!=='dashboard'&&v!=='clientdashboard');
   if(publicPage)publicPage.classList.toggle('hidden',v!=='public');
   if(v==='explore')renderExplorePage();
-  else if(v==='dashboard'){renderTab();updateSidebarUser();}
+  else if(v==='dashboard'||v==='clientdashboard'){renderTab();updateSidebarUser();}
   else if(v==='public')renderPublicProfile();
   syncPublicMediaOverlay();
   updateNavBar();
@@ -1228,7 +1267,7 @@ function formatBookingDay(dateStr){
   if(!dateStr)return'';
   var d=new Date(dateStr+'T00:00:00');
   return S.lang==='ar'
-    ? d.toLocaleDateString('ar-SA',{weekday:'long'})
+    ? d.toLocaleDateString('ar-EG',{weekday:'long'})
     : d.toLocaleDateString('en-US',{weekday:'long'});
 }
 function renderClientBookingsPanel(){
@@ -1284,7 +1323,7 @@ function updateSidebarUser(){
   var spec=document.getElementById('sidebar-spec');
   if(avatar){avatar.src=S.user.avatar||'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 80 80\'%3E%3Crect width=\'80\' height=\'80\' rx=\'40\' fill=\'%231a1a1a\'/%3E%3Ccircle cx=\'40\' cy=\'30\' r=\'16\' fill=\'%23444\'/%3E%3Cellipse cx=\'40\' cy=\'72\' rx=\'26\' ry=\'22\' fill=\'%23444\'/%3E%3C/svg%3E';}
   if(name)name.textContent=(gf(S.user,'name')||'').split(' ')[0];
-  if(spec)spec.textContent=gf(S.user,'specialty');
+  if(spec)spec.textContent=S.user.role==='client'?(S.lang==='ar'?'عميل':'Client'):gf(S.user,'specialty');
   
   // حساب الأيام المتبقية حسب نوع الاشتراك
   var current=activePlan();
@@ -1357,6 +1396,7 @@ function renderTab(){
 
 /* ===== DASHBOARD: OVERVIEW ===== */
 function renderOverview(){
+  if(S.view==='clientdashboard')return renderClientDashboardOverview();
   var u=S.user;
   var activePackages=(S.packages||[]).filter(function(p){return p.status==='active';}).length;
   var publishBanner=(u.isPublished===false)?
@@ -1388,16 +1428,32 @@ function renderOverview(){
     '<div class="card p-4 mb-6 border border-[var(--danger)] bg-[rgba(217,83,79,0.10)] flex flex-wrap items-center justify-between gap-3">'+
     '<div class="flex items-start gap-3"><i class="fas fa-exclamation-triangle text-[var(--danger)] mt-0.5"></i><div><div class="font-semibold">'+(S.lang==='ar'?'انتهت الفترة التجريبية':'Trial period ended')+'</div><div class="text-sm text-[var(--text2)]">'+(S.lang==='ar'?'اشترك للاستمرار في استقبال الحجوزات.':'Subscribe to keep receiving bookings.')+'</div></div></div>'+
     '<button onclick="switchTab(\'subscriptions\')" class="btn-primary btn-sm">'+(S.lang==='ar'?'اشترك الآن':'Subscribe now')+'</button></div>':'';
+  var currentP=activePlan();
+  var isSub=currentP!=='free';
+  var subRem=0;
+  if(isSub&&(u.subscriptionDueAt||u.subscription_due_at)){
+    var diffMs=new Date(u.subscriptionDueAt||u.subscription_due_at).getTime()-new Date().getTime();
+    subRem=Math.max(0,Math.ceil(diffMs/(1000*60*60*24)));
+  }
+  var subTitle=isSub?(S.lang==='ar'?'الاشتراك ('+planName(currentP)+')':'Subscription ('+planName(currentP)+')'):t('freeTrial');
+  var subVal=isSub?(subRem+' <span class="text-base text-[var(--text2)]">'+(S.lang==='ar'?'يوم':'days')+'</span>'):(S.trialDaysLeft+' <span class="text-base text-[var(--text2)]">'+t('daysRemaining')+'</span>');
+  
   var overviewBody='<div class="mb-8"><h2 class="text-2xl font-bold mb-1">'+t('welcomeBack')+', '+gf(u,'name')+'</h2></div>'+
   '<div class="stat-grid-4 grid grid-cols-4 gap-5 mb-8" style="grid-template-columns:repeat(4,1fr);">'+
   '<div class="stat-card"><div class="text-[var(--text2)] text-sm mb-2">'+t('totalBookings')+'</div><div class="text-3xl font-bold">'+S.bookings.length+'</div></div>'+
   '<div class="stat-card"><div class="text-[var(--text2)] text-sm mb-2">Active Packages</div><div class="text-3xl font-bold">'+activePackages+'</div></div>'+
   '<div class="stat-card"><div class="text-[var(--text2)] text-sm mb-2">Rating</div><div class="text-3xl font-bold">'+(u.rating||'N/A')+'</div></div>'+
-  '<div class="stat-card"><div class="text-[var(--text2)] text-sm mb-2">'+t('freeTrial')+'</div><div class="text-3xl font-bold">'+S.trialDaysLeft+' <span class="text-base text-[var(--text2)]">'+t('daysRemaining')+'</span></div></div></div>'+
+  '<div class="stat-card"><div class="text-[var(--text2)] text-sm mb-2">'+subTitle+'</div><div class="text-3xl font-bold">'+subVal+'</div></div></div>'+
   '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">'+
   '<div class="card p-6"><div class="flex justify-between items-center mb-5"><h3 class="font-bold text-lg">'+t('upcomingAppointments')+'</h3><button onclick="openAptModal()" class="btn-primary btn-sm"><i class="fas fa-plus mr-1"></i>'+t('addNew')+'</button></div>'+
   (S.appointments.length===0?'<p class="text-[var(--text2)] text-sm py-8 text-center">'+t('noAppointments')+'</p>':
-  '<div class="space-y-3">'+S.appointments.map(function(a){return'<div class="flex items-center justify-between p-3 rounded-lg bg-[var(--bg2)] border border-[var(--border)]"><div><div class="text-sm font-semibold">'+a.client+'</div><div class="text-xs text-[var(--text2)]">'+a.service+'</div></div><div class="text-right"><div class="text-sm font-semibold">'+formatClock(a.time)+'</div><div class="text-xs text-[var(--text2)]">'+fmtD(a.date)+'</div></div></div>';}).join('')+'</div>')+'</div>'+
+  '<div class="space-y-3">'+S.appointments.map(function(a){
+    var contactInfo='';
+    if(a.clientPhone) contactInfo+='<a href="tel:'+a.clientPhone+'" class="hover:text-[var(--accent)] mr-3"><i class="fas fa-phone-alt"></i> '+a.clientPhone+'</a>';
+    if(a.clientEmail) contactInfo+='<a href="mailto:'+a.clientEmail+'" class="hover:text-[var(--accent)]"><i class="fas fa-envelope"></i> '+a.clientEmail+'</a>';
+    if(contactInfo) contactInfo='<div class="text-[10px] text-[var(--text2)] mt-1 flex flex-wrap gap-2">'+contactInfo+'</div>';
+    return'<div class="flex items-center justify-between p-3 rounded-lg bg-[var(--bg2)] border border-[var(--border)]"><div><div class="text-sm font-semibold">'+a.client+'</div><div class="text-xs text-[var(--text2)]">'+a.service+'</div>'+contactInfo+'</div><div class="text-right"><div class="text-sm font-semibold">'+formatClock(a.time)+'</div><div class="text-xs text-[var(--text2)]">'+fmtD(a.date)+'</div></div></div>';
+  }).join('')+'</div>')+'</div>'+
   '<div class="card p-6"><h3 class="font-bold text-lg mb-5">'+t('recentBookings')+'</h3>'+
   (S.bookings.length===0?'<p class="text-[var(--text2)] text-sm py-8 text-center">'+t('noBookings')+'</p>':
   '<div class="space-y-3">'+S.bookings.slice(-5).reverse().map(function(b){return'<div class="p-3 rounded-lg bg-[var(--bg2)] border border-[var(--border)]"><div class="flex items-start justify-between gap-3"><div class="flex items-center gap-3"><img src="'+(b.photographerAvatar||S.user.avatar||'https://picsum.photos/seed/booking/120/120')+'" class="w-10 h-10 rounded-lg object-cover border border-[var(--border)]" alt=""><div><div class="text-sm font-semibold">'+b.clientName+'</div><div class="text-xs text-[var(--text2)]">'+b.service+' • '+formatMoney(b.servicePrice)+'</div></div></div>'+statusBadge(b.status)+'</div></div>';}).join('')+'</div>')+'</div></div>';
@@ -2225,7 +2281,7 @@ async function handleAddApt(e){
     S.bookings=S.bookings.filter(function(b){return String(b.id)!==String(booking.id);});
     S.bookings.push(booking);
     S.appointments=S.appointments.filter(function(a){return String(a.id)!==String(booking.id);});
-    S.appointments.push({id:booking.id,date:booking.date,time:booking.time,client:booking.clientName,service:booking.service,status:'confirmed',notes:booking.notes||''});
+    S.appointments.push({id:booking.id,date:booking.date,time:booking.time,client:booking.clientName,clientPhone:booking.clientPhone,clientEmail:booking.clientEmail,service:booking.service,status:'confirmed',notes:booking.notes||''});
     if(res.conversationId){await refreshConversations().catch(function(){});}
     S.selectedDate=booking.date;
     closeModal('apt-modal');
@@ -2239,8 +2295,52 @@ async function handleAddApt(e){
 }
 
 /* ===== DASHBOARD: BOOKINGS ===== */
+function renderClientDashboardOverview(){
+  var u=S.user||{};
+  var overviewBody='<div class="mb-8 flex justify-between items-center"><h2 class="text-2xl font-bold mb-1">'+t('welcomeBack')+', '+gf(u,'name')+'</h2>'+
+  '<button class="btn-primary btn-sm px-4" onclick="navigate(\'explore\')"><i class="fas fa-search ml-1"></i>'+(S.lang==='ar'?'استكشف المصورين':'Explore Photographers')+'</button></div>'+
+  '<div class="stat-grid-4 grid grid-cols-2 gap-5 mb-8">'+
+  '<div class="stat-card"><div class="text-[var(--text2)] text-sm mb-2">'+(S.lang==='ar'?'حجوزاتي':'My Bookings')+'</div><div class="text-3xl font-bold">'+S.bookings.length+'</div></div>'+
+  '<div class="stat-card"><div class="text-[var(--text2)] text-sm mb-2">'+(S.lang==='ar'?'المحادثات':'Chats')+'</div><div class="text-3xl font-bold">'+S.conversations.length+'</div></div>'+
+  '</div>';
+  
+  overviewBody += '<div class="card p-6 mb-6"><h3 class="font-bold text-lg mb-5">'+t('recentBookings')+'</h3>'+
+  (S.bookings.length===0?'<p class="text-[var(--text2)] text-sm py-8 text-center">'+t('noBookings')+'</p>':
+  '<div class="space-y-3">'+S.bookings.slice(-5).reverse().map(function(b){
+    return'<div class="p-3 rounded-lg bg-[var(--bg2)] border border-[var(--border)]"><div class="flex items-start justify-between gap-3"><div class="flex items-center gap-3"><img src="'+(b.photographerAvatar||'https://picsum.photos/seed/booking/120/120')+'" class="w-10 h-10 rounded-lg object-cover border border-[var(--border)]" alt=""><div><div class="text-sm font-semibold">'+(b.service||'-')+'</div><div class="text-xs text-[var(--text2)]">'+(b.photographerName||'-')+' • '+fmtD(b.date)+'</div></div></div>'+statusBadge(b.status)+'</div></div>';
+  }).join('')+'</div>')+'</div>';
+  return overviewBody;
+}
+
+function renderClientDashboardBookings(){
+  var items=(S.bookings||[]).slice().reverse();
+  var html = '<div class="mb-8 flex justify-between items-center"><h2 class="text-2xl font-bold mb-1">'+(S.lang==='ar'?'حجوزاتي':'My Bookings')+'</h2>'+
+  '<button class="btn-primary btn-sm px-4" onclick="navigate(\'explore\')"><i class="fas fa-search ml-1"></i>'+(S.lang==='ar'?'استكشف المصورين':'Explore Photographers')+'</button></div>';
+  
+  if(items.length===0){
+    html+='<div class="card p-8 text-center"><p class="text-sm text-[var(--text2)]">'+(S.lang==='ar'?'لا توجد حجوزات حتى الآن. يمكنك البدء بحجز جديد من صفحة المصورين.':'No bookings yet. You can start by booking from the photographers page.')+'</p><a href="/explore" class="btn-primary mt-4 inline-block px-6 py-2">'+(S.lang==='ar'?'استكشف المصورين':'Explore Photographers')+'</a></div>';
+    return html;
+  }
+  html+='<div class="space-y-3">'+items.map(function(b){
+    var cancelBtn=b.status==='pending'?
+      '<button onclick="clientCancelBooking(\''+b.id+'\')" class="btn-danger btn-sm"><i class="fas fa-times ml-1"></i>'+(S.lang==='ar'?'إلغاء الحجز':'Cancel booking')+'</button>':'';
+    return'<div class="p-4 rounded-xl bg-[var(--bg2)] border border-[var(--border)]">'+
+      '<div class="flex flex-wrap items-center justify-between gap-3 mb-2">'+
+      '<div class="font-semibold">'+(b.service||'-')+'</div>'+
+      statusBadge(b.status||'pending')+'</div>'+
+      '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">'+
+      '<div><span class="text-[var(--text2)]">'+(S.lang==='ar'?'اليوم: ':'Day: ')+'</span><span class="font-semibold">'+formatBookingDay(b.date)+'</span></div>'+
+      '<div><span class="text-[var(--text2)]">'+(S.lang==='ar'?'التاريخ: ':'Date: ')+'</span><span class="font-semibold">'+fmtD(b.date)+'</span></div>'+
+      '<div><span class="text-[var(--text2)]">'+(S.lang==='ar'?'الوقت: ':'Time: ')+'</span><span class="font-semibold">'+(formatClock(b.time)||'-')+'</span></div>'+
+      '<div><span class="text-[var(--text2)]">'+(S.lang==='ar'?'المصور: ':'Photographer: ')+'</span><span class="font-semibold">'+(b.photographerName||'-')+'</span></div>'+
+      '</div>'+(cancelBtn?'<div class="mt-3">'+cancelBtn+'</div>':'')+'</div>';
+  }).join('')+'</div>';
+  return html;
+}
+
 function renderBookings(){
-  var filtered=S.bookingFilter==='all'?S.bookings:S.bookings.filter(function(b){return b.status===S.bookingFilter;});
+  if(S.view==='clientdashboard')return renderClientDashboardBookings();
+  S.bookingFilter=S.bookingFilter||'all';
   return'<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">'+t('navBookings')+'</h2><button onclick="manualRefreshBookings()" class="btn-secondary btn-sm" title="تحديث"><i class="fas fa-sync-alt ml-1"></i>تحديث</button></div>'+
   '<div class="tab-filter mb-6 inline-flex">'+
   '<button class="'+(S.bookingFilter==='all'?'active':'')+'" onclick="filterBookings(\'all\')">'+t('all')+'</button>'+
@@ -2255,7 +2355,12 @@ function renderBookings(){
     var actions=b.status==='pending'
       ?'<button onclick="updateBookingSt(\''+b.id+'\',\'confirmed\')" class="btn-success">'+t('confirmBooking')+'</button><button onclick="updateBookingSt(\''+b.id+'\',\'cancelled\')" class="btn-danger">'+t('cancelBooking')+'</button>'+msgBtn
       :completeBtn+msgBtn;
-    return'<div class="card p-5"><div class="flex justify-between items-start gap-3"><div class="flex items-center gap-3"><img src="'+(b.photographerAvatar||S.user.avatar||'https://picsum.photos/seed/booking/120/120')+'" class="w-12 h-12 rounded-xl object-cover border border-[var(--border)]" alt=""><div><div class="font-semibold">'+b.clientName+'</div><div class="text-sm text-[var(--text2)]">'+b.service+' — '+fmtD(b.date)+'</div><div class="text-xs text-[var(--accent)] mt-1">'+formatMoney(b.servicePrice)+'</div></div></div>'+statusBadge(b.status)+'</div>'+
+    var contactInfo='';
+    if(b.clientPhone) contactInfo+='<a href="tel:'+b.clientPhone+'" class="hover:text-[var(--accent)] mr-3"><i class="fas fa-phone-alt"></i> '+b.clientPhone+'</a>';
+    if(b.clientEmail) contactInfo+='<a href="mailto:'+b.clientEmail+'" class="hover:text-[var(--accent)]"><i class="fas fa-envelope"></i> '+b.clientEmail+'</a>';
+    if(contactInfo) contactInfo='<div class="text-xs text-[var(--text2)] mt-2 flex flex-wrap gap-2">'+contactInfo+'</div>';
+    
+    return'<div class="card p-5"><div class="flex justify-between items-start gap-3"><div class="flex items-center gap-3"><img src="'+(b.photographerAvatar||S.user.avatar||'https://picsum.photos/seed/booking/120/120')+'" class="w-12 h-12 rounded-xl object-cover border border-[var(--border)]" alt=""><div><div class="font-semibold">'+b.clientName+'</div>'+contactInfo+'<div class="text-sm text-[var(--text2)] mt-1">'+b.service+' — '+fmtD(b.date)+'</div><div class="text-xs text-[var(--accent)] mt-1">'+formatMoney(b.servicePrice)+'</div></div></div>'+statusBadge(b.status)+'</div>'+
     (actions?'<div class="flex flex-wrap gap-2 mt-4">'+actions+'</div>':'')+'</div>';
   }).join('')+'</div>');
 }
@@ -2292,7 +2397,17 @@ async function updateBookingSt(id,status){
   }
   if(status==='confirmed'){
     var exists=S.appointments.find(function(a){return String(a.id)===String(b.id);});
-    if(!exists){S.appointments.push({id:b.id,date:b.date,time:b.time,client:b.clientName,service:b.service,status:'confirmed',notes:''});}
+    if(!exists){S.appointments.push({id:b.id,date:b.date,time:b.time,client:b.clientName,clientPhone:b.clientPhone,clientEmail:b.clientEmail,service:b.service,status:'confirmed',notes:''});}
+    
+    // For guest bookings, we don't have internal chat. We can prompt a WhatsApp message instead.
+    if(!convId && b.clientPhone){
+      var waMsg = (S.lang==='ar'?'مرحباً ':'Hello ')+b.clientName+(S.lang==='ar'?'، تم تأكيد حجزك!\nالخدمة: ':', your booking is confirmed!\nService: ')+b.service+(S.lang==='ar'?'\nالتاريخ: ':'\nDate: ')+b.date+(S.lang==='ar'?'\nالوقت: ':'\nTime: ')+b.time;
+      var waPhone = String(b.clientPhone).replace(/[^\d]/g,'');
+      if(waPhone.length >= 8) {
+        var waUrl = "https://wa.me/"+waPhone+"?text="+encodeURIComponent(waMsg);
+        window.open(waUrl, '_blank');
+      }
+    }
   } else if(status==='cancelled'||status==='completed'){
     S.appointments=S.appointments.filter(function(a){return String(a.id)!==String(b.id);});
   }
@@ -2402,8 +2517,39 @@ function renderSubscriptions(){
 }
 
 /* ===== DASHBOARD: SETTINGS ===== */
+function renderClientSettings(){
+  var u=S.user;
+  return'<h2 class="text-2xl font-bold mb-6">'+t('navSettings')+'</h2>'+
+  '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">'+
+  '<div class="card p-6"><h3 class="font-bold mb-5">'+t('profileSettings')+'</h3>'+
+  '<form onsubmit="updateClientProfile(event)" class="space-y-4">'+
+  '<div class="space-y-4 mb-4">'+
+  '<div class="flex items-center gap-4">'+
+  (u.avatar?'<img src="'+u.avatar+'" class="w-16 h-16 rounded-full border-2 border-[var(--border)] object-cover" alt="">':'<div class="w-16 h-16 rounded-full border-2 border-dashed border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center cursor-pointer shrink-0" onclick="openMediaPicker(\'avatar\')"><i class="fas fa-camera text-xl text-[var(--text2)]"></i></div>')+
+  '<div class="flex-1"><div class="text-sm font-semibold mb-1">صورة الحساب</div><button type="button" onclick="openMediaPicker(\'avatar\')" class="btn-secondary btn-sm">تغيير الصورة</button><input id="s-avatar-input" type="file" accept="image/*" onchange="handleMediaFile(\'avatar\',this)" class="hidden"></div></div>'+
+  '</div>'+
+  '<div><label class="block text-sm text-[var(--text2)] mb-1">الاسم الكامل</label><input class="input" id="s-nameAr" value="'+escapeHtml(u.nameAr||u.name||'')+'"></div>'+
+  '<button type="submit" class="btn-primary w-full">'+t('updateProfile')+'</button></form></div>'+
+  '</div>';
+}
+async function updateClientProfile(e){
+  e.preventDefault();
+  var nameVal=(document.getElementById('s-nameAr')||{}).value||'';
+  if(!nameVal.trim()){showToast(S.lang==='ar'?'يرجى إدخال الاسم':'Please enter a name','error');return;}
+  try{
+    await apiRequest('/api/me/profile',{method:'PATCH',body:{displayName:nameVal}});
+    S.user.name=nameVal;S.user.nameAr=nameVal;
+    var stored=readApiProfile();
+    if(stored){stored.display_name=nameVal;saveApiProfile(stored);}
+    showToast(S.lang==='ar'?'تم تحديث الملف بنجاح':'Profile updated successfully','success');
+    updateSidebarUser();
+    renderTab();
+  }catch(err){showToast(err.message||'فشل التحديث','error');}
+}
+
 function renderSettings(){
   var u=S.user;
+  if(u&&u.role==='client')return renderClientSettings();
   S.settingsCategorySlugs=selectedProfileCategorySlugs(u);
   var pubOn=u.isPublished===true;
   var visCard='<div class="card p-6 mb-6 border '+(pubOn?'border-[var(--success)]':'border-[var(--accent)]')+'">'+
@@ -4012,7 +4158,7 @@ function timeAgo(iso){
   var days=Math.floor(hrs/24);
   if(days<7)return days+(S.lang==='ar'?' ي':'d');
   var d=new Date(iso);
-  return S.lang==='ar'?d.toLocaleDateString('ar-SA',{month:'short',day:'numeric'}):d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  return S.lang==='ar'?d.toLocaleDateString('ar-EG',{month:'short',day:'numeric'}):d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
 }
 async function renderChatMessages(skipFetch){
   var area=document.getElementById('chat-msg-area');
@@ -4267,9 +4413,11 @@ function renderChatDashboard(){
   var convs=S.conversations||[];
   var au=authUser();
   var pId=au&&au.role==='photographer'?au.id:null;
+  var cId=au&&au.role==='client'?au.id:null;
   var filtered=convs.filter(function(c){
-    if(!pId)return false;
-    return c.photographerId===pId;
+    if(pId) return String(c.photographerId)===String(pId);
+    if(cId) return String(c.clientId)===String(cId);
+    return false;
   });
   filtered.sort(function(a,b){return new Date(b.lastMessageAt)-new Date(a.lastMessageAt);});
   var totalUnread=filtered.reduce(function(sum,c){return sum+(c.unread||0);},0);
@@ -4806,6 +4954,7 @@ async function initializeCurrentPage(){
   if(view==='explore')loadExploreFilterFromUrl();
   if(view==='public')await ensurePublicProfileHydrated();
   if(view==='dashboard'&&apiToken()&&(!S.user||S.user.role!=='photographer')){navigate('landing');return;}
+  if(view==='clientdashboard'&&apiToken()&&(!S.user||S.user.role!=='client')){navigate('landing');return;}
   if(view==='dashboard'||(view==='public'&&!S.viewedPhotographer)){loadDemoPhotographer();}
   navigate(view);
 }
