@@ -2341,6 +2341,9 @@ function renderClientDashboardBookings(){
 function renderBookings(){
   if(S.view==='clientdashboard')return renderClientDashboardBookings();
   S.bookingFilter=S.bookingFilter||'all';
+  var filtered=(S.bookings||[]);
+  if(S.bookingFilter==='pending')filtered=filtered.filter(function(b){return b.status==='pending';});
+  else if(S.bookingFilter==='confirmed')filtered=filtered.filter(function(b){return b.status==='confirmed';});
   return'<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">'+t('navBookings')+'</h2><button onclick="manualRefreshBookings()" class="btn-secondary btn-sm" title="تحديث"><i class="fas fa-sync-alt ml-1"></i>تحديث</button></div>'+
   '<div class="tab-filter mb-6 inline-flex">'+
   '<button class="'+(S.bookingFilter==='all'?'active':'')+'" onclick="filterBookings(\'all\')">'+t('all')+'</button>'+
@@ -3169,7 +3172,6 @@ function renderExploreCard(p,compact){
   '<div class="photo-card-region"><i class="fas fa-map-marker-alt"></i> '+gf(p,'region')+'</div>'+
   '<div class="photo-card-stats"><div class="photo-card-stat"><div class="photo-card-stat-value">'+p.bookings+'</div><div class="photo-card-stat-label">'+(S.lang==='ar'?'حجوزات':' bookings')+'</div></div><div class="photo-card-stat"><div class="photo-card-stat-value"><span class="stars">'+starsHTML(p.rating)+'</span></div><div class="photo-card-stat-label">'+p.rating+'</div></div></div>'+
   (lowestPrice!==null?'<div class="flex items-center gap-2 mb-3 text-sm"><i class="fas fa-tag text-[var(--accent)]"></i><span class="text-[var(--text2)]">'+t('startingFrom')+' </span><span class="font-bold gradient-text">'+formatPrice(lowestPrice)+'</span></div>':'')+
-  '<div class="photo-card-social">'+(p.social&&p.social.facebook?'<a href="'+p.social.facebook+'" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook"></i></a>':'')+(p.social&&p.social.instagram?'<a href="'+p.social.instagram+'" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>':'')+(p.social&&p.social.whatsapp?'<a href="https://wa.me/'+normalizePhoneToWa(p.social.whatsapp)+'" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>':'')+'</div>'+
   '<button onclick="viewPhotographerProfile(\''+p.id+'\')" class="btn-primary w-full btn-sm">'+t('viewProfile')+'</button></div></div>';
 }
 function renderExploreMobileGroups(filtered){
@@ -3494,7 +3496,7 @@ function renderPublicProfile(){
     var hasFiles=pkg.files&&pkg.files.length>0;
     var isFeatured=pkg.featured;
     
-    return'<div class="package-card select-package'+(isFeatured?' ring-2 ring-[var(--accent)]':'')+'" data-pid="'+pkg.id+'" onclick="selectPublicPackage(\''+pkg.id+'\')">'+
+    return'<div class="package-card select-package'+(isFeatured?' ring-2 ring-[var(--accent)]':'')+'" data-pid="'+pkg.id+'">'+
     (isFeatured?'<div class="package-status-badge"><span class="badge badge-featured"><i class="fas fa-star mr-1"></i>'+t('featuredPackage')+'</span></div>':'')+
     '<div class="package-card-header"><h3 class="text-xl font-bold mb-1">'+gf(pkg,'name')+'</h3>'+
     '<p class="text-sm text-[var(--text2)]">'+gf(pkg,'description')+'</p>'+
@@ -3505,7 +3507,7 @@ function renderPublicProfile(){
     (displayFeatures.length>0?'<div class="mb-4"><div class="text-xs text-[var(--text2)] font-semibold mb-2 uppercase tracking-wide">'+t('includes')+'</div>'+
     displayFeatures.map(function(f){return'<div class="package-feature"><i class="fas fa-check"></i><span class="text-sm">'+f+'</span></div>';}).join('')+'</div>':'')+
     (hasFiles?'<div class="flex items-center gap-2 text-xs text-[var(--text2)] mt-2 pt-3 border-t border-[var(--border)]"><i class="fas fa-paperclip"></i><span>'+pkg.files.length+' '+t('filesUploaded')+'</span></div>':'')+
-    '<button class="btn-primary w-full mt-4" onclick="event.stopPropagation();selectPublicPackage(\''+pkg.id+'\');scrollToBookingForm()">'+t('bookNow')+'</button>'+
+    '<button type="button" class="btn-primary w-full mt-4" onclick="selectPublicPackage(\''+pkg.id+'\');scrollToBookingForm()">'+t('bookNow')+'</button>'+
     '</div></div>';
   }).join('')+'</div>')+'</div>'+
   
