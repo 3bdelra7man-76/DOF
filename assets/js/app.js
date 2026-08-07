@@ -482,6 +482,7 @@ async function hydrateAuthenticatedState(){
   }catch(e){
     setApiToken('');
     saveApiProfile(null);
+    S.user = null;
   }
   updateNavBar();
   saveFrontendSession();
@@ -3392,18 +3393,13 @@ function renderPublicProfile(){
   '<div class="pub-section mb-20 pt-8 border-t border-[var(--border)]" id="booking-form-section"><h2 class="text-2xl font-bold mb-6">'+t('bookNow')+'</h2><div class="card p-8">'+
   '<form onsubmit="handlePublicBooking(event)" class="space-y-5">'+
   (function(){
-    var loggedClient=(S.user&&S.user.role==='client')?S.user:null;
-    if(loggedClient){
-      /* Logged-in client: hide name/email/phone (we'll send from session); show a small "booking as" notice */
-      return '<div class="rounded-xl border border-[var(--border)] bg-[var(--bg2)] p-3 text-sm text-[var(--text2)]"><i class="fas fa-user-check ml-1 text-[var(--accent)]"></i>'+(S.lang==='ar'?'تحجز باسم: ':'Booking as: ')+'<strong class="text-[var(--text)]">'+escapeHtml(loggedClient.name||'')+'</strong></div>'+
-      '<input type="hidden" id="pub-name" value="'+escapeHtml(loggedClient.name||'')+'">'+
-      '<input type="hidden" id="pub-email" value="'+escapeHtml(loggedClient.email||'')+'">'+
-      '<input type="hidden" id="pub-phone" value="'+escapeHtml(loggedClient.phone||'')+'">';
-    }
-    /* Anonymous: keep the visible fields (read-only feel) but they won't be submitted */
-    return '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourName')+'</label><input class="input" id="pub-name" disabled placeholder="'+(S.lang==='ar'?'سجل الدخول للحجز':'Sign in to book')+'"></div>'+
-    '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourEmail')+'</label><input type="email" class="input" id="pub-email" disabled></div>'+
-    '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourPhone')+'</label><input class="input" id="pub-phone" disabled></div>';
+    var prefillName = S.user ? escapeHtml(S.user.name || S.user.display_name || '') : '';
+    var prefillEmail = S.user ? escapeHtml(S.user.email || '') : '';
+    var prefillPhone = S.user ? escapeHtml(S.user.phone || '') : '';
+    
+    return '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourName')+'</label><input class="input" required id="pub-name" value="'+prefillName+'" placeholder="'+(S.lang==='ar'?'اسمك':'Your Name')+'"></div>'+
+    '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourEmail')+'</label><input type="email" class="input" id="pub-email" value="'+prefillEmail+'" placeholder="'+(S.lang==='ar'?'البريد الإلكتروني':'Your Email')+'"></div>'+
+    '<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('yourPhone')+'</label><input class="input" required id="pub-phone" value="'+prefillPhone+'" placeholder="'+(S.lang==='ar'?'رقم الهاتف':'Your Phone')+'"></div>';
   })()+'<div><label class="block text-sm text-[var(--text2)] mb-1">'+t('selectService')+'</label><select class="input" required id="pub-service" onchange="onPubServiceChange()"><option value="">'+t('selectService')+'</option>'+(pubPackages||[]).filter(function(p){return p.status==='active';}).map(function(p){return'<option value="'+p.id+'" data-price="'+p.price+'" data-name="'+gf(p,'name')+'" data-duration="'+gf(p,'duration')+'">'+gf(p,'name')+' — '+formatMoney(p.price)+'</option>';}).join('')+'</select></div>'+
   '<div id="pub-service-preview" class="hidden rounded-xl border border-[var(--accent)] bg-[rgba(196,145,92,0.08)] p-5"><div class="pub-service-preview-inner flex items-center justify-between"><div class="flex items-center gap-4">'+
   (u.avatar?'<img src="'+u.avatar+'" class="w-14 h-14 rounded-xl object-cover border border-[var(--border)]" alt="">':'<div class="w-14 h-14 rounded-xl border border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center"><i class="fas fa-camera text-xl" style="color:var(--border)"></i></div>')+
@@ -3412,9 +3408,7 @@ function renderPublicProfile(){
   '<div><label class="block text-sm font-semibold mb-2"><i class="fas fa-calendar-alt ml-2 text-[var(--accent)]"></i>'+t('selectDate')+'</label><input type="date" class="input" required id="pub-date" min="'+todayLocalISO()+'" onchange="onPubDateChange()"></div>'+
   '<div id="pub-time-area" class="hidden"><label class="block text-sm font-semibold mb-3"><i class="fas fa-clock ml-2 text-[var(--accent)]"></i>'+t('selectTime')+'</label><div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="pub-time-slots"></div></div>'+
   '</div>'+
-  ((S.user&&S.user.role==='client')
-    ?'<button type="submit" class="btn-primary text-lg w-full py-4 mt-2"><i class="fas fa-calendar-check ml-2"></i>'+t('submitBooking')+'</button>'
-    :'<button type="button" onclick="promptLoginToBook()" class="btn-primary text-lg w-full py-4 mt-2"><i class="fas fa-sign-in-alt ml-2"></i>'+(S.lang==='ar'?'سجّل الدخول للحجز':'Sign in to book')+'</button>')+
+  '<button type="submit" class="btn-primary text-lg w-full py-4 mt-2"><i class="fas fa-calendar-check ml-2"></i>'+t('submitBooking')+'</button>'+
   '</form>'+
   '<div id="pub-booking-confirmation" class="hidden mt-4 rounded-xl border border-[var(--success)] bg-[rgba(16,185,129,0.10)] p-4"></div>'+
   '</div></div></div></div>'+
@@ -3560,6 +3554,9 @@ function promptLoginToBook(){
   /* Stash whatever booking info has been picked so far so we can restore after login */
   var serviceSel=document.getElementById('pub-service');
   var dateSel=document.getElementById('pub-date');
+  var nameInp=document.getElementById('pub-name');
+  var emailInp=document.getElementById('pub-email');
+  var phoneInp=document.getElementById('pub-phone');
   var phFor=S.viewedPhotographer||S.user;
   var intent={
     photographerId:phFor&&phFor.id?phFor.id:null,
@@ -3567,6 +3564,9 @@ function promptLoginToBook(){
     packageId:serviceSel?serviceSel.value:'',
     date:dateSel?dateSel.value:'',
     time:S.selectedTime||'',
+    clientName:nameInp?nameInp.value:'',
+    clientEmail:emailInp?emailInp.value:'',
+    clientPhone:phoneInp?phoneInp.value:'',
     savedAt:Date.now()
   };
   try{sessionStorage.setItem('dof_pending_booking_intent',JSON.stringify(intent));}catch(e){}
@@ -3597,14 +3597,28 @@ function restorePendingBookingIntent(){
       var dt=document.getElementById('pub-date');
       if(dt&&intent.date){setPublicDateValue(intent.date);onPubDateChange().then(function(){
         if(intent.time){S.selectedTime=intent.time;}
+        // Automatically trigger booking if we have all info
+        if(intent.clientName || S.user.name) {
+          handlePublicBooking({ preventDefault: function(){} });
+        }
       });}
+      
+      var nameInp=document.getElementById('pub-name');
+      if(nameInp && (intent.clientName || S.user.name)) nameInp.value=intent.clientName || S.user.name || S.user.nameAr || '';
+      
+      var emailInp=document.getElementById('pub-email');
+      if(emailInp && (intent.clientEmail || S.user.email)) emailInp.value=intent.clientEmail || S.user.email || '';
+      
+      var phoneInp=document.getElementById('pub-phone');
+      if(phoneInp && (intent.clientPhone || S.user.phone)) phoneInp.value=intent.clientPhone || S.user.phone || '';
+
       scrollToBookingForm();
     },300);
   }).catch(function(){});
 }
 async function handlePublicBooking(e){
   e.preventDefault();
-  if(!S.user||S.user.role!=='client'){promptLoginToBook();return;}
+  // Allow guest bookings! No login prompt required.
   if(!S.selectedTime){showToast(t('noTimes'),'error');return;}
   var selectedPkg=getPackageById(document.getElementById('pub-service').value);
   if(!selectedPkg){showToast(t('selectService'),'error');return;}
@@ -3632,7 +3646,7 @@ async function handlePublicBooking(e){
     S.bookings.push(newBooking);
     renderClientBookingsPanel();
     addCustomerRecord(newBooking);
-    notifyPhotographerWhatsApp(newBooking,phFor);
+    // notifyPhotographerWhatsApp(newBooking,phFor); // Disabled as requested so it only goes to portfolio
   }catch(err){showToast(err.message||'فشل الحجز','error');return;}
   var conf=document.getElementById('pub-booking-confirmation');
   if(conf){

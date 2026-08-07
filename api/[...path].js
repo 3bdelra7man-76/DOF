@@ -1,4 +1,4 @@
-﻿import { requireRole, requireUser } from '../backend/lib/auth.js';
+import { requireRole, requireUser } from '../backend/lib/auth.js';
 import { config } from '../backend/lib/config.js';
 import { created, fail, handleError, methodNotAllowed, noContent, ok, readJson } from '../backend/lib/http.js';
 import { limitsForPlan, planForPhotographer } from '../backend/lib/limits.js';
@@ -1194,9 +1194,7 @@ async function createBooking(req, res) {
   assertValidEmail(body.clientEmail);
 
   const tokenUser = await requireUser(req).catch(() => null);
-  if (!tokenUser || tokenUser.profile?.role !== 'client') {
-    throw fail(401, 'يجب تسجيل الدخول كعميل للحجز');
-  }
+  const clientId = tokenUser && tokenUser.profile?.role === 'client' ? tokenUser.profile.id : null;
   const sb = supabaseService();
   const photographer = await getPhotographerProfile(sb, body.photographerId);
   const settings = await getPlatformSettings(sb);
@@ -1212,7 +1210,6 @@ async function createBooking(req, res) {
 
   const startTime = addMinutes(cleanString(body.startTime).slice(0, 5), 0);
   const endTime = addMinutes(startTime, pkg.duration_minutes);
-  const clientId = tokenUser.profile.id;
 
   /* Atomic conflict check + insert via advisory-locked RPC */
   const { data: rpcRow, error: rpcErr } = await sb.rpc('create_pending_booking', {
